@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class WasteBin extends Model
@@ -26,18 +27,18 @@ class WasteBin extends Model
      * Relationships
      * ------------------------- */
 
-    // public function resident()
-    // {
-    //     return $this->belongsTo(Resident::class, 'resident_id');
-    // }
+    public function resident()
+    {
+        return $this->belongsTo(Resident::class, 'resident_id');
+    }
 
-    // public function collectionRequests()
-    // {
-    //     return $this->hasMany(CollectionRequest::class, 'bin_id');
-    // }
+    public function collectionRequests()
+    {
+        return $this->hasMany(CollectionRequest::class, 'bin_id');
+    }
 
-    // public function qrCollections()
-    // {
-    //     return $this->hasMany(QrCollection::class, 'bin_id');
-    // }
+    public function qrCollections()
+    {
+        return $this->hasMany(QrCollection::class, 'bin_id');
+    }
 }

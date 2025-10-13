@@ -33,28 +33,28 @@ class RouteAssignment extends Model
      * Relationships
      * ------------------------- */
 
-    // public function route()
-    // {
-    //     return $this->belongsTo(Route::class, 'route_id');
-    // }
+    public function route()
+    {
+        return $this->belongsTo(Route::class, 'route_id');
+    }
 
-    // public function collector()
-    // {
-    //     return $this->belongsTo(Collector::class, 'collector_id');
-    // }
+    public function collector()
+    {
+        return $this->belongsTo(Collector::class, 'collector_id');
+    }
 
-    // public function schedule()
-    // {
-    //     return $this->belongsTo(CollectionSchedule::class, 'schedule_id');
-    // }
+    public function schedule()
+    {
+        return $this->belongsTo(CollectionSchedule::class, 'schedule_id');
+    }
 
-    // public function assignedBy()
-    // {
-    //     return $this->belongsTo(User::class, 'assigned_by');
-    // }
+    public function assignedBy()
+    {
+        return $this->belongsTo(User::class, 'assigned_by');
+    }
 
-    // public function qrCollections()
-    // {
-    //     return $this->hasMany(QrCollection::class, 'assignment_id');
-    // }
+    public function qrCollections()
+    {
+        return $this->hasMany(QrCollection::class, 'assignment_id');
+    }
 }

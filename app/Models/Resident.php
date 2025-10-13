@@ -40,18 +40,18 @@ class Resident extends Model
      * Relationships
      * ------------------------- */
 
-    // public function wasteBins()
-    // {
-    //     return $this->hasMany(WasteBin::class, 'resident_id');
-    // }
+    public function wasteBins()
+    {
+        return $this->hasMany(WasteBin::class, 'resident_id');
+    }
 
-    // public function collectionRequests()
-    // {
-    //     return $this->hasMany(CollectionRequest::class, 'user_id');
-    // }
+    public function collectionRequests()
+    {
+        return $this->hasMany(CollectionRequest::class, 'user_id');
+    }
 
-    // public function verifiedCollections()
-    // {
-    //     return $this->hasMany(QrCollection::class, 'verified_by');
-    // }
+    public function verifiedCollections()
+    {
+        return $this->hasMany(QrCollection::class, 'verified_by');
+    }
 }

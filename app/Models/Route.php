@@ -31,18 +31,18 @@ class Route extends Model
      * Relationships
      * ------------------------- */
 
-    // public function creator()
-    // {
-    //     return $this->belongsTo(Resident::class, 'created_by');
-    // }
+    public function creator()
+    {
+        return $this->belongsTo(Resident::class, 'created_by');
+    }
 
-    // public function stops()
-    // {
-    //     return $this->hasMany(RouteStop::class, 'route_id');
-    // }
+    public function stops()
+    {
+        return $this->hasMany(RouteStop::class, 'route_id');
+    }
 
-    // public function assignments()
-    // {
-    //     return $this->hasMany(RouteAssignment::class, 'route_id');
-    // }
+    public function assignments()
+    {
+        return $this->hasMany(RouteAssignment::class, 'route_id');
+    }
 }

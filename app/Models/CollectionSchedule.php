@@ -31,13 +31,13 @@ class CollectionSchedule extends Model
      * Relationships
      * ------------------------- */
 
-    // public function creator()
-    // {
-    //     return $this->belongsTo(Resident::class, 'created_by');
-    // }
+    public function creator()
+    {
+        return $this->belongsTo(Resident::class, 'created_by');
+    }
 
-    // public function routeAssignments()
-    // {
-    //     return $this->hasMany(RouteAssignment::class, 'schedule_id');
-    // }
+    public function routeAssignments()
+    {
+        return $this->hasMany(RouteAssignment::class, 'schedule_id');
+    }
 }

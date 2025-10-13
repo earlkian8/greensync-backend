@@ -39,18 +39,18 @@ class Collector extends Model
      * Relationships
      * ------------------------- */
 
-    // public function routeAssignments()
-    // {
-    //     return $this->hasMany(RouteAssignment::class, 'collector_id');
-    // }
+    public function routeAssignments()
+    {
+        return $this->hasMany(RouteAssignment::class, 'collector_id');
+    }
 
-    // public function collectionRequests()
-    // {
-    //     return $this->hasMany(CollectionRequest::class, 'assigned_collector_id');
-    // }
+    public function collectionRequests()
+    {
+        return $this->hasMany(CollectionRequest::class, 'assigned_collector_id');
+    }
 
-    // public function qrCollections()
-    // {
-    //     return $this->hasMany(QrCollection::class, 'collector_id');
-    // }
+    public function qrCollections()
+    {
+        return $this->hasMany(QrCollection::class, 'collector_id');
+    }
 }
