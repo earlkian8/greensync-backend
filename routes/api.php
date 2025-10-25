@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Collectors\CollectorNotificationController;
+use App\Http\Controllers\Api\Collectors\CollectorPerformanceController;
 use App\Http\Controllers\Api\Collectors\CollectorRequestController;
 use App\Http\Controllers\Api\Collectors\CollectorRouteController;
 use App\Http\Controllers\Api\Collectors\CollectorsController;
@@ -286,6 +287,30 @@ Route::prefix('v1')->group(function () {
                 
                 // Clear all notifications
                 Route::delete('/clear-all', [CollectorNotificationController::class, 'clearAllNotifications']);
+            });
+
+            // === Performance & History Module ===
+            Route::prefix('performance')->group(function () {
+                // Get overall performance summary
+                Route::get('/summary', [CollectorPerformanceController::class, 'getPerformanceSummary']);
+                
+                // Get collection history with filters
+                Route::get('/collections', [CollectorPerformanceController::class, 'getCollectionHistory']);
+                
+                // Get completed routes history
+                Route::get('/routes', [CollectorPerformanceController::class, 'getCompletedRoutes']);
+                
+                // Get collection statistics (charts data)
+                Route::get('/stats', [CollectorPerformanceController::class, 'getCollectionStats']);
+                
+                // Get daily performance report
+                Route::get('/daily/{date}', [CollectorPerformanceController::class, 'getDailyReport']);
+                
+                // Get weekly performance report
+                Route::get('/weekly', [CollectorPerformanceController::class, 'getWeeklyReport']);
+                
+                // Get monthly performance report
+                Route::get('/monthly', [CollectorPerformanceController::class, 'getMonthlyReport']);
             });
         });
     });
