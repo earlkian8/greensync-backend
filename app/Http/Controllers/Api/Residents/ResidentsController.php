@@ -109,4 +109,14 @@ class ResidentsController extends Controller
             'message' => 'Account deleted successfully.'
         ]);
     }
+
+    public function profile(Request $request)
+    {
+        $resident = $request->user();
+
+        return response()->json([
+            'message' => 'Profile fetched successfully.',
+            'resident' => $resident
+        ]);
+    }
 }
