@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Collectors\CollectorRequestController;
 use App\Http\Controllers\Api\Collectors\CollectorRouteController;
 use App\Http\Controllers\Api\Collectors\CollectorsController;
 use App\Http\Controllers\Api\Collectors\QRCollectionController;
@@ -218,6 +219,33 @@ Route::prefix('v1')->group(function () {
                 
                 // Get detailed progress report with statistics
                 Route::get('/assignments/{assignmentId}/report', [RouteProgressController::class, 'getProgressReport']);
+            });
+
+            // === Request Handling Module ===
+            Route::prefix('requests')->group(function () {
+                // Get all special requests assigned to collector
+                Route::get('/', [CollectorRequestController::class, 'getAssignedRequests']);
+                
+                // Get request statistics/summary
+                Route::get('/summary', [CollectorRequestController::class, 'getRequestSummary']);
+                
+                // Get completed requests history
+                Route::get('/completed', [CollectorRequestController::class, 'getCompletedRequests']);
+                
+                // Get specific request details
+                Route::get('/{requestId}', [CollectorRequestController::class, 'getRequestDetails']);
+                
+                // Accept or reject a request
+                Route::post('/{requestId}/respond', [CollectorRequestController::class, 'respondToRequest']);
+                
+                // Update request status (in-progress, completed, etc.)
+                Route::put('/status', [CollectorRequestController::class, 'updateRequestStatus']);
+                
+                // Complete request with resolution notes
+                Route::post('/complete', [CollectorRequestController::class, 'completeRequest']);
+                
+                // Upload photo evidence for request
+                Route::post('/upload-photo', [CollectorRequestController::class, 'uploadRequestPhoto']);
             });
         });
     });
