@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Collectors\CollectorNotificationController;
 use App\Http\Controllers\Api\Collectors\CollectorRequestController;
 use App\Http\Controllers\Api\Collectors\CollectorRouteController;
 use App\Http\Controllers\Api\Collectors\CollectorsController;
@@ -246,6 +247,45 @@ Route::prefix('v1')->group(function () {
                 
                 // Upload photo evidence for request
                 Route::post('/upload-photo', [CollectorRequestController::class, 'uploadRequestPhoto']);
+            });
+
+            // === Notification Module ===
+            Route::prefix('notifications')->group(function () {
+                // Get all notifications with filters
+                Route::get('/', [CollectorNotificationController::class, 'getNotifications']);
+                
+                // Get unread notifications only
+                Route::get('/unread', [CollectorNotificationController::class, 'getUnreadNotifications']);
+                
+                // Get unread notification count
+                Route::get('/count', [CollectorNotificationController::class, 'getUnreadCount']);
+                
+                // Get notification statistics
+                Route::get('/stats', [CollectorNotificationController::class, 'getNotificationStats']);
+                
+                // Get specific notification details (auto-marks as read)
+                Route::get('/{notificationId}', [CollectorNotificationController::class, 'getNotificationDetails']);
+                
+                // Mark single notification as read
+                Route::put('/{notificationId}/read', [CollectorNotificationController::class, 'markAsRead']);
+                
+                // Mark all notifications as read
+                Route::put('/read-all', [CollectorNotificationController::class, 'markAllAsRead']);
+                
+                // Mark multiple notifications as read
+                Route::put('/read-multiple', [CollectorNotificationController::class, 'markMultipleAsRead']);
+                
+                // Delete single notification
+                Route::delete('/{notificationId}', [CollectorNotificationController::class, 'deleteNotification']);
+                
+                // Delete multiple notifications
+                Route::delete('/delete-multiple', [CollectorNotificationController::class, 'deleteMultipleNotifications']);
+                
+                // Clear all read notifications
+                Route::delete('/clear-read', [CollectorNotificationController::class, 'clearReadNotifications']);
+                
+                // Clear all notifications
+                Route::delete('/clear-all', [CollectorNotificationController::class, 'clearAllNotifications']);
             });
         });
     });
