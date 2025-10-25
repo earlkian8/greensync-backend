@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Collectors\CollectorsController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Residents\ResidentsController;
 use App\Http\Controllers\Api\Residents\BinsController;
@@ -56,7 +57,21 @@ Route::prefix('v1')->group(function () {
 
     // Collectors
     Route::prefix('collector')->group(function () {
-        // im gay im gay im gay im gay im gay im gay im gay 
+        
+        // Public routes
+        Route::post('/register', [CollectorsController::class, 'store']);
+        Route::post('/login', [CollectorsController::class, 'login']);
+
+        // Protected routes
+        Route::middleware('auth:sanctum')->group(function () {
+            
+            // Profile management
+            Route::get('/profile', [CollectorsController::class, 'profile']);
+            Route::put('/profile', [CollectorsController::class, 'update']);
+            Route::post('/logout', [CollectorsController::class, 'logout']);
+            Route::delete('/delete', [CollectorsController::class, 'destroy']);
+            Route::post('/change-password', [CollectorsController::class, 'changePassword']);
+        });
     });
 
 });

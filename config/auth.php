@@ -45,6 +45,11 @@ return [
             'driver' => 'sanctum',
             'provider' => 'residents',
         ],
+
+        'collector' => [
+            'driver' => 'sanctum',
+            'provider' => 'collectors',
+        ],
     ],
 
     /*
@@ -73,6 +78,11 @@ return [
         'residents' => [
             'driver' => 'eloquent',
             'model' => App\Models\Resident::class, // Mobile app residents
+        ],
+
+        'collectors' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Collector::class, // Mobile app collectors
         ],
 
         // 'users' => [
