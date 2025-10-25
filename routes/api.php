@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\Collectors\CollectorRouteController;
 use App\Http\Controllers\Api\Collectors\CollectorsController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Residents\ResidentsController;
@@ -71,6 +72,15 @@ Route::prefix('v1')->group(function () {
             Route::post('/logout', [CollectorsController::class, 'logout']);
             Route::delete('/delete', [CollectorsController::class, 'destroy']);
             Route::post('/change-password', [CollectorsController::class, 'changePassword']);
+
+            // Route Assignment & Schedule
+            Route::prefix('routes')->group(function () {
+                Route::get('/today', [CollectorRouteController::class, 'getTodayAssignments']);
+                Route::get('/assignments/{assignmentId}', [CollectorRouteController::class, 'getRouteDetails']);
+                Route::get('/{routeId}/stops', [CollectorRouteController::class, 'getRouteStops']);
+                Route::post('/assignments/{assignmentId}/start', [CollectorRouteController::class, 'startRoute']);
+                Route::post('/assignments/{assignmentId}/complete', [CollectorRouteController::class, 'completeRoute']);
+            });
         });
     });
 
