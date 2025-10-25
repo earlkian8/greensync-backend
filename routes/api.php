@@ -14,11 +14,14 @@ Route::prefix('v1')->group(function () {
 
         // Protected
         Route::middleware('auth:sanctum')->group(function () {
+
+            // Residents
             Route::get('/profile', [ResidentsController::class, 'profile']);
             Route::put('/profile', [ResidentsController::class, 'update']);
             Route::post('/logout', [ResidentsController::class, 'logout']);
             Route::delete('/delete', [ResidentsController::class, 'destroy']);
 
+            // Bins
             Route::prefix('bins')->group(function () {
                 Route::get('/', [BinsController::class, 'index']);
                 Route::post('/', [BinsController::class, 'store']);
