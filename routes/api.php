@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Collectors\CollectorRouteController;
 use App\Http\Controllers\Api\Collectors\CollectorsController;
+use App\Http\Controllers\Api\Collectors\QRCollectionController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\Residents\ResidentsController;
 use App\Http\Controllers\Api\Residents\BinsController;
@@ -80,6 +81,25 @@ Route::prefix('v1')->group(function () {
                 Route::get('/{routeId}/stops', [CollectorRouteController::class, 'getRouteStops']);
                 Route::post('/assignments/{assignmentId}/start', [CollectorRouteController::class, 'startRoute']);
                 Route::post('/assignments/{assignmentId}/complete', [CollectorRouteController::class, 'completeRoute']);
+                Route::get('/all', [CollectorRouteController::class, 'getAllAssignments']);
+                Route::get('/summary', [CollectorRouteController::class, 'getAssignmentSummary']);
+                Route::get('/upcoming', [CollectorRouteController::class, 'getUpcomingAssignments']);
+                Route::post('/assignments/{assignmentId}/pause', [CollectorRouteController::class, 'pauseRoute']);
+                Route::post('/assignments/{assignmentId}/resume', [CollectorRouteController::class, 'resumeRoute']);
+                Route::get('/assignments/{assignmentId}/navigation', [CollectorRouteController::class, 'getRouteNavigation']);
+                Route::post('/assignments/{assignmentId}/report-issue', [CollectorRouteController::class, 'reportIssue']);
+            });
+
+            // QR Collection Module
+            Route::prefix('collections')->group(function () {
+                Route::post('/scan', [QRCollectionController::class, 'scanQRCode']);
+                Route::post('/record', [QRCollectionController::class, 'recordCollection']);
+                Route::post('/upload-photo', [QRCollectionController::class, 'uploadPhoto']);
+                Route::post('/skip', [QRCollectionController::class, 'skipCollection']);
+                Route::get('/assignments/{assignmentId}', [QRCollectionController::class, 'getAssignmentCollections']);
+                Route::get('/{collectionId}', [QRCollectionController::class, 'getCollectionDetails']);
+                Route::put('/{collectionId}', [QRCollectionController::class, 'updateCollection']);
+                Route::delete('/{collectionId}', [QRCollectionController::class, 'deleteCollection']);
             });
         });
     });
