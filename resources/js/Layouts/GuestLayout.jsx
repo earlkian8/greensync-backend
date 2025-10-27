@@ -1,5 +1,6 @@
 import ApplicationLogo from '@/Components/ApplicationLogo';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
+import { Toaster } from '@/Components/ui/sonner';
 
 export default function GuestLayout({ children }) {
     return (
@@ -12,6 +13,7 @@ export default function GuestLayout({ children }) {
 
             <div className="mt-6 w-full overflow-hidden bg-white px-6 py-4 shadow-md sm:max-w-md sm:rounded-lg">
                 {children}
+                <Toaster position="top-right"/>
             </div>
         </div>
     );

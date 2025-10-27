@@ -4,9 +4,18 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
-
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { toast } from 'sonner';
+import { useEffect } from 'react';
 export default function Login({ status, canResetPassword }) {
+
+    const { flash } = usePage().props;
+    
+        useEffect(() => {
+            if (flash.success) {
+                toast.success(flash.success);
+            }
+        }, [flash]);
     const { data, setData, post, processing, errors, reset } = useForm({
         email: '',
         password: '',
@@ -17,7 +26,16 @@ export default function Login({ status, canResetPassword }) {
         e.preventDefault();
 
         post(route('login'), {
-            onFinish: () => reset('password'),
+            onFinish: () => {
+                reset('password');
+                // Check if there were no errors to determine success
+                if (Object.keys(errors).length === 0) {
+                    toast.success('Login Successfully!');
+                }
+            },
+            onError: () => {
+                toast.error('Wrong Credentials!');
+            }
         });
     };
 

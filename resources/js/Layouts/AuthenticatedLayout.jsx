@@ -1,176 +1,317 @@
-import ApplicationLogo from '@/Components/ApplicationLogo';
-import Dropdown from '@/Components/Dropdown';
-import NavLink from '@/Components/NavLink';
-import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
 import { Link, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import {
+  Home,
+  LayoutDashboard,
+  Settings,
+  ChevronRight,
+  LogOut,
+  ChevronDown,
+  Users,
+  FileText,
+  Trash2,
+  Calendar,
+  MapPin,
+  Truck,
+  Layers,
+  Bell,
+  BarChart2,
+  Key,
+  ClipboardList,
+} from 'lucide-react';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+  SidebarProvider,
+  SidebarTrigger,
+} from '@/components/ui/sidebar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from '@/components/ui/breadcrumb';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
+import Logo2 from './../../assets/logo2.png';
+import { Toaster } from '@/Components/ui/sonner';
+import { toast } from 'sonner';
+import { useEffect } from 'react';
+export default function AuthenticatedLayout({ breadcrumbs = [], children }) {
+  const user = usePage().props.auth.user;
+    const { flash } = usePage().props;
 
-export default function AuthenticatedLayout({ header, children }) {
-    const user = usePage().props.auth.user; 
+    useEffect(() => {
+        if (flash.success) {
+            toast.success(flash.success);
+        }
+    }, [flash]);
+  const navigationItems = [
+    {
+      title: 'Dashboard',
+      url: route('dashboard'),
+      icon: LayoutDashboard,
+      isActive: route().current('dashboard'),
+    },
+    {
+      title: 'Resident Management',
+      url: '#',
+      icon: Users,
+    },
+    {
+      title: 'Collector Management',
+      url: '#',
+      icon: Truck,
+    },
+    {
+      title: 'Waste Bin Management',
+      url: '#',
+      icon: Trash2,
+    },
+    {
+      title: 'Collection Schedule Management',
+      url: '#',
+      icon: Calendar,
+    },
+    {
+      title: 'Route Management',
+      url: '#',
+      icon: MapPin,
+    },
+    {
+      title: 'Route Assignment',
+      url: '#',
+      icon: Layers,
+    },
+    {
+      title: 'Request Management',
+      url: '#',
+      icon: FileText,
+    },
+    {
+      title: 'Notification & Announcement',
+      url: '#',
+      icon: Bell,
+    },
+    {
+      title: 'Reporting',
+      url: '#',
+      icon: BarChart2,
+    },
+    {
+      title: 'User Management',
+      icon: Key,
+      items: [
+        { title: 'Roles & Permission Module', url: '#' },
+        { title: 'User Management Module', url: '#' },
+        { title: 'Activity Log', url: '#' },
+      ],
+    },
+  ];
 
-    const [showingNavigationDropdown, setShowingNavigationDropdown] =
-        useState(false);
-
-    return (
-        <div className="min-h-screen bg-gray-100">
-            <nav className="border-b border-gray-100 bg-white">
-                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <div className="flex h-16 justify-between">
-                        <div className="flex">
-                            <div className="flex shrink-0 items-center">
-                                <Link href="/">
-                                    <ApplicationLogo className="block h-9 w-auto fill-current text-gray-800" />
-                                </Link>
-                            </div>
-
-                            <div className="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                                <NavLink
-                                    href={route('dashboard')}
-                                    active={route().current('dashboard')}
-                                >
-                                    Dashboard
-                                </NavLink>
-                            </div>
-                        </div>
-
-                        <div className="hidden sm:ms-6 sm:flex sm:items-center">
-                            <div className="relative ms-3">
-                                <Dropdown>
-                                    <Dropdown.Trigger>
-                                        <span className="inline-flex rounded-md">
-                                            <button
-                                                type="button"
-                                                className="inline-flex items-center rounded-md border border-transparent bg-white px-3 py-2 text-sm font-medium leading-4 text-gray-500 transition duration-150 ease-in-out hover:text-gray-700 focus:outline-none"
-                                            >
-                                                {user.name}
-
-                                                <svg
-                                                    className="-me-0.5 ms-2 h-4 w-4"
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    viewBox="0 0 20 20"
-                                                    fill="currentColor"
-                                                >
-                                                    <path
-                                                        fillRule="evenodd"
-                                                        d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                                                        clipRule="evenodd"
-                                                    />
-                                                </svg>
-                                            </button>
-                                        </span>
-                                    </Dropdown.Trigger>
-
-                                    <Dropdown.Content>
-                                        <Dropdown.Link
-                                            href={route('profile.edit')}
-                                        >
-                                            Profile
-                                        </Dropdown.Link>
-                                        <Dropdown.Link
-                                            href={route('logout')}
-                                            method="post"
-                                            as="button"
-                                        >
-                                            Log Out
-                                        </Dropdown.Link>
-                                    </Dropdown.Content>
-                                </Dropdown>
-                            </div>
-                        </div>
-
-                        <div className="-me-2 flex items-center sm:hidden">
-                            <button
-                                onClick={() =>
-                                    setShowingNavigationDropdown(
-                                        (previousState) => !previousState,
-                                    )
-                                }
-                                className="inline-flex items-center justify-center rounded-md p-2 text-gray-400 transition duration-150 ease-in-out hover:bg-gray-100 hover:text-gray-500 focus:bg-gray-100 focus:text-gray-500 focus:outline-none"
-                            >
-                                <svg
-                                    className="h-6 w-6"
-                                    stroke="currentColor"
-                                    fill="none"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        className={
-                                            !showingNavigationDropdown
-                                                ? 'inline-flex'
-                                                : 'hidden'
-                                        }
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        d="M4 6h16M4 12h16M4 18h16"
-                                    />
-                                    <path
-                                        className={
-                                            showingNavigationDropdown
-                                                ? 'inline-flex'
-                                                : 'hidden'
-                                        }
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        d="M6 18L18 6M6 6l12 12"
-                                    />
-                                </svg>
-                            </button>
-                        </div>
+  return (
+    <SidebarProvider defaultOpen={true}>
+      <div className="flex min-h-screen w-full">
+        <Sidebar collapsible="icon">
+          <SidebarHeader>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton size="lg" asChild>
+                  <Link href="/" className='hover:text-white'>
+                    <div className="flex aspect-square size-8 items-center justify-center rounded-lg border-green-600 border-2 text-primary-foreground">
+                        <img
+                            src={Logo2}
+                            alt="Logo"
+                            className="w-full h-full object-contain rounded-lg"
+                        />
                     </div>
-                </div>
+                    <div className="flex flex-col gap-0.5 leading-none">
+                      <span className="font-semibold">GreenSync</span>
+                      <span className="text-xs">
+                        Waste Management System
+                      </span>
+                    </div>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarHeader>
 
-                <div
-                    className={
-                        (showingNavigationDropdown ? 'block' : 'hidden') +
-                        ' sm:hidden'
+          <SidebarContent>
+            <SidebarGroup>
+              <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {navigationItems.map((item) => {
+                    const Icon = item.icon;
+                    
+                    if (item.items) {
+                      return (
+                        <Collapsible key={item.title} asChild defaultOpen={false}>
+                          <SidebarMenuItem>
+                            <CollapsibleTrigger asChild>
+                              <SidebarMenuButton>
+                                <Icon className="h-4 w-4" />
+                                <span>{item.title}</span>
+                                <ChevronDown className="ml-auto h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+                              </SidebarMenuButton>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                              <SidebarMenuSub>
+                                {item.items.map((subItem) => (
+                                  <SidebarMenuSubItem key={subItem.title}>
+                                    <SidebarMenuSubButton asChild>
+                                      <Link href={subItem.url}>
+                                        {subItem.title}
+                                      </Link>
+                                    </SidebarMenuSubButton>
+                                  </SidebarMenuSubItem>
+                                ))}
+                              </SidebarMenuSub>
+                            </CollapsibleContent>
+                          </SidebarMenuItem>
+                        </Collapsible>
+                      );
                     }
-                >
-                    <div className="space-y-1 pb-3 pt-2">
-                        <ResponsiveNavLink
-                            href={route('dashboard')}
-                            active={route().current('dashboard')}
-                        >
-                            Dashboard
-                        </ResponsiveNavLink>
+
+                    return (
+                      <SidebarMenuItem key={item.title}>
+                        <SidebarMenuButton asChild isActive={item.isActive}>
+                          <Link href={item.url}>
+                            <Icon className="h-4 w-4" />
+                            <span>{item.title}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    );
+                  })}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </SidebarContent>
+
+          <SidebarFooter>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <DropdownMenu className='hover:text-white'>
+                  <DropdownMenuTrigger asChild>
+                    <SidebarMenuButton size="lg">
+                      <div className="flex flex-col gap-0.5 leading-none text-left">
+                        <span className="text-sm font-medium">{user.name}</span>
+                        <span className="text-xs">
+                          {user.email}
+                        </span>
+                      </div>
+                      <ChevronDown className="ml-auto h-4 w-4" />
+                    </SidebarMenuButton>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    side="top"
+                    align="end"
+                    className="w-56"
+                  >
+                    <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link href={route('profile.edit')} className="cursor-pointer">
+                        <Settings className="mr-2 h-4 w-4" />
+                        Settings
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link
+                        href={route('logout')}
+                        method="post"
+                        as="button"
+                        className="w-full cursor-pointer"
+                      >
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Log out
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarFooter>
+        </Sidebar>
+
+  <main className="flex-1 flex flex-col">
+          <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-background px-4 sm:px-6 lg:px-8">
+            <SidebarTrigger />
+            <Separator orientation="vertical" className="h-6" />
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem>
+                  <BreadcrumbLink asChild>
+                    <Link href={route('dashboard')}>
+                      <Home className="h-4 w-4" />
+                    </Link>
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                {breadcrumbs.map((crumb, index) => {
+                  const isLast = index === breadcrumbs.length - 1;
+                  return (
+                    <div key={index} className="flex items-center gap-2">
+                      <BreadcrumbSeparator>
+                        <ChevronRight className="h-4 w-4" />
+                      </BreadcrumbSeparator>
+                      <BreadcrumbItem>
+                        {!isLast && crumb.href ? (
+                          <BreadcrumbLink asChild>
+                            <Link href={crumb.href}>{crumb.name}</Link>
+                          </BreadcrumbLink>
+                        ) : (
+                          <BreadcrumbPage>{crumb.name}</BreadcrumbPage>
+                        )}
+                      </BreadcrumbItem>
                     </div>
+                  );
+                })}
+              </BreadcrumbList>
+            </Breadcrumb>
+          </header>
 
-                    <div className="border-t border-gray-200 pb-1 pt-4">
-                        <div className="px-4">
-                            <div className="text-base font-medium text-gray-800">
-                                {user.name}
-                            </div>
-                            <div className="text-sm font-medium text-gray-500">
-                                {user.email}
-                            </div>
-                        </div>
+          <div className="flex-1 overflow-auto p-4 sm:p-6">
+            <div className="mx-auto w-7xl">
+             {children}
+            </div>
+            <Toaster position="top-right"/>
+          </div>
 
-                        <div className="mt-3 space-y-1">
-                            <ResponsiveNavLink href={route('profile.edit')}>
-                                Profile
-                            </ResponsiveNavLink>
-                            <ResponsiveNavLink
-                                method="post"
-                                href={route('logout')}
-                                as="button"
-                            >
-                                Log Out
-                            </ResponsiveNavLink>
-                        </div>
-                    </div>
-                </div>
-            </nav>
-
-            {header && (
-                <header className="bg-white shadow">
-                    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-                        {header}
-                    </div>
-                </header>
-            )}
-
-            <main>{children}</main>
-        </div>
-    );
+    <footer className="bg-white border-t border-gray-200 px-4 py-3 sm:px-6">
+      <div className="flex flex-col sm:flex-row justify-between items-center text-sm text-gray-600">
+        <p>&copy; 2025 Abdurauf Sawadjaan Engineering Consultancy. All rights reserved.</p>
+      </div>
+    </footer>
+        </main>
+      </div>
+    </SidebarProvider>
+  );
 }
