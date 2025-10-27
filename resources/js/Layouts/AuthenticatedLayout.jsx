@@ -127,9 +127,9 @@ export default function AuthenticatedLayout({ breadcrumbs = [], children }) {
       title: 'User Management',
       icon: Key,
       items: [
-        { title: 'Roles & Permission Module', url: '#' },
-        { title: 'User Management Module', url: '#' },
-        { title: 'Activity Log', url: '#' },
+        { title: 'Roles & Permission Module', url: route('user-management.roles-and-permissions.index') },
+        { title: 'User Management Module', url: route('user-management.users.index') },
+        { title: 'Activity Log', url: route('user-management.activity-logs.index') },
       ],
     },
   ];
