@@ -127,9 +127,9 @@ export default function AuthenticatedLayout({ breadcrumbs = [], children }) {
       title: 'User Management',
       icon: Key,
       items: [
-        { title: 'Roles & Permission Module', url: '#' },
-        { title: 'User Management Module', url: '#' },
-        { title: 'Activity Log', url: '#' },
+        { title: 'Roles & Permission Module', url: route('user-management.roles-and-permissions.index') },
+        { title: 'User Management Module', url: route('user-management.users.index') },
+        { title: 'Activity Log', url: route('user-management.activity-logs.index') },
       ],
     },
   ];
@@ -307,7 +307,7 @@ export default function AuthenticatedLayout({ breadcrumbs = [], children }) {
 
     <footer className="bg-white border-t border-gray-200 px-4 py-3 sm:px-6">
       <div className="flex flex-col sm:flex-row justify-between items-center text-sm text-gray-600">
-        <p>&copy; 2025 Abdurauf Sawadjaan Engineering Consultancy. All rights reserved.</p>
+        {/* <p>&copy; 2025 Abdurauf Sawadjaan Engineering Consultancy. All rights reserved.</p> */}
       </div>
     </footer>
         </main>
