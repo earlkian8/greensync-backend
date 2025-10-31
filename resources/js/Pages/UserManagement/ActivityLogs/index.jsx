@@ -69,7 +69,7 @@ export default function ActivityLogsIndex() {
             
             
           </div>
-          <div className="overflow-hidden bg-white shadow sm:rounded-lg">
+          <div className="overflow-auto bg-white shadow sm:rounded-lg">
             <TableComponent
               columns={columns}
               data={logs}

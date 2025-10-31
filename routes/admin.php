@@ -1,8 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Admin\UserManagement\RolesController;
-use App\Http\Controllers\Admin\UserManagement\UserController;
+use App\Http\Controllers\v1\Admin\UserManagement\RolesController;
+use App\Http\Controllers\v1\Admin\UserManagement\UserController;
 use App\Http\Controllers\ActivityLogsController;
 
 Route::middleware('auth')->group(function () {

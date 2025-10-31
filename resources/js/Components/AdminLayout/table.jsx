@@ -82,8 +82,8 @@ export default function TableComponent({
       )}
 
       {/* Table Content */}
-      <div className="overflow-x-auto rounded-lg">
-        <Table className="min-w-[600px] w-full bg-white">
+      <div className="w-full overflow-x-auto rounded-lg">
+        <Table className="min-w-[600px] w-full bg-white whitespace-nowrap">
           <TableHeader>
             <TableRow>
               {showSelectAll && (
