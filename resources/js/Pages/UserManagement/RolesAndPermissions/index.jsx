@@ -41,10 +41,6 @@ export default function Roles() {
 
     const breadcrumbs = [
         {
-            name: "Home",
-            href: "/dashboard",
-        },
-        {
             name: "User Management",
             href: route('user-management.roles-and-permissions.index')
         },
@@ -66,7 +62,7 @@ export default function Roles() {
         <AuthenticatedLayout breadcrumbs={breadcrumbs}>
             <Head title="Roles" />
 
-            <div className="py-2">
+            <div>
                 <div className="w-full sm:px-6 lg:px-8">
                     <TableComponent
                         columns={columns}
