@@ -10,7 +10,6 @@ import {
 
 export default function ActivityLogsIndex() {
   const breadcrumbs = [
-    { name: "Home", href: route('dashboard') },
     { name: "User Management", href: route('user-management.activity-logs.index') },
     { name: "Activity Logs" },
     ];

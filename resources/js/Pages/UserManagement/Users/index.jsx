@@ -50,10 +50,6 @@ export default function Users() {
 
     const breadcrumbs = [
         {
-            name: "Home",
-            href: "/dashboard",
-        },
-        {
             name: "User Management",
             href: '/user-management/users'
         },
@@ -83,7 +79,7 @@ export default function Users() {
         <AuthenticatedLayout breadcrumbs={breadcrumbs}>
             <Head title="Users" />
 
-            <div className="py-2">
+            <div>
                 <div className="w-full sm:px-6 lg:px-8">
                     <TableComponent
                         columns={columns}
