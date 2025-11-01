@@ -64,7 +64,7 @@ export default function TableComponent({
           {showAddButton && (
             <div className="w-full sm:w-auto">
               <Button 
-                className="w-full sm:w-auto bg-zinc-700 hover:bg-zinc-900 text-white" 
+                className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white" 
                 onClick={() => {
                   if (!addButtonDisabled) {
                     onAdd();

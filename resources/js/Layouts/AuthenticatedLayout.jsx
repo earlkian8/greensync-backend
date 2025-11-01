@@ -80,7 +80,7 @@ export default function AuthenticatedLayout({ breadcrumbs = [], children }) {
     },
     {
       title: 'Resident Management',
-      url: '#',
+      url: route('admin.resident-management.index'),
       icon: Users,
     },
     {
