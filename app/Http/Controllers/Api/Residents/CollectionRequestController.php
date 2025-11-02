@@ -11,7 +11,7 @@ use Illuminate\Validation\ValidationException;
 class CollectionRequestController extends Controller
 {
     /**
-     * Get all collection requests for the authenticated resident.
+     * Get all collection requests and bins for the authenticated resident.
      */
     public function index(Request $request)
     {
@@ -22,13 +22,18 @@ class CollectionRequestController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        $bins = WasteBin::where('resident_id', $resident->id)
+            ->where('status', 'Active')
+            ->get();
+
         return response()->json([
             'collection_requests' => $requests,
+            'bins' => $bins,
         ]);
     }
 
     /**
-     * Get a specific collection request detail by ID.
+     * Get a specific collection request by ID.
      */
     public function show(Request $request, $id)
     {
@@ -87,7 +92,7 @@ class CollectionRequestController extends Controller
 
         return response()->json([
             'message' => 'Collection request submitted successfully.',
-            'collection_request' => $collectionRequest->load('wasteBin')
+            'collection_request' => $collectionRequest->load('wasteBin'),
         ], 201);
     }
 }
