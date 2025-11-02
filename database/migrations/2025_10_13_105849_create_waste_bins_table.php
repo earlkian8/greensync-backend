@@ -18,7 +18,7 @@ return new class extends Migration
             $table->foreignId('resident_id')->constrained('residents')->onDelete('cascade');
             $table->enum('bin_type', ['biodegradable', 'non-biodegradable', 'recyclable', 'hazardous'])
                   ->default('biodegradable');
-            $table->enum('status', ['active', 'inactive', 'damaged', 'under_maintenance'])
+            $table->enum('status', ['active', 'inactive', 'damaged', 'full'])
                   ->default('active');
 
             $table->timestamp('registered_at')->useCurrent();
