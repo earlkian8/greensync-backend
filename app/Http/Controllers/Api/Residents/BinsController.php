@@ -50,7 +50,7 @@ class BinsController extends Controller
             'name' => 'required|string|max:255',
             'qr_code' => 'required|string|unique:waste_bins,qr_code',
             'bin_type' => 'required|string|in:biodegradable,non-biodegradable,recyclable,hazardous',
-            'status' => 'nullable|string|in:active,inactive,full,damaged',
+            'status' => 'nullable|string|in:active,inactive,under_maintenance,damaged',
         ]);
 
         $validated['resident_id'] = $resident->id;
@@ -74,7 +74,7 @@ class BinsController extends Controller
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
             'bin_type' => 'sometimes|required|string|in:biodegradable,non-biodegradable,recyclable,hazardous',
-            'status' => 'sometimes|required|string|in:active,inactive,full,damaged',
+            'status' => 'sometimes|required|string|in:active,inactive,under_maintenance,damaged',
         ]);
 
         $bin->update($validated);
