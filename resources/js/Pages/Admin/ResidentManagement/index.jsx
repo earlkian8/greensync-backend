@@ -166,10 +166,10 @@ export default function ResidentManagement() {
         <AuthenticatedLayout breadcrumbs={breadcrumbs}>
             <Head title="Resident Management" />
 
-            <div className="py-2">
+            <div>
                 <div className="w-full sm:px-6 lg:px-8">
                     {/* Custom header with search, filters, and add button */}
-                    <div className="p-2 bg-white rounded-md shadow mb-4">
+                    <div className="p-2 bg-white rounded-md shadow mb-2">
                         <div className="py-2 flex flex-col sm:flex-row sm:items-center gap-2">
                             {/* Search Input */}
                             <div className="w-full sm:flex-1">
