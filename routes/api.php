@@ -44,8 +44,9 @@ Route::prefix('v1')->group(function () {
 
             // === Collection Requests ===
             Route::prefix('collection-requests')->group(function () {
-                // Create special pickup request
                 Route::post('/', [CollectionRequestController::class, 'store']);
+                Route::get('/', [CollectionRequestController::class, 'index']);
+                Route::get('/{id}', [CollectionRequestController::class, 'show']);
             });
 
             // === Notifications ===

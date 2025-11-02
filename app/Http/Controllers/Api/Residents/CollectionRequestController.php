@@ -10,6 +10,48 @@ use Illuminate\Validation\ValidationException;
 
 class CollectionRequestController extends Controller
 {
+    /**
+     * Get all collection requests for the authenticated resident.
+     */
+    public function index(Request $request)
+    {
+        $resident = $request->user();
+
+        $requests = CollectionRequest::with('wasteBin')
+            ->where('user_id', $resident->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'collection_requests' => $requests,
+        ]);
+    }
+
+    /**
+     * Get a specific collection request detail by ID.
+     */
+    public function show(Request $request, $id)
+    {
+        $resident = $request->user();
+
+        $collectionRequest = CollectionRequest::with('wasteBin')
+            ->where('user_id', $resident->id)
+            ->find($id);
+
+        if (!$collectionRequest) {
+            return response()->json([
+                'message' => 'Collection request not found or does not belong to you.'
+            ], 404);
+        }
+
+        return response()->json([
+            'collection_request' => $collectionRequest,
+        ]);
+    }
+
+    /**
+     * Store a new collection request.
+     */
     public function store(Request $request)
     {
         $resident = $request->user();
@@ -25,10 +67,10 @@ class CollectionRequestController extends Controller
             'priority' => 'nullable|string|in:low,medium,high,urgent',
         ]);
 
-        // Verify that the bin belongs to the resident
+        // Verify bin ownership
         $bin = WasteBin::where('id', $validated['bin_id'])
-                       ->where('resident_id', $resident->id)
-                       ->first();
+            ->where('resident_id', $resident->id)
+            ->first();
 
         if (!$bin) {
             throw ValidationException::withMessages([
@@ -36,7 +78,7 @@ class CollectionRequestController extends Controller
             ]);
         }
 
-        // Set default values
+        // Set defaults
         $validated['user_id'] = $resident->id;
         $validated['status'] = 'pending';
         $validated['priority'] = $validated['priority'] ?? 'medium';
