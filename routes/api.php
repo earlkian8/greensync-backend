@@ -33,25 +33,12 @@ Route::prefix('v1')->group(function () {
 
             // === Bins Management ===
             Route::prefix('bins')->group(function () {
-                // Get all bins owned by resident
                 Route::get('/', [BinsController::class, 'index']);
-                
-                // Register new waste bin
                 Route::post('/', [BinsController::class, 'store']);
-                
-                // Get bin details by QR code
                 Route::get('/qr', [BinsController::class, 'getByQrCode']);
-                
-                // Get specific bin details by ID
                 Route::get('/{id}', [BinsController::class, 'show']);
-                
-                // Update bin information
                 Route::put('/{id}', [BinsController::class, 'update']);
-                
-                // Delete/unregister a bin
                 Route::delete('/{id}', [BinsController::class, 'destroy']);
-                
-                // Mark bin as collected (for resident tracking)
                 Route::post('/{id}/mark-collected', [BinsController::class, 'markCollected']);
             });
 
