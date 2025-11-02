@@ -75,7 +75,7 @@ export default function AuthenticatedLayout({ breadcrumbs = [], children }) {
       title: 'Resident Management',
       url: route('admin.resident-management.index'),
       icon: Users,
-      routeName: 'resident-management.*',
+      routeName: 'admin.resident-management.*',
       type: 'single'
     },
     {
