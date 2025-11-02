@@ -13,10 +13,10 @@ return new class extends Migration
     {
         Schema::create('waste_bins', function (Blueprint $table) {
             $table->id();
+            $table->string('name', 255)->nullable(false);
             $table->string('qr_code', 255)->unique();
             $table->foreignId('resident_id')->constrained('residents')->onDelete('cascade');
-
-            $table->enum('bin_type', ['biodegradable', 'non-biodegradable', 'recyclable', 'special'])
+            $table->enum('bin_type', ['biodegradable', 'non-biodegradable', 'recyclable', 'hazardous'])
                   ->default('biodegradable');
             $table->enum('status', ['active', 'inactive', 'damaged', 'under_maintenance'])
                   ->default('active');

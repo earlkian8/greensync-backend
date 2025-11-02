@@ -10,6 +10,7 @@ class WasteBin extends Model
     use HasFactory;
 
     protected $fillable = [
+        'name',
         'qr_code',
         'resident_id',
         'bin_type',

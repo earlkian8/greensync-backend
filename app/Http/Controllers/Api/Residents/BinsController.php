@@ -47,6 +47,7 @@ class BinsController extends Controller
         $resident = $request->user();
 
         $validated = $request->validate([
+            'name' => 'required|string|max:255',
             'qr_code' => 'required|string|unique:waste_bins,qr_code',
             'bin_type' => 'required|string|in:biodegradable,non-biodegradable,recyclable,hazardous',
             'status' => 'nullable|string|in:active,inactive,full,damaged',
@@ -64,24 +65,25 @@ class BinsController extends Controller
     }
 
     /** Update bin */
-    // public function update(Request $request, $id)
-    // {
-    //     $resident = $request->user();
+    public function update(Request $request, $id)
+    {
+        $resident = $request->user();
 
-    //     $bin = WasteBin::where('resident_id', $resident->id)->findOrFail($id);
+        $bin = WasteBin::where('resident_id', $resident->id)->findOrFail($id);
 
-    //     $validated = $request->validate([
-    //         'bin_type' => 'sometimes|required|string|in:biodegradable,non-biodegradable,recyclable,hazardous',
-    //         'status' => 'sometimes|required|string|in:active,inactive,full,damaged',
-    //     ]);
+        $validated = $request->validate([
+            'name' => 'sometime|string|max:255',
+            'bin_type' => 'sometimes|required|string|in:biodegradable,non-biodegradable,recyclable,hazardous',
+            'status' => 'sometimes|required|string|in:active,inactive,full,damaged',
+        ]);
 
-    //     $bin->update($validated);
+        $bin->update($validated);
 
-    //     return response()->json([
-    //         'message' => 'Bin updated successfully.',
-    //         'bin' => $bin
-    //     ]);
-    // }
+        return response()->json([
+            'message' => 'Bin updated successfully.',
+            'bin' => $bin
+        ]);
+    }
 
     /** Delete bin */
     public function destroy(Request $request, $id)

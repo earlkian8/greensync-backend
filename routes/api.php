@@ -19,28 +19,16 @@ Route::prefix('v1')->group(function () {
     // RESIDENTS MODULE
     // ============================================
     Route::prefix('resident')->group(function () {
-        
-        // -------------------- Public Routes --------------------
-        // Register new resident account
+
         Route::post('/register', [ResidentsController::class, 'store']);
-        
-        // Login resident user
         Route::post('/login', [ResidentsController::class, 'login']);
 
-        // -------------------- Protected Routes (Requires Authentication) --------------------
         Route::middleware('auth:sanctum')->group(function () {
             
             // === Profile Management ===
-            // Get logged-in resident profile information
             Route::get('/profile', [ResidentsController::class, 'profile']);
-            
-            // Update resident profile details
             Route::put('/profile', [ResidentsController::class, 'update']);
-            
-            // Logout resident user
             Route::post('/logout', [ResidentsController::class, 'logout']);
-            
-            // Delete resident account
             Route::delete('/delete', [ResidentsController::class, 'destroy']);
 
             // === Bins Management ===
