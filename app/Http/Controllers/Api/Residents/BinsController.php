@@ -72,7 +72,7 @@ class BinsController extends Controller
         $bin = WasteBin::where('resident_id', $resident->id)->findOrFail($id);
 
         $validated = $request->validate([
-            'name' => 'sometime|string|max:255',
+            'name' => 'sometimes|string|max:255',
             'bin_type' => 'sometimes|required|string|in:biodegradable,non-biodegradable,recyclable,hazardous',
             'status' => 'sometimes|required|string|in:active,inactive,full,damaged',
         ]);
