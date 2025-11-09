@@ -22,59 +22,55 @@ import {
 } from "@/components/ui/select"
 import { useState, useEffect } from 'react';
 
-const EditResident = ({ resident, setShowEditModal, barangays }) => {
+const EditCollector = ({ collector, setShowEditModal }) => {
   const [imagePreview, setImagePreview] = useState(
-    resident?.profile_image ? `/storage/${resident.profile_image}` : null
+    collector?.profile_image ? `/storage/${collector.profile_image}` : null
   );
 
   const { data, setData, post, errors, processing } = useForm({
-    name: resident?.name || '',
-    email: resident?.email || '',
-    phone_number: resident?.phone_number || '',
+    name: collector?.name || '',
+    email: collector?.email || '',
+    phone_number: collector?.phone_number || '',
     password: '',
     password_confirmation: '',
-    house_no: resident?.house_no || '',
-    street: resident?.street || '',
-    barangay: resident?.barangay || '',
-    city: resident?.city || '',
-    province: resident?.province || '',
-    country: resident?.country || 'Philippines',
-    postal_code: resident?.postal_code || '',
+    employee_id: collector?.employee_id || '',
+    license_number: collector?.license_number || '',
+    vehicle_plate_number: collector?.vehicle_plate_number || '',
+    vehicle_type: collector?.vehicle_type || '',
     profile_image: null,
-    is_verified: resident?.is_verified ?? false,
+    is_active: collector?.is_active ?? true,
+    is_verified: collector?.is_verified ?? false,
     _method: 'PUT'
   });
 
   useEffect(() => {
-    if (resident) {
+    if (collector) {
       setData({
-        name: resident.name || '',
-        email: resident.email || '',
-        phone_number: resident.phone_number || '',
+        name: collector.name || '',
+        email: collector.email || '',
+        phone_number: collector.phone_number || '',
         password: '',
         password_confirmation: '',
-        house_no: resident.house_no || '',
-        street: resident.street || '',
-        barangay: resident.barangay || '',
-        city: resident.city || '',
-        province: resident.province || '',
-        country: resident.country || 'Philippines',
-        postal_code: resident.postal_code || '',
+        employee_id: collector.employee_id || '',
+        license_number: collector.license_number || '',
+        vehicle_plate_number: collector.vehicle_plate_number || '',
+        vehicle_type: collector.vehicle_type || '',
         profile_image: null,
-        is_verified: resident.is_verified ?? false,
+        is_active: collector.is_active ?? true,
+        is_verified: collector.is_verified ?? false,
         _method: 'PUT'
       });
-      setImagePreview(resident.profile_image ? `/storage/${resident.profile_image}` : null);
+      setImagePreview(collector.profile_image ? `/storage/${collector.profile_image}` : null);
     }
-  }, [resident]);
+  }, [collector]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    post(route('admin.resident-management.update', resident.id), {
+    post(route('admin.collector-management.update', collector.id), {
       onSuccess: () => {
         setShowEditModal(false);
-        toast.success('Resident Updated Successfully!');
+        toast.success('Collector Updated Successfully!');
       },
       forceFormData: true,
     });
@@ -100,13 +96,15 @@ const EditResident = ({ resident, setShowEditModal, barangays }) => {
       ? "border-red-500 ring-2 ring-red-400 focus:border-red-500 focus:ring-red-500"
       : "border-zinc-300 focus:border-zinc-800 focus:ring-2 focus:ring-zinc-800");
 
+  const vehicleTypes = ['Truck', 'Van', 'Motorcycle', 'Tricycle', 'Other'];
+
   return (
     <Dialog open onOpenChange={setShowEditModal}>
       <DialogContent className="w-[95vw] max-w-[900px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-zinc-800">Edit Resident</DialogTitle>
+          <DialogTitle className="text-zinc-800">Edit Collector</DialogTitle>
           <DialogDescription className="text-zinc-600">
-            Update the details for the resident below.
+            Update the details for the collector below.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -141,6 +139,19 @@ const EditResident = ({ resident, setShowEditModal, barangays }) => {
               className={inputClass(errors.name)}
             />
             <InputError message={errors.name} />
+          </div>
+
+          {/* Employee ID */}
+          <div>
+            <Label className="text-zinc-800">Employee ID </Label>
+            <Input
+              type="number"
+              value={data.employee_id}
+              onChange={e => setData('employee_id', e.target.value)}
+              placeholder="12345"
+              className={inputClass(errors.employee_id)}
+            />
+            <InputError message={errors.employee_id} />
           </div>
 
           {/* Email */}
@@ -183,7 +194,7 @@ const EditResident = ({ resident, setShowEditModal, barangays }) => {
           </div>
 
           {/* Password Confirmation */}
-          <div className="md:col-span-2">
+          <div>
             <Label className="text-zinc-800">Confirm Password</Label>
             <Input
               type="password"
@@ -195,113 +206,87 @@ const EditResident = ({ resident, setShowEditModal, barangays }) => {
             <InputError message={errors.password_confirmation} />
           </div>
 
-          {/* Address Section */}
+          {/* Vehicle Information Section */}
           <div className="md:col-span-2">
-            <h3 className="text-lg font-semibold text-zinc-800 mb-2">Address Information</h3>
+            <h3 className="text-lg font-semibold text-zinc-800 mb-2">Vehicle Information</h3>
           </div>
 
-          {/* House No */}
+          {/* License Number */}
           <div>
-            <Label className="text-zinc-800">House No.</Label>
+            <Label className="text-zinc-800">License Number</Label>
             <Input
               type="text"
-              value={data.house_no}
-              onChange={e => setData('house_no', e.target.value)}
-              placeholder="123"
-              className={inputClass(errors.house_no)}
+              value={data.license_number}
+              onChange={e => setData('license_number', e.target.value)}
+              placeholder="N01-12-345678"
+              className={inputClass(errors.license_number)}
             />
-            <InputError message={errors.house_no} />
+            <InputError message={errors.license_number} />
           </div>
 
-          {/* Street */}
+          {/* Vehicle Type */}
           <div>
-            <Label className="text-zinc-800">Street</Label>
+            <Label className="text-zinc-800">Vehicle Type</Label>
+            <Select 
+              value={data.vehicle_type} 
+              onValueChange={(value) => setData('vehicle_type', value)}
+            >
+              <SelectTrigger className={inputClass(errors.vehicle_type)}>
+                <SelectValue placeholder="Select vehicle type" />
+              </SelectTrigger>
+              <SelectContent>
+                {vehicleTypes.map((type) => (
+                  <SelectItem key={type} value={type}>
+                    {type}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <InputError message={errors.vehicle_type} />
+          </div>
+
+          {/* Vehicle Plate Number */}
+          <div className="md:col-span-2">
+            <Label className="text-zinc-800">Vehicle Plate Number</Label>
             <Input
               type="text"
-              value={data.street}
-              onChange={e => setData('street', e.target.value)}
-              placeholder="Main Street"
-              className={inputClass(errors.street)}
+              value={data.vehicle_plate_number}
+              onChange={e => setData('vehicle_plate_number', e.target.value)}
+              placeholder="ABC 1234"
+              className={inputClass(errors.vehicle_plate_number)}
             />
-            <InputError message={errors.street} />
+            <InputError message={errors.vehicle_plate_number} />
           </div>
 
-          {/* Barangay */}
-          <div>
-            <Label className="text-zinc-800">Barangay </Label>
-            <Input
-                type="text"
-                value={data.barangay}
-                onChange={e => setData('barangay', e.target.value)}
-                placeholder="Ayala"
-                className={inputClass(errors.barangay)}
-            />
-            <InputError message={errors.barangay} />
-          </div>
+          {/* Status Switches */}
+          <div className="md:col-span-2 border-t pt-4 mt-2">
+            <h3 className="text-lg font-semibold text-zinc-800 mb-3">Account Status</h3>
+            
+            {/* Is Active */}
+            <div className="flex items-center gap-3 mb-3">
+              <Switch
+                id="is_active"
+                checked={data.is_active}
+                onCheckedChange={(checked) => setData('is_active', checked)}
+                className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-gray-400"
+              />
+              <Label htmlFor="is_active" className="text-zinc-800 cursor-pointer">
+                {data.is_active ? 'Active' : 'Inactive'}
+              </Label>
+            </div>
 
-          {/* City */}
-          <div>
-            <Label className="text-zinc-800">City </Label>
-            <Input
-              type="text"
-              value={data.city}
-              onChange={e => setData('city', e.target.value)}
-              placeholder="Zamboanga City"
-              className={inputClass(errors.city)}
-            />
-            <InputError message={errors.city} />
-          </div>
-
-          {/* Province */}
-          <div>
-            <Label className="text-zinc-800">Province </Label>
-            <Input
-              type="text"
-              value={data.province}
-              onChange={e => setData('province', e.target.value)}
-              placeholder="Zamboanga Del Sur"
-              className={inputClass(errors.province)}
-            />
-            <InputError message={errors.province} />
-          </div>
-
-          {/* Country */}
-          <div>
-            <Label className="text-zinc-800">Country </Label>
-            <Input
-              type="text"
-              value={data.country}
-              onChange={e => setData('country', e.target.value)}
-              placeholder="Philippines"
-              className={inputClass(errors.country)}
-            />
-            <InputError message={errors.country} />
-          </div>
-
-          {/* Postal Code */}
-          <div>
-            <Label className="text-zinc-800">Postal Code </Label>
-            <Input
-              type="text"
-              value={data.postal_code}
-              onChange={e => setData('postal_code', e.target.value)}
-              placeholder="1740"
-              className={inputClass(errors.postal_code)}
-            />
-            <InputError message={errors.postal_code} />
-          </div>
-
-          {/* Is Verified */}
-          <div className="flex items-center gap-3 md:col-span-2">
-            <Switch
-              id="is_verified"
-              checked={data.is_verified}
-              onCheckedChange={(checked) => setData('is_verified', checked)}
-              className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-gray-400"
-            />
-            <Label htmlFor="is_verified" className="text-zinc-800 cursor-pointer">
-              {data.is_verified ? 'Verified' : 'Unverified'}
-            </Label>
+            {/* Is Verified */}
+            <div className="flex items-center gap-3">
+              <Switch
+                id="is_verified"
+                checked={data.is_verified}
+                onCheckedChange={(checked) => setData('is_verified', checked)}
+                className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-gray-400"
+              />
+              <Label htmlFor="is_verified" className="text-zinc-800 cursor-pointer">
+                {data.is_verified ? 'Verified' : 'Unverified'}
+              </Label>
+            </div>
           </div>
 
           {/* Buttons */}
@@ -318,7 +303,7 @@ const EditResident = ({ resident, setShowEditModal, barangays }) => {
               className="bg-green-600 hover:bg-green-700 text-white transition"
               disabled={processing}
             >
-              Update Resident
+              Update Collector
             </Button>
           </DialogFooter>
         </form>
@@ -327,4 +312,4 @@ const EditResident = ({ resident, setShowEditModal, barangays }) => {
   );
 };
 
-export default EditResident;
+export default EditCollector;
