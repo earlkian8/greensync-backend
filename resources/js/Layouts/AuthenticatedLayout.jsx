@@ -80,30 +80,30 @@ export default function AuthenticatedLayout({ breadcrumbs = [], children }) {
     },
     {
       title: 'Collector Management',
-      url: '#',
+      url: route('admin.collector-management.index'),
       icon: Truck,
-      routeName: 'collector-management.*',
+      routeName: 'admin.collector-management.*',
       type: 'single'
     },
     {
       title: 'Waste Bin Management',
-      url: '#',
+      url: route('admin.waste-bin-management.index'),
       icon: Trash2,
-      routeName: 'waste-bin-management.*',
+      routeName: 'admin.waste-bin-management.*',
       type: 'single'
     },
     {
       title: 'Collection Schedule Management',
-      url: '#',
+      url: route('admin.collection-schedule-management.index'),
       icon: Calendar,
-      routeName: 'collection-schedule.*',
+      routeName: 'admin.collection-schedule-management.*',
       type: 'single'
     },
     {
       title: 'Route Management',
-      url: '#',
+      url: route('admin.route-management.index'),
       icon: MapPin,
-      routeName: 'route-management.*',
+      routeName: 'admin.route-management.*',
       type: 'single'
     },
     {
