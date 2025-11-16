@@ -53,7 +53,6 @@ const AddRoute = ({ setShowAddModal }) => {
       data: formData,
       onSuccess: () => {
         setShowAddModal(false);
-        toast.success('Route Created Successfully!');
       },
     });
   };
@@ -188,7 +187,7 @@ const AddRoute = ({ setShowAddModal }) => {
                     </SelectItem>
                   ))
                 ) : (
-                  <SelectItem value="" disabled>No residents available</SelectItem>
+                  <SelectItem value="none" disabled>No residents available</SelectItem>
                 )}
               </SelectContent>
             </Select>

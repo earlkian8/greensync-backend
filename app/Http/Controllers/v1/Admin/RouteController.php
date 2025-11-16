@@ -5,7 +5,6 @@ namespace App\Http\Controllers\v1\Admin;
 use App\Models\Route;
 use App\Models\RouteStop;
 use App\Models\Resident;
-use App\Models\User;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -29,7 +28,7 @@ class RouteController extends Controller
         $statusFilter = $request->get('status', ''); // all, active, inactive
         $barangayFilter = $request->get('barangay', '');
 
-        $query = Route::with(['creator:id,name', 'stops']);
+        $query = Route::with(['creator:id,name,email', 'stops']);
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -62,10 +61,16 @@ class RouteController extends Controller
                          ->orderBy('barangay')
                          ->pluck('barangay');
 
+        // Get verified residents for the dropdown in add/edit modals
+        $residents = Resident::select('id', 'name', 'email', 'barangay')
+                            ->where('is_verified', true)
+                            ->orderBy('name')
+                            ->get();
+
         return Inertia::render('Admin/RouteManagement/index', [
             'routes' => $routes,
             'barangays' => $barangays,
-            'residents' => User::all(),
+            'residents' => $residents,
             'search' => $search,
             'statusFilter' => $statusFilter,
             'barangayFilter' => $barangayFilter,
@@ -77,8 +82,8 @@ class RouteController extends Controller
      */
     public function create(): Response
     {
-        // Get residents for the created_by dropdown
-        $residents = Resident::select('id', 'name', 'email')
+        // Get verified residents for the created_by dropdown
+        $residents = Resident::select('id', 'name', 'email', 'barangay')
                             ->where('is_verified', true)
                             ->orderBy('name')
                             ->get();
@@ -174,7 +179,7 @@ class RouteController extends Controller
                 $query->orderBy('stop_order');
             },
             'assignments.collector:id,name',
-            'assignments.schedule:id,schedule_name'
+            'assignments.schedule:id,barangay,collection_day,waste_type'
         ]);
 
         $this->adminActivityLogs(
@@ -198,8 +203,8 @@ class RouteController extends Controller
             $query->orderBy('stop_order');
         }]);
 
-        // Get residents for the created_by dropdown
-        $residents = Resident::select('id', 'name', 'email')
+        // Get verified residents for the created_by dropdown
+        $residents = Resident::select('id', 'name', 'email', 'barangay')
                             ->where('is_verified', true)
                             ->orderBy('name')
                             ->get();
@@ -365,7 +370,7 @@ class RouteController extends Controller
         $route->delete();
 
         return redirect()->route('admin.route-management.index')
-            ->with('success', 'Route deleted successfully');
+            ->with('success');
     }
 
     /**

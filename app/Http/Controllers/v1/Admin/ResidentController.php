@@ -292,7 +292,7 @@ class ResidentController extends Controller
         $resident->delete();
 
         return redirect()->route('admin.resident-management.index')
-            ->with('success', 'Resident deleted successfully');
+            ->with('success');
     }
 
     /**

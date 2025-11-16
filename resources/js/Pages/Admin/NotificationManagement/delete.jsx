@@ -10,12 +10,12 @@ import {
 } from "@/Components/ui/dialog"
 import { Button } from '@/Components/ui/button';
 
-const DeleteRoute = ({ setShowDeleteModal, route: routeData }) => {
+const DeleteNotification = ({ setShowDeleteModal, notification }) => {
   const handleDelete = (e) => {
     e.preventDefault();
 
     router.delete(
-      route('admin.route-management.destroy', routeData.id),
+      route('admin.notification-management.destroy', notification.id),
       {
         preserveScroll: true,
         onSuccess: (page) => {
@@ -24,7 +24,7 @@ const DeleteRoute = ({ setShowDeleteModal, route: routeData }) => {
           if (flash && flash.error) {
             toast.error(flash.error);
           } else {
-            toast.success(`Route "${routeData.route_name}" deleted successfully`);
+            toast.success(`Notification "${notification.title}" deleted successfully`);
           }
         },
         onError: (errors) => {
@@ -32,7 +32,7 @@ const DeleteRoute = ({ setShowDeleteModal, route: routeData }) => {
           if (errors.message) {
             toast.error(errors.message);
           } else {
-            toast.error('Failed to delete route. Please try again.');
+            toast.error('Failed to delete notification. Please try again.');
           }
         }
       }
@@ -43,12 +43,11 @@ const DeleteRoute = ({ setShowDeleteModal, route: routeData }) => {
     <Dialog open onOpenChange={setShowDeleteModal}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete Route</DialogTitle>
+          <DialogTitle>Delete Notification</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete the route{" "}
-            <span className="font-semibold">{routeData.route_name}</span>
-            {" "}({routeData.barangay})? 
-            This action cannot be undone and will permanently remove the route along with all {route.total_stops} stops and any associated assignments.
+            Are you sure you want to delete the notification{" "}
+            <span className="font-semibold">"{notification.title}"</span>?
+            This action cannot be undone and the notification will be permanently removed.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleDelete} className="flex flex-col gap-4">
@@ -64,7 +63,7 @@ const DeleteRoute = ({ setShowDeleteModal, route: routeData }) => {
               type="submit"
               variant="destructive"
             >
-              Delete Route
+              Delete Notification
             </Button>
           </DialogFooter>
         </form>
@@ -73,4 +72,4 @@ const DeleteRoute = ({ setShowDeleteModal, route: routeData }) => {
   );
 };
 
-export default DeleteRoute;
+export default DeleteNotification;

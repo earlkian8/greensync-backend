@@ -39,7 +39,6 @@ const AddCollectionSchedule = ({ setShowAddModal }) => {
     post(route('admin.collection-schedule-management.store'), {
       onSuccess: () => {
         setShowAddModal(false);
-        toast.success('Collection Schedule Created Successfully!');
       },
     });
   };

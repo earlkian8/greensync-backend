@@ -55,6 +55,7 @@ export default function RouteManagement() {
     const pagination = usePage().props.routes;
     const routeData = usePage().props.routes.data;
     const barangays = usePage().props.barangays;
+    const residents = usePage().props.residents || [];
 
     const [search, setSearch] = useState(usePage().props.search || '');
     const [statusFilter, setStatusFilter] = useState(usePage().props.statusFilter || '');
@@ -358,19 +359,6 @@ export default function RouteManagement() {
                                         >
                                             <SquarePen size={18} />
                                         </button>
-                                        {/* <button
-                                            onClick={() => handleToggleStatus(route)}
-                                            className={`p-2 rounded transition ${
-                                                route.is_active 
-                                                    ? 'hover:bg-orange-100 text-orange-600 hover:text-orange-700'
-                                                    : 'hover:bg-green-100 text-green-600 hover:text-green-700'
-                                            }`}
-                                            title={route.is_active ? 'Deactivate' : 'Activate'}
-                                            aria-label={route.is_active ? 'Deactivate' : 'Activate'}
-                                            type="button"
-                                        >
-                                            {route.is_active ? <X size={18} /> : <Check size={18} />}
-                                        </button> */}
                                         <button
                                             onClick={() => {
                                                 setDeleteRoute(route);

@@ -130,7 +130,7 @@ class WasteBinController extends Controller
         );
 
         return redirect()->route('admin.waste-bin-management.index')
-            ->with('success', 'Waste bin created successfully');
+            ->with('success', 'Waste Bin created successfully');
     }
 
     /**
@@ -205,7 +205,7 @@ class WasteBinController extends Controller
         );
 
         return redirect()->route('admin.waste-bin-management.index')
-            ->with('success', 'Waste bin updated successfully');
+            ->with('success', 'Waste Bin updated successfully');
     }
 
     /**
@@ -226,7 +226,7 @@ class WasteBinController extends Controller
             'Changed Waste Bin ' . $wasteBin->name . ' status from ' . $oldStatus . ' to ' . $validated['status']
         );
 
-        return back()->with('success', 'Waste bin status updated successfully');
+        return back()->with('success', 'Waste Bin status updated successfully');
     }
 
     /**
@@ -245,7 +245,7 @@ class WasteBinController extends Controller
             'Marked Waste Bin ' . $wasteBin->name . ' (QR: ' . $wasteBin->qr_code . ') as collected'
         );
 
-        return back()->with('success', 'Waste bin marked as collected successfully');
+        return back()->with('success', 'Waste Bin marked as collected successfully');
     }
 
     /**
@@ -265,7 +265,7 @@ class WasteBinController extends Controller
         $wasteBin->delete();
 
         return redirect()->route('admin.waste-bin-management.index')
-            ->with('success', 'Waste bin deleted successfully');
+            ->with('success');
     }
 
     /**

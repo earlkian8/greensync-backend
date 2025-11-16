@@ -8,6 +8,9 @@ use App\Http\Controllers\v1\Admin\CollectorController;
 use App\Http\Controllers\v1\Admin\WasteBinController;
 use App\Http\Controllers\v1\Admin\CollectionScheduleController;
 use App\Http\Controllers\v1\Admin\RouteController;
+use App\Http\Controllers\v1\Admin\RouteAssignmentController;
+use App\Http\Controllers\v1\Admin\CollectionRequestController;
+use App\Http\Controllers\v1\Admin\NotificationController;
 use App\Http\Controllers\ActivityLogsController;
 
 Route::middleware('auth')->group(function () {
@@ -88,6 +91,68 @@ Route::middleware('auth')->group(function () {
             Route::put('/update/{route}', [RouteController::class, 'update'])->name('update');
             Route::delete('/destroy/{route}', [RouteController::class, 'destroy'])->name('destroy');
         });
+
+        // Route Assignment Management
+        Route::prefix('route-assignment')->name('route-assignment-management.')->group(function(){
+            Route::get('/', [RouteAssignmentController::class, 'index'])->name('index');
+            Route::get('/create', [RouteAssignmentController::class, 'create'])->name('create');
+            Route::post('/store', [RouteAssignmentController::class, 'store'])->name('store');
+            Route::get('/statistics', [RouteAssignmentController::class, 'statistics'])->name('statistics');
+            // Action routes
+            Route::post('/start/{routeAssignment}', [RouteAssignmentController::class, 'start'])->name('start');
+            Route::post('/complete/{routeAssignment}', [RouteAssignmentController::class, 'complete'])->name('complete');
+            Route::post('/cancel/{routeAssignment}', [RouteAssignmentController::class, 'cancel'])->name('cancel');
+            Route::post('/update-status/{routeAssignment}', [RouteAssignmentController::class, 'updateStatus'])->name('update-status');
+            // CRUD
+            Route::get('/{routeAssignment}', [RouteAssignmentController::class, 'show'])->name('show');
+            Route::get('/{routeAssignment}/edit', [RouteAssignmentController::class, 'edit'])->name('edit');
+            Route::put('/update/{routeAssignment}', [RouteAssignmentController::class, 'update'])->name('update');
+            Route::delete('/destroy/{routeAssignment}', [RouteAssignmentController::class, 'destroy'])->name('destroy');
+        });
+
+        // Collection Request Management Routes
+        Route::prefix('collection-request-management')->name('collection-request-management.')->group(function () {
+            Route::get('/', [CollectionRequestController::class, 'index'])->name('index');
+            Route::get('/create', [CollectionRequestController::class, 'create'])->name('create');
+            Route::post('/store', [CollectionRequestController::class, 'store'])->name('store');
+            
+            // Statistics should come BEFORE the resource routes to avoid conflicts
+            Route::get('/statistics', [CollectionRequestController::class, 'statistics'])->name('statistics');
+            
+            // Workflow actions (these should also come before resource routes)
+            Route::post('/assign/{collectionRequest}', [CollectionRequestController::class, 'assign'])->name('assign');
+            Route::post('/start-progress/{collectionRequest}', [CollectionRequestController::class, 'startProgress'])->name('start-progress');
+            Route::post('/complete/{collectionRequest}', [CollectionRequestController::class, 'complete'])->name('complete');
+            Route::post('/cancel/{collectionRequest}', [CollectionRequestController::class, 'cancel'])->name('cancel');
+            
+            // Resource routes (these should be at the bottom)
+            Route::get('/{collectionRequest}', [CollectionRequestController::class, 'show'])->name('show');
+            Route::get('/{collectionRequest}/edit', [CollectionRequestController::class, 'edit'])->name('edit');
+            Route::put('/{collectionRequest}', [CollectionRequestController::class, 'update'])->name('update');
+            Route::delete('/{collectionRequest}', [CollectionRequestController::class, 'destroy'])->name('destroy');
+        });
+
+        // Notification Management
+        Route::prefix('notification-management')->name('notification-management.')->group(function(){
+            Route::get('/', [NotificationController::class, 'index'])->name('index');
+            Route::get('/create', [NotificationController::class, 'create'])->name('create');
+            Route::post('/store', [NotificationController::class, 'store'])->name('store');
+            
+            // Statistics should come BEFORE the resource routes to avoid conflicts
+            Route::get('/statistics', [NotificationController::class, 'statistics'])->name('statistics');
+            
+            // Custom action routes (these should also come before resource routes)
+            Route::post('/send-bulk', [NotificationController::class, 'sendBulk'])->name('send-bulk');
+            Route::post('/mark-read/{notification}', [NotificationController::class, 'markAsRead'])->name('mark-read');
+            Route::post('/mark-unread/{notification}', [NotificationController::class, 'markAsUnread'])->name('mark-unread');
+            
+            // Resource routes (these should be at the bottom)
+            Route::get('/{notification}', [NotificationController::class, 'show'])->name('show');
+            Route::get('/{notification}/edit', [NotificationController::class, 'edit'])->name('edit');
+            Route::put('/update/{notification}', [NotificationController::class, 'update'])->name('update');
+            Route::delete('/destroy/{notification}', [NotificationController::class, 'destroy'])->name('destroy');
+        });
+        
         
     });
 

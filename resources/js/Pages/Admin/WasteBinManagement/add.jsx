@@ -34,7 +34,6 @@ const AddWasteBin = ({ setShowAddModal, residents }) => {
     post(route('admin.waste-bin-management.store'), {
       onSuccess: () => {
         setShowAddModal(false);
-        toast.success('Waste Bin Created Successfully!');
       },
     });
   };

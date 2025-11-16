@@ -46,7 +46,6 @@ const EditWasteBin = ({ wasteBin, setShowEditModal, residents }) => {
     put(route('admin.waste-bin-management.update', wasteBin.id), {
       onSuccess: () => {
         setShowEditModal(false);
-        toast.success('Waste Bin Updated Successfully!');
       },
     });
   };
