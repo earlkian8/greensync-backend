@@ -4,9 +4,13 @@ namespace App\Http\Controllers\Api\Residents;
 
 use App\Http\Controllers\Controller;
 use App\Models\Resident;
+use App\Models\CollectionRequest;
+use App\Models\WasteBin;
+use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Carbon\Carbon;
 
 class ResidentsController extends Controller
 {
@@ -117,6 +121,92 @@ class ResidentsController extends Controller
         return response()->json([
             'message' => 'Profile fetched successfully.',
             'resident' => $resident
+        ]);
+    }
+
+    /** Get Dashboard Data */
+    public function dashboard(Request $request, $resident_id)
+    {
+        // Get resident by ID
+        $resident = Resident::find($resident_id);
+
+        if (!$resident) {
+            return response()->json([
+                'message' => 'Resident not found.'
+            ], 404);
+        }
+
+        // Get upcoming schedules (collection requests that are scheduled/assigned and future dated)
+        $upcomingSchedules = CollectionRequest::with('wasteBin.resident')
+            ->where('user_id', $resident_id)
+            ->whereIn('status', ['assigned', 'in_progress', 'pending'])
+            ->whereDate('preferred_date', '>=', Carbon::today())
+            ->orderBy('preferred_date', 'asc')
+            ->orderBy('preferred_time', 'asc')
+            ->limit(10)
+            ->get()
+            ->map(function ($request) use ($resident) {
+                $time = $request->preferred_time 
+                    ? Carbon::parse($request->preferred_time)->format('H:i:s') 
+                    : '08:00:00';
+                
+                return [
+                    'id' => $request->id,
+                    'collection_date' => $request->preferred_date->format('Y-m-d'),
+                    'collection_time' => $time,
+                    'waste_type' => ucfirst(str_replace('-', ' ', $request->waste_type ?? 'General Waste')),
+                    'status' => ucfirst(str_replace('_', ' ', $request->status ?? 'Scheduled')),
+                    'bin_location' => $resident->barangay ?? 'N/A',
+                ];
+            });
+
+        // Get waste bins for the resident
+        $wasteBins = WasteBin::where('resident_id', $resident_id)
+            ->get()
+            ->map(function ($bin) {
+                return [
+                    'id' => $bin->id,
+                    'bin_type' => ucfirst(str_replace('-', ' ', $bin->bin_type)),
+                    'status' => $bin->status ?? 'Active',
+                ];
+            });
+
+        // Get recent notifications (limit 2)
+        $notifications = Notification::where(function ($query) use ($resident_id) {
+                $query->where('recipient_type', 'resident')
+                    ->where('recipient_id', $resident_id);
+            })
+            ->orWhere('recipient_type', 'all_residents')
+            ->orderBy('created_at', 'desc')
+            ->limit(2)
+            ->get()
+            ->map(function ($notification) {
+                return [
+                    'id' => $notification->id,
+                    'title' => $notification->title,
+                    'message' => $notification->message,
+                    'created_at' => $notification->created_at->toISOString(),
+                    'is_read' => $notification->is_read ?? false,
+                ];
+            });
+
+        // Get unread notification count
+        $unreadNotifications = Notification::where(function ($query) use ($resident_id) {
+                $query->where('recipient_type', 'resident')
+                    ->where('recipient_id', $resident_id);
+            })
+            ->orWhere('recipient_type', 'all_residents')
+            ->where('is_read', false)
+            ->count();
+
+        return response()->json([
+            'message' => 'Dashboard data fetched successfully.',
+            'data' => [
+                'upcoming_schedules' => $upcomingSchedules,
+                'waste_bins' => $wasteBins,
+                'notifications' => $notifications,
+                'unread_notifications_count' => $unreadNotifications,
+            ]
         ]);
     }
 }

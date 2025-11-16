@@ -25,6 +25,9 @@ Route::prefix('v1')->group(function () {
 
         Route::middleware('auth:sanctum')->group(function () {
             
+            // === Dashboard ===
+            Route::get('/home/{resident_id}', [ResidentsController::class, 'dashboard']);
+            
             // === Profile Management ===
             Route::get('/profile', [ResidentsController::class, 'profile']);
             Route::put('/profile', [ResidentsController::class, 'update']);
