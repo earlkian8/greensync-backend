@@ -48,7 +48,6 @@ const AddResident = ({ setShowAddModal, barangays }) => {
     post(route('admin.resident-management.store'), {
       onSuccess: () => {
         setShowAddModal(false);
-        toast.success('Resident Created Successfully!');
       },
       forceFormData: true,
     });

@@ -70,7 +70,6 @@ const EditCollector = ({ collector, setShowEditModal }) => {
     post(route('admin.collector-management.update', collector.id), {
       onSuccess: () => {
         setShowEditModal(false);
-        toast.success('Collector Updated Successfully!');
       },
       forceFormData: true,
     });

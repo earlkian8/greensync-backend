@@ -135,7 +135,7 @@ class CollectionScheduleController extends Controller
         );
 
         return redirect()->route('admin.collection-schedule-management.index')
-            ->with('success', 'Collection schedule created successfully');
+            ->with('success', 'Collection Schedule created successfully');
     }
 
     /**
@@ -216,7 +216,7 @@ class CollectionScheduleController extends Controller
         );
 
         return redirect()->route('admin.collection-schedule-management.index')
-            ->with('success', 'Collection schedule updated successfully');
+            ->with('success', 'Collection Schedule updated successfully');
     }
 
     /**
@@ -248,7 +248,7 @@ class CollectionScheduleController extends Controller
             'Deactivated Collection Schedule for ' . $collectionSchedule->barangay . ' on ' . $collectionSchedule->collection_day
         );
 
-        return back()->with('success', 'Collection schedule deactivated successfully');
+        return back()->with('success', 'Collection Schedule deactivated successfully');
     }
 
     /**
@@ -265,7 +265,7 @@ class CollectionScheduleController extends Controller
         $collectionSchedule->delete();
 
         return redirect()->route('admin.collection-schedule-management.index')
-            ->with('success', 'Collection schedule deleted successfully');
+            ->with('success');
     }
 
     /**

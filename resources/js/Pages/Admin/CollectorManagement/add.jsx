@@ -46,7 +46,6 @@ const AddCollector = ({ setShowAddModal }) => {
     post(route('admin.collector-management.store'), {
       onSuccess: () => {
         setShowAddModal(false);
-        toast.success('Collector Created Successfully!');
       },
       forceFormData: true,
     });

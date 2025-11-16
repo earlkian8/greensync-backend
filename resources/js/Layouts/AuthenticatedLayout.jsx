@@ -108,23 +108,23 @@ export default function AuthenticatedLayout({ breadcrumbs = [], children }) {
     },
     {
       title: 'Route Assignment',
-      url: '#',
+      url: route('admin.route-assignment-management.index'),
       icon: Layers,
-      routeName: 'route-assignment.*',
+      routeName: 'admin.route-assignment-management.*',
       type: 'single'
     },
     {
       title: 'Request Management',
-      url: '#',
+      url: route('admin.collection-request-management.index'),
       icon: FileText,
-      routeName: 'request-management.*',
+      routeName: 'admin.collection-request-management.*',
       type: 'single'
     },
     {
       title: 'Notification & Announcement',
-      url: '#',
+      url: route('admin.notification-management.index'),
       icon: Bell,
-      routeName: 'notification.*',
+      routeName: 'admin.notification-management.*',
       type: 'single'
     },
     {

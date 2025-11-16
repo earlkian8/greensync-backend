@@ -30,8 +30,8 @@ class RouteAssignmentController extends Controller
 
         $query = RouteAssignment::with([
             'route:id,route_name,barangay',
-            'collector:id,name,phone_number',
-            'schedule:id,schedule_name',
+            'collector:id,name,phone_number,employee_id',
+            'schedule:id,barangay,collection_day,collection_time,waste_type',
             'assignedBy:id,name'
         ]);
 
@@ -63,8 +63,31 @@ class RouteAssignmentController extends Controller
                             ->paginate(10)
                             ->withQueryString();
 
-        return Inertia::render('Admin/RouteAssignment/index', [
+        // Get active routes for dropdown
+        $routes = Route::where('is_active', true)
+                      ->select('id', 'route_name', 'barangay')
+                      ->orderBy('route_name')
+                      ->get();
+
+        // Get active and verified collectors for dropdown
+        $collectors = Collector::where('is_active', true)
+                              ->where('is_verified', true)
+                              ->select('id', 'name', 'phone_number', 'employee_id')
+                              ->orderBy('name')
+                              ->get();
+
+        // Get active schedules for dropdown
+        $schedules = CollectionSchedule::where('is_active', true)
+                                      ->select('id', 'barangay', 'collection_day', 'collection_time', 'waste_type')
+                                      ->orderBy('barangay')
+                                      ->orderBy('collection_day')
+                                      ->get();
+
+        return Inertia::render('Admin/RouteAssignmentManagement/index', [
             'assignments' => $assignments,
+            'routes' => $routes,
+            'collectors' => $collectors,
+            'schedules' => $schedules,
             'search' => $search,
             'statusFilter' => $statusFilter,
             'dateFilter' => $dateFilter,
@@ -82,17 +105,21 @@ class RouteAssignmentController extends Controller
                       ->orderBy('route_name')
                       ->get();
 
-        // Get collectors
-        $collectors = Collector::select('id', 'name', 'phone_number', 'is_available')
+        // Get active and verified collectors
+        $collectors = Collector::where('is_active', true)
+                              ->where('is_verified', true)
+                              ->select('id', 'name', 'phone_number', 'employee_id')
                               ->orderBy('name')
                               ->get();
 
-        // Get schedules
-        $schedules = CollectionSchedule::select('id', 'schedule_name', 'day_of_week')
-                                      ->orderBy('schedule_name')
+        // Get active schedules
+        $schedules = CollectionSchedule::where('is_active', true)
+                                      ->select('id', 'barangay', 'collection_day', 'collection_time', 'waste_type')
+                                      ->orderBy('barangay')
+                                      ->orderBy('collection_day')
                                       ->get();
 
-        return Inertia::render('Admin/RouteAssignment/add', [
+        return Inertia::render('Admin/RouteAssignmentManagement/add', [
             'routes' => $routes,
             'collectors' => $collectors,
             'schedules' => $schedules,
@@ -136,20 +163,21 @@ class RouteAssignmentController extends Controller
             'Created Route Assignment: ' . $assignment->route->route_name . ' to ' . $assignment->collector->name
         );
 
-        return redirect()->route('admin.route-assignment.index')
+        return redirect()->route('admin.route-assignment-management.index')
             ->with('success', 'Route assignment created successfully');
     }
 
     /**
      * Display the specified route assignment.
      */
-    public function show(RouteAssignment $assignment): Response
+    public function show(RouteAssignment $routeAssignment): Response
     {
         // Load relationships
-        $assignment->load([
+        $routeAssignment->load([
             'route.stops' => function($query) {
                 $query->orderBy('stop_order');
             },
+            'route.creator:id,name,email',
             'collector',
             'schedule',
             'assignedBy:id,name',
@@ -159,21 +187,21 @@ class RouteAssignmentController extends Controller
         $this->adminActivityLogs(
             'Route Assignment',
             'View',
-            'Viewed Route Assignment ID: ' . $assignment->id
+            'Viewed Route Assignment ID: ' . $routeAssignment->id
         );
 
-        return Inertia::render('Admin/RouteAssignment/show', [
-            'assignment' => $assignment,
+        return Inertia::render('Admin/RouteAssignmentManagement/show', [
+            'assignment' => $routeAssignment,
         ]);
     }
 
     /**
      * Show the form for editing the specified route assignment.
      */
-    public function edit(RouteAssignment $assignment): Response
+    public function edit(RouteAssignment $routeAssignment): Response
     {
         // Load relationships
-        $assignment->load(['route', 'collector', 'schedule']);
+        $routeAssignment->load(['route', 'collector', 'schedule']);
 
         // Get active routes
         $routes = Route::where('is_active', true)
@@ -181,24 +209,28 @@ class RouteAssignmentController extends Controller
                       ->orderBy('route_name')
                       ->get();
 
-        // Get collectors
-        $collectors = Collector::select('id', 'name', 'phone_number', 'is_available')
+        // Get active and verified collectors
+        $collectors = Collector::where('is_active', true)
+                              ->where('is_verified', true)
+                              ->select('id', 'name', 'phone_number', 'employee_id')
                               ->orderBy('name')
                               ->get();
 
-        // Get schedules
-        $schedules = CollectionSchedule::select('id', 'schedule_name', 'day_of_week')
-                                      ->orderBy('schedule_name')
+        // Get active schedules
+        $schedules = CollectionSchedule::where('is_active', true)
+                                      ->select('id', 'barangay', 'collection_day', 'collection_time', 'waste_type')
+                                      ->orderBy('barangay')
+                                      ->orderBy('collection_day')
                                       ->get();
 
         $this->adminActivityLogs(
             'Route Assignment',
             'Edit',
-            'Edit Route Assignment ID: ' . $assignment->id
+            'Edit Route Assignment ID: ' . $routeAssignment->id
         );
 
-        return Inertia::render('Admin/RouteAssignment/edit', [
-            'assignment' => $assignment,
+        return Inertia::render('Admin/RouteAssignmentManagement/edit', [
+            'assignment' => $routeAssignment,
             'routes' => $routes,
             'collectors' => $collectors,
             'schedules' => $schedules,
@@ -208,7 +240,7 @@ class RouteAssignmentController extends Controller
     /**
      * Update the specified route assignment in storage.
      */
-    public function update(Request $request, RouteAssignment $assignment)
+    public function update(Request $request, RouteAssignment $routeAssignment)
     {
         $validated = $request->validate([
             'route_id' => 'required|exists:routes,id',
@@ -232,35 +264,35 @@ class RouteAssignmentController extends Controller
             'notes' => $validated['notes'] ?? null,
         ];
 
-        $assignment->update($updateData);
-        $assignment->load(['route', 'collector']);
+        $routeAssignment->update($updateData);
+        $routeAssignment->load(['route', 'collector']);
 
         $this->adminActivityLogs(
             'Route Assignment',
             'Update',
-            'Updated Route Assignment: ' . $assignment->route->route_name . ' to ' . $assignment->collector->name
+            'Updated Route Assignment: ' . $routeAssignment->route->route_name . ' to ' . $routeAssignment->collector->name
         );
 
-        return redirect()->route('admin.route-assignment.index')
+        return redirect()->route('admin.route-assignment-management.index')
             ->with('success', 'Route assignment updated successfully');
     }
 
     /**
      * Update the status of a route assignment.
      */
-    public function updateStatus(Request $request, RouteAssignment $assignment)
+    public function updateStatus(Request $request, RouteAssignment $routeAssignment)
     {
         $validated = $request->validate([
             'status' => 'required|in:pending,in_progress,completed,cancelled',
         ]);
 
-        $oldStatus = $assignment->status;
-        $assignment->update(['status' => $validated['status']]);
+        $oldStatus = $routeAssignment->status;
+        $routeAssignment->update(['status' => $validated['status']]);
 
         $this->adminActivityLogs(
             'Route Assignment',
             'Update Status',
-            'Updated Route Assignment Status from ' . $oldStatus . ' to ' . $validated['status'] . ' (ID: ' . $assignment->id . ')'
+            'Updated Route Assignment Status from ' . $oldStatus . ' to ' . $validated['status'] . ' (ID: ' . $routeAssignment->id . ')'
         );
 
         return back()->with('success', 'Assignment status updated successfully');
@@ -269,9 +301,9 @@ class RouteAssignmentController extends Controller
     /**
      * Start a route assignment.
      */
-    public function start(RouteAssignment $assignment)
+    public function start(RouteAssignment $routeAssignment)
     {
-        $assignment->update([
+        $routeAssignment->update([
             'status' => 'in_progress',
             'start_time' => now(),
         ]);
@@ -279,7 +311,7 @@ class RouteAssignmentController extends Controller
         $this->adminActivityLogs(
             'Route Assignment',
             'Start',
-            'Started Route Assignment ID: ' . $assignment->id
+            'Started Route Assignment ID: ' . $routeAssignment->id
         );
 
         return back()->with('success', 'Route assignment started successfully');
@@ -288,9 +320,9 @@ class RouteAssignmentController extends Controller
     /**
      * Complete a route assignment.
      */
-    public function complete(RouteAssignment $assignment)
+    public function complete(RouteAssignment $routeAssignment)
     {
-        $assignment->update([
+        $routeAssignment->update([
             'status' => 'completed',
             'end_time' => now(),
         ]);
@@ -298,7 +330,7 @@ class RouteAssignmentController extends Controller
         $this->adminActivityLogs(
             'Route Assignment',
             'Complete',
-            'Completed Route Assignment ID: ' . $assignment->id
+            'Completed Route Assignment ID: ' . $routeAssignment->id
         );
 
         return back()->with('success', 'Route assignment completed successfully');
@@ -307,14 +339,14 @@ class RouteAssignmentController extends Controller
     /**
      * Cancel a route assignment.
      */
-    public function cancel(RouteAssignment $assignment)
+    public function cancel(RouteAssignment $routeAssignment)
     {
-        $assignment->update(['status' => 'cancelled']);
+        $routeAssignment->update(['status' => 'cancelled']);
 
         $this->adminActivityLogs(
             'Route Assignment',
             'Cancel',
-            'Cancelled Route Assignment ID: ' . $assignment->id
+            'Cancelled Route Assignment ID: ' . $routeAssignment->id
         );
 
         return back()->with('success', 'Route assignment cancelled successfully');
@@ -323,17 +355,17 @@ class RouteAssignmentController extends Controller
     /**
      * Remove the specified route assignment from storage.
      */
-    public function destroy(RouteAssignment $assignment)
+    public function destroy(RouteAssignment $routeAssignment)
     {
         $this->adminActivityLogs(
             'Route Assignment',
             'Delete',
-            'Deleted Route Assignment ID: ' . $assignment->id
+            'Deleted Route Assignment ID: ' . $routeAssignment->id
         );
 
-        $assignment->delete();
+        $routeAssignment->delete();
 
-        return redirect()->route('admin.route-assignment.index')
+        return redirect()->route('admin.route-assignment-management.index')
             ->with('success', 'Route assignment deleted successfully');
     }
 
@@ -364,7 +396,7 @@ class RouteAssignmentController extends Controller
             'Viewed Route Assignment Statistics Dashboard'
         );
 
-        return Inertia::render('Admin/RouteAssignment/statistics', [
+        return Inertia::render('Admin/RouteAssignmentManagement/statistics', [
             'statistics' => $stats,
         ]);
     }

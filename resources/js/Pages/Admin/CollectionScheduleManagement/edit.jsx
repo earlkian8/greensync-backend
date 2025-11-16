@@ -62,7 +62,6 @@ const EditCollectionSchedule = ({ schedule, setShowEditModal }) => {
     post(route('admin.collection-schedule-management.update', schedule.id), {
       onSuccess: () => {
         setShowEditModal(false);
-        toast.success('Collection Schedule Updated Successfully!');
       },
     });
   };

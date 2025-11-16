@@ -315,7 +315,7 @@ class CollectorController extends Controller
         $collector->delete();
 
         return redirect()->route('admin.collector-management.index')
-            ->with('success', 'Collector deleted successfully');
+            ->with('success');
     }
 
     /**

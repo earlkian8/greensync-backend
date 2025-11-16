@@ -8,7 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from 'sonner';
-import { Trash2, SquarePen, Eye, UserCheck, UserX, CheckCircle, XCircle, Filter } from 'lucide-react';
+import { Trash2, SquarePen, Eye, Filter, Play, CheckCircle2, XCircle } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -23,84 +23,86 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-import AddCollector from './add';
-import EditCollector from './edit';
-import DeleteCollector from './delete';
-import ShowCollector from './show';
+import AddRouteAssignment from './add';
+import EditRouteAssignment from './edit';
+import DeleteRouteAssignment from './delete';
+import ShowRouteAssignment from './show';
 
-export default function CollectorManagement() {
+export default function RouteAssignmentManagement() {
     const columns = [
-        { header: 'Employee ID', width: '10%' },
-        { header: 'Name', width: '15%' },
-        { header: 'Email', width: '15%' },
-        { header: 'Phone', width: '12%' },
-        { header: 'Vehicle Info', width: '15%' },
-        { header: 'License', width: '10%' },
-        { header: 'Status', width: '10%' },
-        { header: 'Verified', width: '8%' },
-        { header: 'Action', width: '10%' },
+        { header: 'Assignment Date', width: '12%' },
+        { header: 'Route', width: '18%' },
+        { header: 'Collector', width: '15%' },
+        { header: 'Schedule', width: '15%' },
+        { header: 'Status', width: '12%' },
+        { header: 'Start Time', width: '10%' },
+        { header: 'End Time', width: '10%' },
+        { header: 'Action', width: '12%' },
     ];
 
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
-    const [editCollector, setEditCollector] = useState(null);
+    const [editAssignment, setEditAssignment] = useState(null);
 
     const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [deleteCollector, setDeleteCollector] = useState(null);
+    const [deleteAssignment, setDeleteAssignment] = useState(null);
 
     const [showViewModal, setShowViewModal] = useState(false);
-    const [viewCollector, setViewCollector] = useState(null);
+    const [viewAssignment, setViewAssignment] = useState(null);
 
     const [showFilterPopover, setShowFilterPopover] = useState(false);
 
-    const pagination = usePage().props.collectors;
-    const collectorData = usePage().props.collectors.data;
+    const pagination = usePage().props.assignments;
+    const assignmentData = usePage().props.assignments.data;
+    const routes = usePage().props.routes || [];
+    const collectors = usePage().props.collectors || [];
+    const schedules = usePage().props.schedules || [];
 
     const [search, setSearch] = useState(usePage().props.search || '');
-    const [verificationFilter, setVerificationFilter] = useState(usePage().props.verificationFilter || '');
     const [statusFilter, setStatusFilter] = useState(usePage().props.statusFilter || '');
-
+    const [dateFilter, setDateFilter] = useState(usePage().props.dateFilter || '');
+    
     const handleSearch = (e) => {
         setSearch(e.target.value);
         router.get(
-            route('admin.collector-management.index'), 
+            route('admin.route-assignment-management.index'), 
             { 
                 search: e.target.value,
-                verification: verificationFilter,
-                status: statusFilter
+                status: statusFilter,
+                date: dateFilter
             }, 
             { preserveState: true, replace: true }
         );
     };
 
     const handleFilterChange = (type, value) => {
-        if (type === 'verification') {
-            setVerificationFilter(value);
-        } else if (type === 'status') {
+        if (type === 'status') {
             setStatusFilter(value);
+        } else if (type === 'date') {
+            setDateFilter(value);
         }
 
         router.get(
-            route('admin.collector-management.index'),
+            route('admin.route-assignment-management.index'),
             {
                 search,
-                verification: type === 'verification' ? value : verificationFilter,
                 status: type === 'status' ? value : statusFilter,
+                date: type === 'date' ? value : dateFilter,
             },
             { preserveState: true, replace: true }
         );
     };
 
     const handleClearFilters = () => {
-        setVerificationFilter('');
         setStatusFilter('');
+        setDateFilter('');
         
         router.get(
-            route('admin.collector-management.index'),
+            route('admin.route-assignment-management.index'),
             {
                 search,
-                verification: '',
                 status: '',
+                date: '',
             },
             { preserveState: true, replace: true }
         );
@@ -108,44 +110,82 @@ export default function CollectorManagement() {
 
     const handlePageChange = ({ search, page }) => {
         router.get(
-            route('admin.collector-management.index'), 
+            route('admin.route-assignment-management.index'), 
             { 
                 search, 
                 page,
-                verification: verificationFilter,
-                status: statusFilter
+                status: statusFilter,
+                date: dateFilter
             }, 
             { preserveState: true, replace: true }
         );
     };
 
-    const handleToggleStatus = (collector) => {
-        const route_name = collector.is_active 
-            ? 'admin.collector-management.deactivate' 
-            : 'admin.collector-management.activate';
-        
-        router.post(route(route_name, collector.id), {}, {
-            preserveScroll: true,
-            onSuccess: () => {
-                toast.success(`Collector ${collector.is_active ? 'deactivated' : 'activated'} successfully`);
+    const handleStartAssignment = (assignment) => {
+        router.post(
+            route('admin.route-assignment-management.start', assignment.id),
+            {},
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    
+                },
             }
-        });
+        );
     };
 
-    const handleToggleVerification = (collector) => {
-        const route_name = collector.is_verified 
-            ? 'admin.collector-management.unverify' 
-            : 'admin.collector-management.verify';
-        
-        router.post(route(route_name, collector.id), {}, {
-            preserveScroll: true,
-            onSuccess: () => {
-                toast.success(`Collector ${collector.is_verified ? 'unverified' : 'verified'} successfully`);
+    const handleCompleteAssignment = (assignment) => {
+        router.post(
+            route('admin.route-assignment-management.complete', assignment.id),
+            {},
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    
+                },
             }
-        });
+        );
     };
 
-    const hasActiveFilters = verificationFilter || statusFilter;
+    const handleCancelAssignment = (assignment) => {
+        router.post(
+            route('admin.route-assignment-management.cancel', assignment.id),
+            {},
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    
+                },
+            }
+        );
+    };
+
+    const getStatusBadge = (status) => {
+        const badges = {
+            pending: 'bg-yellow-100 text-yellow-800',
+            in_progress: 'bg-blue-100 text-blue-800',
+            completed: 'bg-green-100 text-green-800',
+            cancelled: 'bg-red-100 text-red-800',
+        };
+        const labels = {
+            pending: 'Pending',
+            in_progress: 'In Progress',
+            completed: 'Completed',
+            cancelled: 'Cancelled',
+        };
+        return (
+            <span className={`px-2 py-1 rounded-full text-xs ${badges[status] || 'bg-gray-100 text-gray-800'}`}>
+                {labels[status] || status}
+            </span>
+        );
+    };
+
+    const formatScheduleDisplay = (schedule) => {
+        if (!schedule) return '---';
+        return `${schedule.barangay} - ${schedule.collection_day}`;
+    };
+
+    const hasActiveFilters = statusFilter || dateFilter;
 
     const breadcrumbs = [
         {
@@ -153,39 +193,48 @@ export default function CollectorManagement() {
             href: route('dashboard'),
         },
         {
-            name: "Collector Management",
+            name: "Route Assignment",
         },
+    ];
+
+    const statuses = [
+        { value: 'pending', label: 'Pending' },
+        { value: 'in_progress', label: 'In Progress' },
+        { value: 'completed', label: 'Completed' },
+        { value: 'cancelled', label: 'Cancelled' },
     ];
 
     return (
         <>
         {showAddModal && (
-            <AddCollector setShowAddModal={setShowAddModal} />
+            <AddRouteAssignment 
+                setShowAddModal={setShowAddModal}
+            />
         )}
 
         {showEditModal && (
-            <EditCollector 
+            <EditRouteAssignment 
                 setShowEditModal={setShowEditModal} 
-                collector={editCollector}
+                assignment={editAssignment}
             />
         )}
         
         {showDeleteModal && (
-            <DeleteCollector 
+            <DeleteRouteAssignment 
                 setShowDeleteModal={setShowDeleteModal} 
-                collector={deleteCollector}
+                assignment={deleteAssignment}
             />
         )}
 
         {showViewModal && (
-            <ShowCollector 
+            <ShowRouteAssignment 
                 setShowViewModal={setShowViewModal} 
-                collector={viewCollector}
+                assignment={viewAssignment}
             />
         )}
 
         <AuthenticatedLayout breadcrumbs={breadcrumbs}>
-            <Head title="Collector Management" />
+            <Head title="Route Assignment Management" />
 
             <div>
                 <div className="w-full sm:px-6 lg:px-8">
@@ -196,7 +245,7 @@ export default function CollectorManagement() {
                             <div className="w-full sm:flex-1">
                                 <input
                                     type="text"
-                                    placeholder="Search by name, email, phone, employee ID..."
+                                    placeholder="Search assignments..."
                                     value={search}
                                     onChange={handleSearch}
                                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-gray-800"
@@ -215,7 +264,7 @@ export default function CollectorManagement() {
                                             Filters
                                             {hasActiveFilters && (
                                                 <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
-                                                    {[verificationFilter, statusFilter].filter(Boolean).length}
+                                                    {[statusFilter, dateFilter].filter(Boolean).length}
                                                 </span>
                                             )}
                                         </Button>
@@ -236,30 +285,10 @@ export default function CollectorManagement() {
                                                 )}
                                             </div>
 
-                                            {/* Verification Filter */}
-                                            <div>
-                                                <label className="text-xs font-medium text-zinc-700 mb-1 block">
-                                                    Verification Status
-                                                </label>
-                                                <Select 
-                                                    value={verificationFilter} 
-                                                    onValueChange={(value) => handleFilterChange('verification', value)}
-                                                >
-                                                    <SelectTrigger className="w-full">
-                                                        <SelectValue placeholder="All Verification" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="All">All Verification</SelectItem>
-                                                        <SelectItem value="verified">Verified</SelectItem>
-                                                        <SelectItem value="unverified">Unverified</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-
                                             {/* Status Filter */}
                                             <div>
                                                 <label className="text-xs font-medium text-zinc-700 mb-1 block">
-                                                    Account Status
+                                                    Status
                                                 </label>
                                                 <Select 
                                                     value={statusFilter} 
@@ -269,24 +298,40 @@ export default function CollectorManagement() {
                                                         <SelectValue placeholder="All Status" />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        <SelectItem value="All">All Status</SelectItem>
-                                                        <SelectItem value="active">Active</SelectItem>
-                                                        <SelectItem value="inactive">Inactive</SelectItem>
+                                                        <SelectItem value="all">All Status</SelectItem>
+                                                        {statuses.map(status => (
+                                                            <SelectItem key={status.value} value={status.value}>
+                                                                {status.label}
+                                                            </SelectItem>
+                                                        ))}
                                                     </SelectContent>
                                                 </Select>
+                                            </div>
+
+                                            {/* Date Filter */}
+                                            <div>
+                                                <label className="text-xs font-medium text-zinc-700 mb-1 block">
+                                                    Assignment Date
+                                                </label>
+                                                <input
+                                                    type="date"
+                                                    value={dateFilter}
+                                                    onChange={(e) => handleFilterChange('date', e.target.value)}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-gray-800 focus:border-gray-800"
+                                                />
                                             </div>
                                         </div>
                                     </PopoverContent>
                                 </Popover>
                             </div>
 
-                            {/* Add Collector Button */}
+                            {/* Add Assignment Button */}
                             <div className="w-full sm:w-auto">
                                 <Button 
                                     className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white" 
                                     onClick={() => setShowAddModal(true)}
                                 >
-                                    Add Collector
+                                    Add Assignment
                                 </Button>
                             </div>
                         </div>
@@ -295,63 +340,61 @@ export default function CollectorManagement() {
                     {/* Table without search and add button */}
                     <TableComponent
                         columns={columns}
-                        data={collectorData}
+                        data={assignmentData}
                         pagination={pagination}
                         search={search}
                         onPageChange={handlePageChange}
                         showSearch={false}
                         showAddButton={false}
                     >
-                        {collectorData.map(collector => (
-                            <TableRow key={collector.id}>
-                                <TableCell className='text-left px-2 py-2 sm:px-4 md:px-6 text-xs sm:text-sm font-semibold'>
-                                    #{collector.employee_id}
+                        {assignmentData.map(assignment => (
+                            <TableRow key={assignment.id}>
+                                <TableCell className='text-left px-2 py-2 sm:px-4 md:px-6 text-xs sm:text-sm'>
+                                    {new Date(assignment.assignment_date).toLocaleDateString('en-US', {
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: 'numeric'
+                                    })}
                                 </TableCell>
                                 <TableCell className='text-left px-2 py-2 sm:px-4 md:px-6 text-xs sm:text-sm'>
-                                    {collector.name}
+                                    <div>
+                                        <div className="font-medium">{assignment.route?.route_name || '---'}</div>
+                                        <div className="text-xs text-zinc-600">{assignment.route?.barangay || '---'}</div>
+                                    </div>
                                 </TableCell>
                                 <TableCell className='text-left px-2 py-2 sm:px-4 md:px-6 text-xs sm:text-sm'>
-                                    {collector.email}
+                                    <div>
+                                        <div className="font-medium">{assignment.collector?.name || '---'}</div>
+                                        <div className="text-xs text-zinc-600">{assignment.collector?.phone_number || '---'}</div>
+                                    </div>
                                 </TableCell>
                                 <TableCell className='text-left px-2 py-2 sm:px-4 md:px-6 text-xs sm:text-sm'>
-                                    {collector.phone_number}
+                                    {formatScheduleDisplay(assignment.schedule)}
                                 </TableCell>
                                 <TableCell className='text-left px-2 py-2 sm:px-4 md:px-6 text-xs sm:text-sm'>
-                                    {collector.vehicle_type && collector.vehicle_plate_number ? (
-                                        <div className="flex flex-col">
-                                            <span className="font-medium">{collector.vehicle_type}</span>
-                                            <span className="text-zinc-600">{collector.vehicle_plate_number}</span>
-                                        </div>
-                                    ) : '---'}
+                                    {getStatusBadge(assignment.status)}
                                 </TableCell>
                                 <TableCell className='text-left px-2 py-2 sm:px-4 md:px-6 text-xs sm:text-sm'>
-                                    {collector.license_number || '---'}
+                                    {assignment.start_time 
+                                        ? new Date(assignment.start_time).toLocaleTimeString('en-US', {
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })
+                                        : '---'}
                                 </TableCell>
                                 <TableCell className='text-left px-2 py-2 sm:px-4 md:px-6 text-xs sm:text-sm'>
-                                    <span
-                                        className={`px-2 py-1 rounded-full text-xs ${
-                                            collector.is_active 
-                                                ? 'bg-green-100 text-green-800' 
-                                                : 'bg-red-100 text-red-800'
-                                        }`}
-                                    >
-                                        {collector.is_active ? 'Active' : 'Inactive'}
-                                    </span>
-                                </TableCell>
-                                <TableCell className='text-left px-2 py-2 sm:px-4 md:px-6 text-xs sm:text-sm'>
-                                    <span className={`px-2 py-1 rounded-full text-xs ${
-                                        collector.is_verified 
-                                            ? 'bg-green-100 text-green-800' 
-                                            : 'bg-yellow-100 text-yellow-800'
-                                    }`}>
-                                        {collector.is_verified ? 'Verified' : 'Unverified'}
-                                    </span>
+                                    {assignment.end_time 
+                                        ? new Date(assignment.end_time).toLocaleTimeString('en-US', {
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })
+                                        : '---'}
                                 </TableCell>
                                 <TableCell className='text-left px-2 py-2 sm:px-4 md:px-6 text-xs sm:text-sm'>
                                     <div className="flex gap-2">
                                         <button
                                             onClick={() => {
-                                                setViewCollector(collector);
+                                                setViewAssignment(assignment);
                                                 setShowViewModal(true);
                                             }}
                                             className="p-2 rounded hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition"
@@ -363,7 +406,7 @@ export default function CollectorManagement() {
                                         </button>
                                         <button
                                             onClick={() => {
-                                                setEditCollector(collector);
+                                                setEditAssignment(assignment);
                                                 setShowEditModal(true);
                                             }}
                                             className="p-2 rounded hover:bg-green-100 text-green-600 hover:text-green-700 transition"
@@ -373,9 +416,42 @@ export default function CollectorManagement() {
                                         >
                                             <SquarePen size={18} />
                                         </button>
+                                        {assignment.status === 'pending' && (
+                                            <button
+                                                onClick={() => handleStartAssignment(assignment)}
+                                                className="p-2 rounded hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition"
+                                                title="Start"
+                                                aria-label="Start"
+                                                type="button"
+                                            >
+                                                <Play size={18} />
+                                            </button>
+                                        )}
+                                        {assignment.status === 'in_progress' && (
+                                            <button
+                                                onClick={() => handleCompleteAssignment(assignment)}
+                                                className="p-2 rounded hover:bg-green-100 text-green-600 hover:text-green-700 transition"
+                                                title="Complete"
+                                                aria-label="Complete"
+                                                type="button"
+                                            >
+                                                <CheckCircle2 size={18} />
+                                            </button>
+                                        )}
+                                        {(assignment.status === 'pending' || assignment.status === 'in_progress') && (
+                                            <button
+                                                onClick={() => handleCancelAssignment(assignment)}
+                                                className="p-2 rounded hover:bg-orange-100 text-orange-600 hover:text-orange-700 transition"
+                                                title="Cancel"
+                                                aria-label="Cancel"
+                                                type="button"
+                                            >
+                                                <XCircle size={18} />
+                                            </button>
+                                        )}
                                         <button
                                             onClick={() => {
-                                                setDeleteCollector(collector);
+                                                setDeleteAssignment(assignment);
                                                 setShowDeleteModal(true);
                                             }}
                                             className="p-2 rounded hover:bg-red-100 text-red-600 hover:text-red-700 transition"

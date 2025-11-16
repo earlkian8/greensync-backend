@@ -74,7 +74,6 @@ const EditResident = ({ resident, setShowEditModal, barangays }) => {
     post(route('admin.resident-management.update', resident.id), {
       onSuccess: () => {
         setShowEditModal(false);
-        toast.success('Resident Updated Successfully!');
       },
       forceFormData: true,
     });

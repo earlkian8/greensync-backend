@@ -71,7 +71,6 @@ const EditRoute = ({ route: routeData, setShowEditModal }) => {
     router.post(route('admin.route-management.update', routeData.id), formData, {
       onSuccess: () => {
         setShowEditModal(false);
-        toast.success('Route Updated Successfully!');
       },
     });
   };
@@ -206,7 +205,7 @@ const EditRoute = ({ route: routeData, setShowEditModal }) => {
                     </SelectItem>
                   ))
                 ) : (
-                  <SelectItem value="" disabled>No residents available</SelectItem>
+                  <SelectItem value="none" disabled>No residents available</SelectItem>
                 )}
               </SelectContent>
             </Select>
