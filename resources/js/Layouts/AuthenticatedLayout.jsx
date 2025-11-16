@@ -120,13 +120,13 @@ export default function AuthenticatedLayout({ breadcrumbs = [], children }) {
       routeName: 'admin.collection-request-management.*',
       type: 'single'
     },
-    {
-      title: 'Notification & Announcement',
-      url: route('admin.notification-management.index'),
-      icon: Bell,
-      routeName: 'admin.notification-management.*',
-      type: 'single'
-    },
+    // {
+    //   title: 'Notification & Announcement',
+    //   url: route('admin.notification-management.index'),
+    //   icon: Bell,
+    //   routeName: 'admin.notification-management.*',
+    //   type: 'single'
+    // },
     {
       title: 'Reporting',
       url: '#',

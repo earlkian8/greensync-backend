@@ -14,8 +14,11 @@ class NotificationController extends Controller
     {
         $resident = $request->user();
 
-        $notifications = Notification::where('recipient_type', 'resident')
-            ->where('recipient_id', $resident->id)
+        $notifications = Notification::where(function ($query) use ($resident) {
+                $query->where('recipient_type', 'resident')
+                    ->where('recipient_id', $resident->id);
+            })
+            ->orWhere('recipient_type', 'all_residents')
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
@@ -31,8 +34,11 @@ class NotificationController extends Controller
     {
         $resident = $request->user();
 
-        $notifications = Notification::where('recipient_type', 'resident')
-            ->where('recipient_id', $resident->id)
+        $notifications = Notification::where(function ($query) use ($resident) {
+                $query->where('recipient_type', 'resident')
+                    ->where('recipient_id', $resident->id);
+            })
+            ->orWhere('recipient_type', 'all_residents')
             ->where('is_read', false)
             ->orderBy('created_at', 'desc')
             ->get();
@@ -49,8 +55,11 @@ class NotificationController extends Controller
     {
         $resident = $request->user();
 
-        $notification = Notification::where('recipient_type', 'resident')
-            ->where('recipient_id', $resident->id)
+        $notification = Notification::where(function ($query) use ($resident) {
+                $query->where('recipient_type', 'resident')
+                    ->where('recipient_id', $resident->id);
+            })
+            ->orWhere('recipient_type', 'all_residents')
             ->where('id', $id)
             ->firstOrFail();
 
@@ -70,8 +79,11 @@ class NotificationController extends Controller
     {
         $resident = $request->user();
 
-        Notification::where('recipient_type', 'resident')
-            ->where('recipient_id', $resident->id)
+        Notification::where(function ($query) use ($resident) {
+                $query->where('recipient_type', 'resident')
+                    ->where('recipient_id', $resident->id);
+            })
+            ->orWhere('recipient_type', 'all_residents')
             ->where('is_read', false)
             ->update([
                 'is_read' => true,
@@ -90,8 +102,11 @@ class NotificationController extends Controller
         $resident = $request->user();
 
         $unreadCount = $this->getUnreadCount($resident->id);
-        $totalCount = Notification::where('recipient_type', 'resident')
-            ->where('recipient_id', $resident->id)
+        $totalCount = Notification::where(function ($query) use ($resident) {
+                $query->where('recipient_type', 'resident')
+                    ->where('recipient_id', $resident->id);
+            })
+            ->orWhere('recipient_type', 'all_residents')
             ->count();
 
         return response()->json([
@@ -106,8 +121,11 @@ class NotificationController extends Controller
     {
         $resident = $request->user();
 
-        $notification = Notification::where('recipient_type', 'resident')
-            ->where('recipient_id', $resident->id)
+        $notification = Notification::where(function ($query) use ($resident) {
+                $query->where('recipient_type', 'resident')
+                    ->where('recipient_id', $resident->id);
+            })
+            ->orWhere('recipient_type', 'all_residents')
             ->where('id', $id)
             ->firstOrFail();
 
@@ -123,8 +141,11 @@ class NotificationController extends Controller
     {
         $resident = $request->user();
 
-        Notification::where('recipient_type', 'resident')
-            ->where('recipient_id', $resident->id)
+        Notification::where(function ($query) use ($resident) {
+                $query->where('recipient_type', 'resident')
+                    ->where('recipient_id', $resident->id);
+            })
+            ->orWhere('recipient_type', 'all_residents')
             ->delete();
 
         return response()->json([
@@ -137,8 +158,11 @@ class NotificationController extends Controller
     {
         $resident = $request->user();
 
-        $notification = Notification::where('recipient_type', 'resident')
-            ->where('recipient_id', $resident->id)
+        $notification = Notification::where(function ($query) use ($resident) {
+                $query->where('recipient_type', 'resident')
+                    ->where('recipient_id', $resident->id);
+            })
+            ->orWhere('recipient_type', 'all_residents')
             ->where('id', $id)
             ->firstOrFail();
 
@@ -159,8 +183,11 @@ class NotificationController extends Controller
     /** Helper function to get unread count */
     private function getUnreadCount($residentId)
     {
-        return Notification::where('recipient_type', 'resident')
-            ->where('recipient_id', $residentId)
+        return Notification::where(function ($query) use ($residentId) {
+                $query->where('recipient_type', 'resident')
+                    ->where('recipient_id', $residentId);
+            })
+            ->orWhere('recipient_type', 'all_residents')
             ->where('is_read', false)
             ->count();
     }
