@@ -11,6 +11,7 @@ use App\Http\Controllers\v1\Admin\RouteController;
 use App\Http\Controllers\v1\Admin\RouteAssignmentController;
 use App\Http\Controllers\v1\Admin\CollectionRequestController;
 use App\Http\Controllers\v1\Admin\NotificationController;
+use App\Http\Controllers\v1\Admin\ReportingController;
 use App\Http\Controllers\ActivityLogsController;
 
 Route::middleware('auth')->group(function () {
@@ -151,6 +152,26 @@ Route::middleware('auth')->group(function () {
             Route::get('/{notification}/edit', [NotificationController::class, 'edit'])->name('edit');
             Route::put('/update/{notification}', [NotificationController::class, 'update'])->name('update');
             Route::delete('/destroy/{notification}', [NotificationController::class, 'destroy'])->name('destroy');
+        });
+
+        // Report Management
+        Route::prefix('reporting-management')->name('reporting-management.')->group(function(){
+            Route::get('/', [ReportingController::class, 'index'])->name('index');
+            Route::get('/create', [ReportingController::class, 'create'])->name('create');
+            Route::post('/store', [ReportingController::class, 'store'])->name('store');
+            
+            // Statistics
+            Route::get('/statistics', [ReportingController::class, 'statistics'])->name('statistics');
+            
+            // Export actions
+            Route::get('/export/{report}/excel', [ReportingController::class, 'exportExcel'])->name('export-excel');
+             
+            // Regenerate report
+            Route::post('/regenerate/{report}', [ReportingController::class, 'regenerate'])->name('regenerate');
+            
+            // Resource routes
+            Route::get('/{report}', [ReportingController::class, 'show'])->name('show');
+            Route::delete('/destroy/{report}', [ReportingController::class, 'destroy'])->name('destroy');
         });
         
         
