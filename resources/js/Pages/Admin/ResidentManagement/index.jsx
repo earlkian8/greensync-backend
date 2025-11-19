@@ -200,14 +200,14 @@ export default function ResidentManagement() {
                             </div>
 
                             {/* Add Resident Button */}
-                            <div className="w-full sm:w-auto">
+                            {/* <div className="w-full sm:w-auto">
                                 <Button 
                                     className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white" 
                                     onClick={() => setShowAddModal(true)}
                                 >
                                     Add Resident
                                 </Button>
-                            </div>
+                            </div> */}
                         </div>
                     </div>
 
@@ -262,7 +262,7 @@ export default function ResidentManagement() {
                                         >
                                             <Eye size={18} />
                                         </button>
-                                        <button
+                                        {/* <button
                                             onClick={() => {
                                                 setEditResident(resident);
                                                 setShowEditModal(true);
@@ -273,7 +273,7 @@ export default function ResidentManagement() {
                                             type="button"
                                         >
                                             <SquarePen size={18} />
-                                        </button>
+                                        </button> */}
                                         <button
                                             onClick={() => {
                                                 setDeleteResident(resident);

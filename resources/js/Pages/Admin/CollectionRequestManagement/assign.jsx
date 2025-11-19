@@ -17,7 +17,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/Components/ui/select"
 
 const AssignCollectorModal = ({ setShowAssignModal, request, collectors }) => {
   const { data, setData, post, errors, processing } = useForm({
