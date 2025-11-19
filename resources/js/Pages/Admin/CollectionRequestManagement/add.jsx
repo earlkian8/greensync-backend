@@ -19,7 +19,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/Components/ui/select"
 
 const AddCollectionRequest = ({ setShowAddModal }) => {
   const { residents, wasteBins, collectors } = usePage().props;
