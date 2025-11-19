@@ -201,8 +201,6 @@ CREATE TABLE IF NOT EXISTS routes (
     id BIGSERIAL PRIMARY KEY,
     route_name VARCHAR(255) NOT NULL,
     barangay VARCHAR(100) NOT NULL,
-    start_location TEXT NULL,
-    end_location TEXT NULL,
     estimated_duration INTEGER NULL,
     total_stops INTEGER NOT NULL DEFAULT 0,
     route_map_data TEXT NULL,

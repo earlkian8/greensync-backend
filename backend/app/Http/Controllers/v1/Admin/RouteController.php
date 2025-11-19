@@ -33,9 +33,7 @@ class RouteController extends Controller
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->where('route_name', 'like', "%{$search}%")
-                  ->orWhere('barangay', 'like', "%{$search}%")
-                  ->orWhere('start_location', 'like', "%{$search}%")
-                  ->orWhere('end_location', 'like', "%{$search}%");
+                  ->orWhere('barangay', 'like', "%{$search}%");
             });
         }
 
@@ -101,33 +99,19 @@ class RouteController extends Controller
         $validated = $request->validate([
             'route_name' => 'required|string|max:255',
             'barangay' => 'required|string|max:100',
-            'start_location' => 'nullable|string',
-            'end_location' => 'nullable|string',
             'estimated_duration' => 'nullable|integer|min:1',
             'route_map_data' => 'nullable|string',
             'is_active' => 'nullable|boolean',
             'created_by' => 'required|exists:residents,id',
-            'stops' => 'nullable|array',
-            'stops.*.stop_order' => 'required|integer|min:1',
-            'stops.*.stop_address' => 'required|string',
-            'stops.*.latitude' => 'nullable|numeric|between:-90,90',
-            'stops.*.longitude' => 'nullable|numeric|between:-180,180',
-            'stops.*.estimated_time' => 'nullable|date_format:H:i',
-            'stops.*.notes' => 'nullable|string',
         ]);
 
         DB::beginTransaction();
         try {
-            // Calculate total stops
-            $totalStops = isset($validated['stops']) ? count($validated['stops']) : 0;
-
             $routeData = [
                 'route_name' => $validated['route_name'],
                 'barangay' => $validated['barangay'],
-                'start_location' => $validated['start_location'] ?? null,
-                'end_location' => $validated['end_location'] ?? null,
                 'estimated_duration' => $validated['estimated_duration'] ?? null,
-                'total_stops' => $totalStops,
+                'total_stops' => 0,
                 'route_map_data' => $validated['route_map_data'] ?? null,
                 'is_active' => $validated['is_active'] ?? true,
                 'created_by' => $validated['created_by'],
@@ -135,27 +119,12 @@ class RouteController extends Controller
 
             $route = Route::create($routeData);
 
-            // Create route stops if provided
-            if (isset($validated['stops']) && count($validated['stops']) > 0) {
-                foreach ($validated['stops'] as $stop) {
-                    RouteStop::create([
-                        'route_id' => $route->id,
-                        'stop_order' => $stop['stop_order'],
-                        'stop_address' => $stop['stop_address'],
-                        'latitude' => $stop['latitude'] ?? null,
-                        'longitude' => $stop['longitude'] ?? null,
-                        'estimated_time' => $stop['estimated_time'] ?? null,
-                        'notes' => $stop['notes'] ?? null,
-                    ]);
-                }
-            }
-
             DB::commit();
 
             $this->adminActivityLogs(
                 'Route',
                 'Add',
-                'Created Route ' . $route->route_name . ' - ' . $route->barangay . ' with ' . $totalStops . ' stops'
+                'Created Route ' . $route->route_name . ' - ' . $route->barangay
             );
 
             return redirect()->route('admin.route-management.index')
@@ -172,7 +141,7 @@ class RouteController extends Controller
      */
     public function show(Route $route): Response
     {
-        // Load relationships
+        // Load relationships with accurate counts
         $route->load([
             'creator:id,name,email',
             'stops' => function($query) {
@@ -181,6 +150,7 @@ class RouteController extends Controller
             'assignments.collector:id,name',
             'assignments.schedule:id,barangay,collection_day,waste_type'
         ]);
+        $route->loadCount(['assignments']);
 
         $this->adminActivityLogs(
             'Route',
@@ -229,83 +199,24 @@ class RouteController extends Controller
         $validated = $request->validate([
             'route_name' => 'required|string|max:255',
             'barangay' => 'required|string|max:100',
-            'start_location' => 'nullable|string',
-            'end_location' => 'nullable|string',
             'estimated_duration' => 'nullable|integer|min:1',
             'route_map_data' => 'nullable|string',
             'is_active' => 'nullable|boolean',
             'created_by' => 'required|exists:residents,id',
-            'stops' => 'nullable|array',
-            'stops.*.id' => 'nullable|exists:route_stops,id',
-            'stops.*.stop_order' => 'required|integer|min:1',
-            'stops.*.stop_address' => 'required|string',
-            'stops.*.latitude' => 'nullable|numeric|between:-90,90',
-            'stops.*.longitude' => 'nullable|numeric|between:-180,180',
-            'stops.*.estimated_time' => 'nullable|date_format:H:i',
-            'stops.*.notes' => 'nullable|string',
         ]);
 
         DB::beginTransaction();
         try {
-            // Calculate total stops
-            $totalStops = isset($validated['stops']) ? count($validated['stops']) : 0;
-
             $updateData = [
                 'route_name' => $validated['route_name'],
                 'barangay' => $validated['barangay'],
-                'start_location' => $validated['start_location'] ?? null,
-                'end_location' => $validated['end_location'] ?? null,
                 'estimated_duration' => $validated['estimated_duration'] ?? null,
-                'total_stops' => $totalStops,
                 'route_map_data' => $validated['route_map_data'] ?? null,
                 'is_active' => $validated['is_active'] ?? $route->is_active,
                 'created_by' => $validated['created_by'],
             ];
 
             $route->update($updateData);
-
-            // Update route stops
-            if (isset($validated['stops'])) {
-                // Get existing stop IDs
-                $existingStopIds = $route->stops->pluck('id')->toArray();
-                $updatedStopIds = [];
-
-                foreach ($validated['stops'] as $stopData) {
-                    if (isset($stopData['id']) && in_array($stopData['id'], $existingStopIds)) {
-                        // Update existing stop
-                        RouteStop::where('id', $stopData['id'])->update([
-                            'stop_order' => $stopData['stop_order'],
-                            'stop_address' => $stopData['stop_address'],
-                            'latitude' => $stopData['latitude'] ?? null,
-                            'longitude' => $stopData['longitude'] ?? null,
-                            'estimated_time' => $stopData['estimated_time'] ?? null,
-                            'notes' => $stopData['notes'] ?? null,
-                        ]);
-                        $updatedStopIds[] = $stopData['id'];
-                    } else {
-                        // Create new stop
-                        $newStop = RouteStop::create([
-                            'route_id' => $route->id,
-                            'stop_order' => $stopData['stop_order'],
-                            'stop_address' => $stopData['stop_address'],
-                            'latitude' => $stopData['latitude'] ?? null,
-                            'longitude' => $stopData['longitude'] ?? null,
-                            'estimated_time' => $stopData['estimated_time'] ?? null,
-                            'notes' => $stopData['notes'] ?? null,
-                        ]);
-                        $updatedStopIds[] = $newStop->id;
-                    }
-                }
-
-                // Delete stops that were removed
-                $stopsToDelete = array_diff($existingStopIds, $updatedStopIds);
-                if (count($stopsToDelete) > 0) {
-                    RouteStop::whereIn('id', $stopsToDelete)->delete();
-                }
-            } else {
-                // If no stops provided, delete all existing stops
-                $route->stops()->delete();
-            }
 
             DB::commit();
 

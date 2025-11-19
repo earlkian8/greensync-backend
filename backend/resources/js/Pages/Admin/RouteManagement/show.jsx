@@ -9,10 +9,6 @@ import { Separator } from '@/Components/ui/separator';
 import { 
   MapPin, 
   Clock, 
-  Navigation,
-  Flag,
-  CheckCircle2,
-  XCircle,
   User,
   Route as RouteIcon,
   ListOrdered
@@ -98,16 +94,6 @@ const ShowRoute = ({ setShowViewModal, route }) => {
             <h3 className="text-sm font-semibold text-zinc-800 mb-4">Location Details</h3>
             
             <div className="space-y-1">
-              <InfoRow 
-                icon={Navigation} 
-                label="Start Location" 
-                value={route.start_location} 
-              />
-              <InfoRow 
-                icon={Flag} 
-                label="End Location" 
-                value={route.end_location} 
-              />
               <InfoRow 
                 icon={MapPin} 
                 label="Barangay" 
@@ -195,7 +181,7 @@ const ShowRoute = ({ setShowViewModal, route }) => {
               <div className="bg-blue-50 p-4 rounded-lg">
                 <p className="text-sm text-blue-600 font-medium">Total Assignments</p>
                 <p className="text-2xl font-bold text-blue-900 mt-1">
-                  {route.assignments?.length || 0}
+                  {route.assignments_count || route.assignments?.length || 0}
                 </p>
               </div>
               <div className="bg-green-50 p-4 rounded-lg">

@@ -12,8 +12,6 @@ class Route extends Model
     protected $fillable = [
         'route_name',
         'barangay',
-        'start_location',
-        'end_location',
         'estimated_duration',
         'total_stops',
         'route_map_data',

@@ -15,8 +15,6 @@ return new class extends Migration
             $table->id();
             $table->string('route_name', 255);
             $table->string('barangay', 100);
-            $table->text('start_location')->nullable();
-            $table->text('end_location')->nullable();
             $table->integer('estimated_duration')->nullable();
             $table->integer('total_stops')->default(0);
             $table->text('route_map_data')->nullable();
