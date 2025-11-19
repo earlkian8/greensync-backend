@@ -6,7 +6,7 @@ import {
   TableBody,
   TableCell,
   TableRow,
-} from "@/components/ui/table";
+} from "@/Components/ui/table";
 import { toast } from 'sonner';
 import { Trash2, SquarePen, Eye, QrCode, CheckCircle, Filter } from 'lucide-react';
 import {
@@ -15,13 +15,13 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/Components/ui/select";
 import { Button } from '@/Components/ui/button';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
+} from "@/Components/ui/popover";
 
 import AddWasteBin from './add';
 import EditWasteBin from './edit';

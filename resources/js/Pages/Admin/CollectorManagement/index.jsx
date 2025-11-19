@@ -6,7 +6,7 @@ import {
   TableBody,
   TableCell,
   TableRow,
-} from "@/components/ui/table";
+} from "@/Components/ui/table";
 import { toast } from 'sonner';
 import { Trash2, SquarePen, Eye, UserCheck, UserX, CheckCircle, XCircle, Filter } from 'lucide-react';
 import {

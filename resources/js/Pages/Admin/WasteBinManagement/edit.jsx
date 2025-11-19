@@ -18,7 +18,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/Components/ui/select"
 import { useEffect } from 'react';
 
 const EditWasteBin = ({ wasteBin, setShowEditModal, residents }) => {

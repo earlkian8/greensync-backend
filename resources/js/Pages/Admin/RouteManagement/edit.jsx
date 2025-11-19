@@ -20,7 +20,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/Components/ui/select"
 import { useState, useEffect } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 

@@ -18,7 +18,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/Components/ui/select"
 
 const AddWasteBin = ({ setShowAddModal, residents }) => {
   const { data, setData, post, errors, processing } = useForm({
