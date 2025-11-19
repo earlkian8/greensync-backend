@@ -25,7 +25,6 @@ class CollectionScheduleController extends Controller
         $page = $request->get('page', 1);
         $statusFilter = $request->get('status', ''); // all, active, inactive
         $barangayFilter = $request->get('barangay', '');
-        $wasteTypeFilter = $request->get('waste_type', '');
         $dayFilter = $request->get('day', '');
 
         $query = CollectionSchedule::with('creator:id,name,email');
@@ -34,7 +33,6 @@ class CollectionScheduleController extends Controller
             $query->where(function ($q) use ($search) {
                 $q->where('barangay', 'like', "%{$search}%")
                   ->orWhere('collection_day', 'like', "%{$search}%")
-                  ->orWhere('waste_type', 'like', "%{$search}%")
                   ->orWhere('notes', 'like', "%{$search}%");
             });
         }
@@ -49,11 +47,6 @@ class CollectionScheduleController extends Controller
         // Filter by barangay
         if ($barangayFilter) {
             $query->where('barangay', $barangayFilter);
-        }
-
-        // Filter by waste type
-        if ($wasteTypeFilter) {
-            $query->where('waste_type', $wasteTypeFilter);
         }
 
         // Filter by day
@@ -78,7 +71,6 @@ class CollectionScheduleController extends Controller
             'search' => $search,
             'statusFilter' => $statusFilter,
             'barangayFilter' => $barangayFilter,
-            'wasteTypeFilter' => $wasteTypeFilter,
             'dayFilter' => $dayFilter,
         ]);
     }
@@ -103,10 +95,6 @@ class CollectionScheduleController extends Controller
                 Rule::in(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'])
             ],
             'collection_time' => 'required|date_format:H:i',
-            'waste_type' => [
-                'required',
-                Rule::in(['biodegradable', 'non-biodegradable', 'recyclable', 'special', 'all'])
-            ],
             'frequency' => [
                 'required',
                 Rule::in(['weekly', 'bi-weekly', 'monthly'])
@@ -119,7 +107,6 @@ class CollectionScheduleController extends Controller
             'barangay' => $validated['barangay'],
             'collection_day' => $validated['collection_day'],
             'collection_time' => $validated['collection_time'],
-            'waste_type' => $validated['waste_type'],
             'frequency' => $validated['frequency'],
             'is_active' => $validated['is_active'] ?? true,
             'notes' => $validated['notes'] ?? null,
@@ -143,8 +130,9 @@ class CollectionScheduleController extends Controller
      */
     public function show(CollectionSchedule $collectionSchedule): Response
     {
-        // Load relationships
+        // Load relationships with accurate counts
         $collectionSchedule->load(['creator', 'routeAssignments']);
+        $collectionSchedule->loadCount(['routeAssignments']);
 
         $this->adminActivityLogs(
             'Collection Schedule',
@@ -185,10 +173,6 @@ class CollectionScheduleController extends Controller
                 Rule::in(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'])
             ],
             'collection_time' => 'required|date_format:H:i',
-            'waste_type' => [
-                'required',
-                Rule::in(['biodegradable', 'non-biodegradable', 'recyclable', 'special', 'all'])
-            ],
             'frequency' => [
                 'required',
                 Rule::in(['weekly', 'bi-weekly', 'monthly'])
@@ -201,7 +185,6 @@ class CollectionScheduleController extends Controller
             'barangay' => $validated['barangay'],
             'collection_day' => $validated['collection_day'],
             'collection_time' => $validated['collection_time'],
-            'waste_type' => $validated['waste_type'],
             'frequency' => $validated['frequency'],
             'is_active' => $validated['is_active'] ?? $collectionSchedule->is_active,
             'notes' => $validated['notes'] ?? null,
@@ -286,15 +269,10 @@ class CollectionScheduleController extends Controller
                 ->groupBy('collection_day')
                 ->orderByRaw("FIELD(collection_day, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')")
                 ->get(),
-            'schedules_by_waste_type' => CollectionSchedule::selectRaw('waste_type, COUNT(*) as count')
-                ->where('is_active', true)
-                ->groupBy('waste_type')
-                ->orderBy('count', 'desc')
-                ->get(),
             'recent_schedules' => CollectionSchedule::with('creator:id,name,email')
                 ->orderBy('created_at', 'desc')
                 ->take(10)
-                ->get(['id', 'barangay', 'collection_day', 'collection_time', 'waste_type', 'is_active', 'created_by', 'created_at']),
+                ->get(['id', 'barangay', 'collection_day', 'collection_time', 'is_active', 'created_by', 'created_at']),
         ];
 
         $this->adminActivityLogs(

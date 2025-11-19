@@ -8,7 +8,7 @@ import {
   TableRow,
 } from "@/Components/ui/table";
 import { toast } from 'sonner';
-import { Trash2, SquarePen, Eye, QrCode, CheckCircle, Filter } from 'lucide-react';
+import { Trash2, SquarePen, Eye, Filter } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -23,7 +23,6 @@ import {
   PopoverTrigger,
 } from "@/Components/ui/popover";
 
-import AddWasteBin from './add';
 import EditWasteBin from './edit';
 import DeleteWasteBin from './delete';
 import ShowWasteBin from './show';
@@ -40,7 +39,6 @@ export default function WasteBinManagement() {
         { header: 'Action', width: '12%' },
     ];
 
-    const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [editWasteBin, setEditWasteBin] = useState(null);
 
@@ -51,7 +49,6 @@ export default function WasteBinManagement() {
     const [viewWasteBin, setViewWasteBin] = useState(null);
 
     const [showFilterPopover, setShowFilterPopover] = useState(false);
-    const [collectedBins, setCollectedBins] = useState(new Set());
 
     const pagination = usePage().props.wasteBins;
     const wasteBinData = usePage().props.wasteBins.data;
@@ -133,23 +130,6 @@ export default function WasteBinManagement() {
         toast.success('QR Code generated successfully');
     };
 
-    const handleMarkCollected = (wasteBin) => {
-        router.post(
-            route('admin.waste-bin-management.mark-collected', wasteBin.id),
-            {},
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    setCollectedBins(prev => new Set([...prev, wasteBin.id]));
-                    toast.success('Waste bin marked as collected');
-                },
-                onError: () => {
-                    toast.error('Failed to mark as collected');
-                }
-            }
-        );
-    };
-
     const getBinTypeColor = (type) => {
         const colors = {
             'biodegradable': 'bg-green-100 text-green-800',
@@ -207,10 +187,6 @@ export default function WasteBinManagement() {
 
     return (
         <>
-        {showAddModal && (
-            <AddWasteBin setShowAddModal={setShowAddModal} residents={residents} />
-        )}
-
         {showEditModal && (
             <EditWasteBin 
                 setShowEditModal={setShowEditModal} 
@@ -358,15 +334,6 @@ export default function WasteBinManagement() {
                                 </Popover>
                             </div>
 
-                            {/* Add Waste Bin Button */}
-                            <div className="w-full sm:w-auto">
-                                <Button 
-                                    className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white" 
-                                    onClick={() => setShowAddModal(true)}
-                                >
-                                    Add Waste Bin
-                                </Button>
-                            </div>
                         </div>
                     </div>
 
@@ -421,26 +388,6 @@ export default function WasteBinManagement() {
                                         >
                                             <Eye size={18} />
                                         </button>
-                                        {/* <button
-                                            onClick={() => handleGenerateQrCode(wasteBin)}
-                                            className="p-2 rounded hover:bg-purple-100 text-purple-600 hover:text-purple-700 transition"
-                                            title="Generate QR Code"
-                                            aria-label="Generate QR Code"
-                                            type="button"
-                                        >
-                                            <QrCode size={18} />
-                                        </button> */}
-                                        {!collectedBins.has(wasteBin.id) && (
-                                            <button
-                                                onClick={() => handleMarkCollected(wasteBin)}
-                                                className="p-2 rounded hover:bg-green-100 text-green-600 hover:text-green-700 transition"
-                                                title="Mark as Collected"
-                                                aria-label="Mark as Collected"
-                                                type="button"
-                                            >
-                                                <CheckCircle size={18} />
-                                            </button>
-                                        )}
                                         <button
                                             onClick={() => {
                                                 setEditWasteBin(wasteBin);

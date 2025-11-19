@@ -6,6 +6,8 @@ use App\Models\CollectionRequest;
 use App\Models\Resident;
 use App\Models\WasteBin;
 use App\Models\Collector;
+use App\Models\Route;
+use App\Models\RouteStop;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -106,11 +108,18 @@ class CollectionRequestController extends Controller
                                ->orderBy('name')
                                ->get();
 
+        // Get active routes for To-Route action
+        $routes = Route::where('is_active', true)
+                      ->select('id', 'route_name', 'barangay')
+                      ->orderBy('route_name')
+                      ->get();
+
         return Inertia::render('Admin/CollectionRequestManagement/index', [
             'requests' => $requests,
             'residents' => $residents,
             'wasteBins' => $wasteBins,
             'collectors' => $collectors,
+            'routes' => $routes,
             'search' => $search,
             'statusFilter' => $statusFilter,
             'priorityFilter' => $priorityFilter,
@@ -119,106 +128,6 @@ class CollectionRequestController extends Controller
         ]);
     }
 
-    /**
-     * Show the form for creating a new collection request.
-     */
-    public function create(): Response
-    {
-        // Get verified residents
-        $residents = Resident::select('id', 'name', 'email', 'phone_number', 'barangay')
-                             ->where('is_verified', true)
-                             ->orderBy('name')
-                             ->get();
-
-        // Get waste bins
-        $wasteBins = WasteBin::select('id', 'name', 'qr_code', 'bin_type', 'status')
-                             ->orderBy('name')
-                             ->get();
-
-        // Get active and verified collectors
-        $collectors = Collector::where('is_active', true)
-                               ->where('is_verified', true)
-                               ->select('id', 'name', 'phone_number', 'employee_id')
-                               ->orderBy('name')
-                               ->get();
-
-        return Inertia::render('Admin/CollectionRequestManagement/add', [
-            'residents' => $residents,
-            'wasteBins' => $wasteBins,
-            'collectors' => $collectors,
-        ]);
-    }
-
-    /**
-     * Store a newly created collection request in storage.
-     */
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'user_id' => 'required|exists:residents,id',
-            'bin_id' => 'required|exists:waste_bins,id',
-            'request_type' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'preferred_date' => 'nullable|date',
-            'preferred_time' => 'nullable|date_format:H:i',
-            'waste_type' => 'required|in:biodegradable,non-biodegradable,recyclable,special,all',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            'priority' => 'required|in:low,medium,high,urgent',
-            'status' => 'nullable|in:pending,assigned,in_progress,completed,cancelled',
-            'assigned_collector_id' => 'nullable|exists:collectors,id',
-            'resolution_notes' => 'nullable|string',
-        ]);
-
-        DB::beginTransaction();
-        try {
-            // Handle image upload
-            $imageUrl = null;
-            if ($request->hasFile('image')) {
-                $imagePath = $request->file('image')->store('collection-requests', 'public');
-                $imageUrl = Storage::url($imagePath);
-            }
-
-            $requestData = [
-                'user_id' => $validated['user_id'],
-                'bin_id' => $validated['bin_id'],
-                'request_type' => $validated['request_type'],
-                'description' => $validated['description'] ?? null,
-                'preferred_date' => $validated['preferred_date'] ?? null,
-                'preferred_time' => $validated['preferred_time'] ?? null,
-                'waste_type' => $validated['waste_type'],
-                'image_url' => $imageUrl,
-                'priority' => $validated['priority'],
-                'status' => $validated['status'] ?? 'pending',
-                'assigned_collector_id' => $validated['assigned_collector_id'] ?? null,
-                'resolution_notes' => $validated['resolution_notes'] ?? null,
-            ];
-
-            $collectionRequest = CollectionRequest::create($requestData);
-            $collectionRequest->load(['resident', 'wasteBin', 'collector']);
-
-            DB::commit();
-
-            $this->adminActivityLogs(
-                'Collection Request',
-                'Add',
-                'Created Collection Request: ' . $collectionRequest->request_type . ' for ' . $collectionRequest->resident->name
-            );
-
-            return redirect()->route('admin.collection-request-management.index')
-                ->with('success', 'Collection request created successfully');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            
-            // Delete uploaded image if transaction failed
-            if (isset($imagePath)) {
-                Storage::disk('public')->delete($imagePath);
-            }
-            
-            return back()->withErrors(['error' => 'Failed to create collection request: ' . $e->getMessage()])
-                ->withInput();
-        }
-    }
 
     /**
      * Display the specified collection request.
@@ -295,6 +204,8 @@ class CollectionRequestController extends Controller
             'description' => 'nullable|string',
             'preferred_date' => 'nullable|date',
             'preferred_time' => 'nullable|date_format:H:i',
+            'latitude' => 'nullable|numeric|between:-90,90',
+            'longitude' => 'nullable|numeric|between:-180,180',
             'waste_type' => 'required|in:biodegradable,non-biodegradable,recyclable,special,all',
             'image' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
             'priority' => 'required|in:low,medium,high,urgent',
@@ -325,6 +236,8 @@ class CollectionRequestController extends Controller
                 'description' => $validated['description'] ?? null,
                 'preferred_date' => $validated['preferred_date'] ?? null,
                 'preferred_time' => $validated['preferred_time'] ?? null,
+                'latitude' => $validated['latitude'] ?? null,
+                'longitude' => $validated['longitude'] ?? null,
                 'waste_type' => $validated['waste_type'],
                 'priority' => $validated['priority'],
                 'status' => $validated['status'],
@@ -368,30 +281,6 @@ class CollectionRequestController extends Controller
         }
     }
 
-    /**
-     * Assign a collector to the collection request.
-     */
-    public function assign(Request $request, CollectionRequest $collectionRequest)
-    {
-        $validated = $request->validate([
-            'assigned_collector_id' => 'required|exists:collectors,id',
-        ]);
-
-        $collectionRequest->update([
-            'assigned_collector_id' => $validated['assigned_collector_id'],
-            'status' => 'assigned',
-        ]);
-
-        $collectionRequest->load('collector');
-
-        $this->adminActivityLogs(
-            'Collection Request',
-            'Assign',
-            'Assigned Collection Request ID: ' . $collectionRequest->id . ' to Collector: ' . $collectionRequest->collector->name
-        );
-
-        return back()->with('success', 'Collector assigned successfully');
-    }
 
     /**
      * Start progress on a collection request.
@@ -435,21 +324,77 @@ class CollectionRequestController extends Controller
     }
 
     /**
-     * Cancel a collection request.
+     * Add collection request to a route by creating a route stop.
      */
-    public function cancel(CollectionRequest $collectionRequest)
+    public function toRoute(Request $request, CollectionRequest $collectionRequest)
     {
-        $collectionRequest->update([
-            'status' => 'cancelled',
+        $validated = $request->validate([
+            'route_id' => 'required|exists:routes,id',
         ]);
 
-        $this->adminActivityLogs(
-            'Collection Request',
-            'Cancel',
-            'Cancelled Collection Request ID: ' . $collectionRequest->id . ' - ' . $collectionRequest->request_type
-        );
+        // Load the resident to get address information
+        $collectionRequest->load('resident');
+        
+        if (!$collectionRequest->resident) {
+            return back()->withErrors(['error' => 'Collection request must have an associated resident']);
+        }
 
-        return back()->with('success', 'Collection request cancelled successfully');
+        // Check if latitude and longitude are available
+        if (!$collectionRequest->latitude || !$collectionRequest->longitude) {
+            return back()->withErrors(['error' => 'Collection request must have latitude and longitude coordinates']);
+        }
+
+        DB::beginTransaction();
+        try {
+            // Get the route
+            $route = Route::findOrFail($validated['route_id']);
+            
+            // Get the highest stop_order for this route
+            $maxStopOrder = RouteStop::where('route_id', $route->id)
+                ->max('stop_order') ?? 0;
+            
+            // Build the stop address from resident information
+            $stopAddress = trim(implode(', ', array_filter([
+                $collectionRequest->resident->house_no,
+                $collectionRequest->resident->street,
+                $collectionRequest->resident->barangay,
+                $collectionRequest->resident->city,
+                $collectionRequest->resident->province,
+            ])));
+
+            // Create the route stop
+            $routeStop = RouteStop::create([
+                'route_id' => $route->id,
+                'stop_order' => $maxStopOrder + 1,
+                'stop_address' => $stopAddress ?: $collectionRequest->resident->barangay,
+                'latitude' => $collectionRequest->latitude,
+                'longitude' => $collectionRequest->longitude,
+                'estimated_time' => $collectionRequest->preferred_time,
+                'notes' => 'Collection Request: ' . $collectionRequest->request_type . 
+                          ($collectionRequest->description ? ' - ' . $collectionRequest->description : ''),
+            ]);
+
+            // Update route total_stops
+            $route->increment('total_stops');
+
+            // Update collection request status to assigned
+            $collectionRequest->update([
+                'status' => 'assigned',
+            ]);
+
+            DB::commit();
+
+            $this->adminActivityLogs(
+                'Collection Request',
+                'To Route',
+                'Added Collection Request ID: ' . $collectionRequest->id . ' to Route: ' . $route->route_name . ' as Stop #' . $routeStop->stop_order
+            );
+
+            return back()->with('success', 'Collection request added to route successfully');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'Failed to add collection request to route: ' . $e->getMessage()]);
+        }
     }
 
     /**

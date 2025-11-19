@@ -77,69 +77,15 @@ class WasteBinController extends Controller
         ]);
     }
 
-    /**
-     * Show the form for creating a new waste bin.
-     */
-    public function create(): Response
-    {
-        $residents = Resident::select('id', 'name', 'email', 'barangay')
-                            ->where('is_verified', true)
-                            ->orderBy('name')
-                            ->get();
-
-        return Inertia::render('Admin/WasteBinManagement/add', [
-            
-            'residents' => $residents,
-        ]);
-    }
-
-    /**
-     * Store a newly created waste bin in storage.
-     */
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'resident_id' => 'required|exists:residents,id',
-            'bin_type' => 'required|in:biodegradable,non-biodegradable,recyclable,hazardous',
-            'status' => 'required|in:active,inactive,damaged,full',
-        ]);
-
-        // Generate unique QR code
-        $qrCode = 'WB-' . strtoupper(Str::random(10));
-        while (WasteBin::where('qr_code', $qrCode)->exists()) {
-            $qrCode = 'WB-' . strtoupper(Str::random(10));
-        }
-
-        $wasteBinData = [
-            'name' => $validated['name'],
-            'qr_code' => $qrCode,
-            'resident_id' => $validated['resident_id'],
-            'bin_type' => $validated['bin_type'],
-            'status' => $validated['status'],
-            'registered_at' => now(),
-        ];
-
-        $wasteBin = WasteBin::create($wasteBinData);
-        $wasteBin->load('resident');
-
-        $this->adminActivityLogs(
-            'Waste Bin',
-            'Add',
-            'Created Waste Bin ' . $wasteBin->name . ' (QR: ' . $wasteBin->qr_code . ') for ' . $wasteBin->resident->name
-        );
-
-        return redirect()->route('admin.waste-bin-management.index')
-            ->with('success', 'Waste Bin created successfully');
-    }
 
     /**
      * Display the specified waste bin.
      */
     public function show(WasteBin $wasteBin): Response
     {
-        // Load relationships
+        // Load relationships with accurate counts
         $wasteBin->load(['resident', 'collectionRequests', 'qrCollections']);
+        $wasteBin->loadCount(['collectionRequests', 'qrCollections']);
 
         $this->adminActivityLogs(
             'Waste Bin',
@@ -229,24 +175,6 @@ class WasteBinController extends Controller
         return back()->with('success', 'Waste Bin status updated successfully');
     }
 
-    /**
-     * Mark waste bin as collected.
-     */
-    public function markCollected(WasteBin $wasteBin)
-    {
-        $wasteBin->update([
-            'last_collected' => now(),
-            'status' => 'active',
-        ]);
-
-        $this->adminActivityLogs(
-            'Waste Bin',
-            'Mark Collected',
-            'Marked Waste Bin ' . $wasteBin->name . ' (QR: ' . $wasteBin->qr_code . ') as collected'
-        );
-
-        return back()->with('success', 'Waste Bin marked as collected successfully');
-    }
 
     /**
      * Remove the specified waste bin from storage.
@@ -269,7 +197,7 @@ class WasteBinController extends Controller
     }
 
     /**
-     * Generate QR code image for a waste bin.
+     * Generate QR code image for a waste bin (download).
      */
     public function generateQrCode(WasteBin $wasteBin)
     {
@@ -289,6 +217,21 @@ class WasteBinController extends Controller
         return response($qrCode)
             ->header('Content-Type', 'image/png')
             ->header('Content-Disposition', 'attachment; filename="' . $wasteBin->qr_code . '.png"');
+    }
+
+    /**
+     * Serve QR code image for a waste bin (for display).
+     */
+    public function serveQrCode(WasteBin $wasteBin)
+    {
+        // Generate QR code
+        $qrCode = QrCode::size(300)
+                       ->format('png')
+                       ->generate($wasteBin->qr_code);
+
+        return response($qrCode)
+            ->header('Content-Type', 'image/png')
+            ->header('Cache-Control', 'public, max-age=3600');
     }
 
     /**

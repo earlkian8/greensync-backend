@@ -28,7 +28,6 @@ const EditCollectionSchedule = ({ schedule, setShowEditModal }) => {
     barangay: schedule?.barangay || '',
     collection_day: schedule?.collection_day || '',
     collection_time: schedule?.collection_time || '',
-    waste_type: schedule?.waste_type || '',
     frequency: schedule?.frequency || 'weekly',
     is_active: schedule?.is_active ?? true,
     notes: schedule?.notes || '',
@@ -47,7 +46,6 @@ const EditCollectionSchedule = ({ schedule, setShowEditModal }) => {
         barangay: schedule.barangay || '',
         collection_day: schedule.collection_day || '',
         collection_time: formattedTime || '',
-        waste_type: schedule.waste_type || '',
         frequency: schedule.frequency || 'weekly',
         is_active: schedule.is_active ?? true,
         notes: schedule.notes || '',
@@ -75,13 +73,6 @@ const EditCollectionSchedule = ({ schedule, setShowEditModal }) => {
       : "border-zinc-300 focus:border-zinc-800 focus:ring-2 focus:ring-zinc-800");
 
   const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-  const wasteTypes = [
-    { value: 'biodegradable', label: 'Biodegradable' },
-    { value: 'non-biodegradable', label: 'Non-Biodegradable' },
-    { value: 'recyclable', label: 'Recyclable' },
-    { value: 'special', label: 'Special' },
-    { value: 'all', label: 'All Types' },
-  ];
   const frequencies = [
     { value: 'weekly', label: 'Weekly' },
     { value: 'bi-weekly', label: 'Bi-Weekly' },
@@ -138,22 +129,6 @@ const EditCollectionSchedule = ({ schedule, setShowEditModal }) => {
               className={inputClass(errors.collection_time)}
             />
             <InputError message={errors.collection_time} />
-          </div>
-
-          {/* Waste Type */}
-          <div>
-            <Label className="text-zinc-800">Waste Type </Label>
-            <Select value={data.waste_type} onValueChange={(value) => setData('waste_type', value)}>
-              <SelectTrigger className={inputClass(errors.waste_type)}>
-                <SelectValue placeholder="Select waste type" />
-              </SelectTrigger>
-              <SelectContent>
-                {wasteTypes.map(type => (
-                  <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <InputError message={errors.waste_type} />
           </div>
 
           {/* Frequency */}

@@ -50,6 +50,8 @@ const EditCollectionRequest = ({ request: requestData, setShowEditModal }) => {
     description: requestData?.description || '',
     preferred_date: formatDate(requestData?.preferred_date) || '',
     preferred_time: formatTime(requestData?.preferred_time) || '',
+    latitude: requestData?.latitude?.toString() || '',
+    longitude: requestData?.longitude?.toString() || '',
     waste_type: requestData?.waste_type || 'all',
     image: null,
     priority: requestData?.priority || 'medium',
@@ -68,6 +70,8 @@ const EditCollectionRequest = ({ request: requestData, setShowEditModal }) => {
         description: requestData.description || '',
         preferred_date: formatDate(requestData.preferred_date) || '',
         preferred_time: formatTime(requestData.preferred_time) || '',
+        latitude: requestData.latitude?.toString() || '',
+        longitude: requestData.longitude?.toString() || '',
         waste_type: requestData.waste_type || 'all',
         image: null,
         priority: requestData.priority || 'medium',
@@ -244,6 +248,34 @@ const EditCollectionRequest = ({ request: requestData, setShowEditModal }) => {
               className={inputClass(errors.preferred_time)}
             />
             <InputError message={errors.preferred_time} />
+          </div>
+
+          {/* Latitude */}
+          <div>
+            <Label className="text-zinc-800">Latitude</Label>
+            <Input
+              type="number"
+              step="any"
+              value={data.latitude}
+              onChange={e => setData('latitude', e.target.value)}
+              placeholder="e.g., 14.5995"
+              className={inputClass(errors.latitude)}
+            />
+            <InputError message={errors.latitude} />
+          </div>
+
+          {/* Longitude */}
+          <div>
+            <Label className="text-zinc-800">Longitude</Label>
+            <Input
+              type="number"
+              step="any"
+              value={data.longitude}
+              onChange={e => setData('longitude', e.target.value)}
+              placeholder="e.g., 120.9842"
+              className={inputClass(errors.longitude)}
+            />
+            <InputError message={errors.longitude} />
           </div>
 
           {/* Status */}

@@ -46,17 +46,6 @@ const ShowCollectionSchedule = ({ setShowViewModal, schedule }) => {
     return `${displayHour}:${minutes} ${ampm}`;
   };
 
-  const getWasteTypeLabel = (type) => {
-    const labels = {
-      'biodegradable': 'Biodegradable',
-      'non-biodegradable': 'Non-Biodegradable',
-      'recyclable': 'Recyclable',
-      'special': 'Special',
-      'all': 'All Types'
-    };
-    return labels[type] || type;
-  };
-
   const getFrequencyLabel = (frequency) => {
     const labels = {
       'weekly': 'Weekly',
@@ -66,16 +55,6 @@ const ShowCollectionSchedule = ({ setShowViewModal, schedule }) => {
     return labels[frequency] || frequency;
   };
 
-  const getWasteTypeColor = (type) => {
-    const colors = {
-      'biodegradable': 'bg-green-100 text-green-800',
-      'non-biodegradable': 'bg-gray-100 text-gray-800',
-      'recyclable': 'bg-blue-100 text-blue-800',
-      'special': 'bg-purple-100 text-purple-800',
-      'all': 'bg-orange-100 text-orange-800'
-    };
-    return colors[type] || 'bg-zinc-100 text-zinc-800';
-  };
 
   return (
     <Dialog open onOpenChange={setShowViewModal}>
@@ -116,12 +95,6 @@ const ShowCollectionSchedule = ({ setShowViewModal, schedule }) => {
                     {schedule.is_active ? 'Active' : 'Inactive'}
                   </span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-zinc-600">Waste Type:</span>
-                  <span className={`px-2 py-1 rounded-full text-xs ${getWasteTypeColor(schedule.waste_type)}`}>
-                    {getWasteTypeLabel(schedule.waste_type)}
-                  </span>
-                </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-zinc-600">Created:</span>
                   <span className="text-sm text-zinc-900">
@@ -159,11 +132,6 @@ const ShowCollectionSchedule = ({ setShowViewModal, schedule }) => {
                 label="Collection Time" 
                 value={formatTime(schedule.collection_time)}
                 valueClass="font-semibold"
-              />
-              <InfoRow 
-                icon={Trash2} 
-                label="Waste Type" 
-                value={getWasteTypeLabel(schedule.waste_type)}
               />
               <InfoRow 
                 icon={Repeat} 
@@ -209,7 +177,7 @@ const ShowCollectionSchedule = ({ setShowViewModal, schedule }) => {
               <div className="bg-blue-50 p-4 rounded-lg">
                 <p className="text-sm text-blue-600 font-medium">Route Assignments</p>
                 <p className="text-2xl font-bold text-blue-900 mt-1">
-                  {schedule.route_assignments?.length || 0}
+                  {schedule.route_assignments_count || schedule.route_assignments?.length || 0}
                 </p>
                 <p className="text-xs text-blue-600 mt-1">
                   Total routes using this schedule

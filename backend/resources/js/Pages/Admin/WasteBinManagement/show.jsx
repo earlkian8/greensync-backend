@@ -78,7 +78,15 @@ const ShowWasteBin = ({ setShowViewModal, wasteBin }) => {
             <h3 className="text-sm font-semibold text-zinc-800 mb-4">QR Code</h3>
             <div className="flex flex-col items-center">
               <div className="w-40 h-40 border-4 border-zinc-200 rounded-lg p-2 mb-4 flex items-center justify-center bg-white">
-                <QrCode className="h-32 w-32 text-zinc-800" />
+                {wasteBin.qr_code ? (
+                  <img 
+                    src={route('admin.waste-bin-management.qr-code', wasteBin.id)} 
+                    alt={`QR Code for ${wasteBin.qr_code}`}
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <QrCode className="h-32 w-32 text-zinc-800" />
+                )}
               </div>
               <p className="text-lg font-mono font-bold text-zinc-900 text-center">{wasteBin.qr_code}</p>
               <Separator className="my-4 w-full" />
@@ -176,7 +184,7 @@ const ShowWasteBin = ({ setShowViewModal, wasteBin }) => {
                   <p className="text-sm text-blue-600 font-medium">Collection Requests</p>
                 </div>
                 <p className="text-2xl font-bold text-blue-900">
-                  {wasteBin.collection_requests?.length || 0}
+                  {wasteBin.collection_requests_count || wasteBin.collection_requests?.length || 0}
                 </p>
               </div>
               <div className="bg-green-50 p-4 rounded-lg">
@@ -185,7 +193,7 @@ const ShowWasteBin = ({ setShowViewModal, wasteBin }) => {
                   <p className="text-sm text-green-600 font-medium">QR Collections</p>
                 </div>
                 <p className="text-2xl font-bold text-green-900">
-                  {wasteBin.qr_collections?.length || 0}
+                  {wasteBin.qr_collections_count || wasteBin.qr_collections?.length || 0}
                 </p>
               </div>
               <div className={`p-4 rounded-lg ${

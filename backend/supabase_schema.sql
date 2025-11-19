@@ -184,7 +184,6 @@ CREATE TABLE IF NOT EXISTS collection_schedules (
     barangay VARCHAR(100) NOT NULL,
     collection_day collection_day_enum NOT NULL,
     collection_time TIME NOT NULL,
-    waste_type waste_type_enum NOT NULL DEFAULT 'all',
     frequency frequency_enum NOT NULL DEFAULT 'weekly',
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     notes TEXT NULL,
@@ -193,7 +192,7 @@ CREATE TABLE IF NOT EXISTS collection_schedules (
     updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT collection_schedules_created_by_foreign 
         FOREIGN KEY (created_by) 
-        REFERENCES residents(id) 
+        REFERENCES users(id) 
         ON DELETE CASCADE
 );
 
@@ -281,6 +280,8 @@ CREATE TABLE IF NOT EXISTS collection_requests (
     description TEXT NULL,
     preferred_date DATE NULL,
     preferred_time TIME NULL,
+    latitude DECIMAL(10, 7) NULL,
+    longitude DECIMAL(10, 7) NULL,
     waste_type waste_type_enum NOT NULL DEFAULT 'all',
     image_url VARCHAR(255) NULL,
     priority priority_enum NOT NULL DEFAULT 'medium',

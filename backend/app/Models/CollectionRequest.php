@@ -16,6 +16,8 @@ class CollectionRequest extends Model
         'description',
         'preferred_date',
         'preferred_time',
+        'latitude',
+        'longitude',
         'waste_type',
         'image_url',
         'priority',
@@ -28,6 +30,8 @@ class CollectionRequest extends Model
     protected $casts = [
         'preferred_date' => 'date',
         'preferred_time' => 'datetime:H:i',
+        'latitude' => 'decimal:7',
+        'longitude' => 'decimal:7',
         'completed_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',

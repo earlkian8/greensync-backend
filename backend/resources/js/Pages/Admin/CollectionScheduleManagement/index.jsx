@@ -30,13 +30,12 @@ import ShowCollectionSchedule from './show';
 
 export default function CollectionScheduleManagement() {
     const columns = [
-        { header: 'Barangay', width: '15%' },
+        { header: 'Barangay', width: '18%' },
         { header: 'Day', width: '12%' },
-        { header: 'Time', width: '10%' },
-        { header: 'Waste Type', width: '15%' },
+        { header: 'Time', width: '12%' },
         { header: 'Frequency', width: '12%' },
         { header: 'Status', width: '10%' },
-        { header: 'Created By', width: '16%' },
+        { header: 'Created By', width: '18%' },
         { header: 'Action', width: '10%' },
     ];
 
@@ -59,7 +58,6 @@ export default function CollectionScheduleManagement() {
     const [search, setSearch] = useState(usePage().props.search || '');
     const [statusFilter, setStatusFilter] = useState(usePage().props.statusFilter || '');
     const [barangayFilter, setBarangayFilter] = useState(usePage().props.barangayFilter || '');
-    const [wasteTypeFilter, setWasteTypeFilter] = useState(usePage().props.wasteTypeFilter || '');
     const [dayFilter, setDayFilter] = useState(usePage().props.dayFilter || '');
 
     const handleSearch = (e) => {
@@ -70,7 +68,6 @@ export default function CollectionScheduleManagement() {
                 search: e.target.value,
                 status: statusFilter,
                 barangay: barangayFilter,
-                waste_type: wasteTypeFilter,
                 day: dayFilter
             }, 
             { preserveState: true, replace: true }
@@ -82,8 +79,6 @@ export default function CollectionScheduleManagement() {
             setStatusFilter(value);
         } else if (type === 'barangay') {
             setBarangayFilter(value);
-        } else if (type === 'waste_type') {
-            setWasteTypeFilter(value);
         } else if (type === 'day') {
             setDayFilter(value);
         }
@@ -94,7 +89,6 @@ export default function CollectionScheduleManagement() {
                 search,
                 status: type === 'status' ? value : statusFilter,
                 barangay: type === 'barangay' ? value : barangayFilter,
-                waste_type: type === 'waste_type' ? value : wasteTypeFilter,
                 day: type === 'day' ? value : dayFilter,
             },
             { preserveState: true, replace: true }
@@ -104,7 +98,6 @@ export default function CollectionScheduleManagement() {
     const handleClearFilters = () => {
         setStatusFilter('');
         setBarangayFilter('');
-        setWasteTypeFilter('');
         setDayFilter('');
         
         router.get(
@@ -113,7 +106,6 @@ export default function CollectionScheduleManagement() {
                 search,
                 status: '',
                 barangay: '',
-                waste_type: '',
                 day: '',
             },
             { preserveState: true, replace: true }
@@ -128,7 +120,6 @@ export default function CollectionScheduleManagement() {
                 page,
                 status: statusFilter,
                 barangay: barangayFilter,
-                waste_type: wasteTypeFilter,
                 day: dayFilter
             }, 
             { preserveState: true, replace: true }
@@ -153,17 +144,6 @@ export default function CollectionScheduleManagement() {
         return `${displayHour}:${minutes} ${ampm}`;
     };
 
-    const getWasteTypeLabel = (type) => {
-        const labels = {
-            'biodegradable': 'Biodegradable',
-            'non-biodegradable': 'Non-Biodegradable',
-            'recyclable': 'Recyclable',
-            'special': 'Special',
-            'all': 'All Types'
-        };
-        return labels[type] || type;
-    };
-
     const getFrequencyLabel = (frequency) => {
         const labels = {
             'weekly': 'Weekly',
@@ -173,7 +153,7 @@ export default function CollectionScheduleManagement() {
         return labels[frequency] || frequency;
     };
 
-    const hasActiveFilters = statusFilter || barangayFilter || wasteTypeFilter || dayFilter;
+    const hasActiveFilters = statusFilter || barangayFilter || dayFilter;
 
     const breadcrumbs = [
         {
@@ -186,13 +166,6 @@ export default function CollectionScheduleManagement() {
     ];
 
     const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    const wasteTypes = [
-        { value: 'biodegradable', label: 'Biodegradable' },
-        { value: 'non-biodegradable', label: 'Non-Biodegradable' },
-        { value: 'recyclable', label: 'Recyclable' },
-        { value: 'special', label: 'Special' },
-        { value: 'all', label: 'All Types' },
-    ];
 
     return (
         <>
@@ -252,7 +225,7 @@ export default function CollectionScheduleManagement() {
                                             Filters
                                             {hasActiveFilters && (
                                                 <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
-                                                    {[statusFilter, barangayFilter, wasteTypeFilter, dayFilter].filter(Boolean).length}
+                                                    {[statusFilter, barangayFilter, dayFilter].filter(Boolean).length}
                                                 </span>
                                             )}
                                         </Button>
@@ -309,29 +282,6 @@ export default function CollectionScheduleManagement() {
                                                         <SelectItem value="all">All Days</SelectItem>
                                                         {daysOfWeek.map(day => (
                                                             <SelectItem key={day} value={day}>{day}</SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-
-                                            {/* Waste Type Filter */}
-                                            <div>
-                                                <label className="text-xs font-medium text-zinc-700 mb-1 block">
-                                                    Waste Type
-                                                </label>
-                                                <Select 
-                                                    value={wasteTypeFilter} 
-                                                    onValueChange={(value) => handleFilterChange('waste_type', value)}
-                                                >
-                                                    <SelectTrigger className="w-full">
-                                                        <SelectValue placeholder="All Waste Types" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="all">All Waste Types</SelectItem>
-                                                        {wasteTypes.map(type => (
-                                                            <SelectItem key={type.value} value={type.value}>
-                                                                {type.label}
-                                                            </SelectItem>
                                                         ))}
                                                     </SelectContent>
                                                 </Select>
@@ -396,9 +346,6 @@ export default function CollectionScheduleManagement() {
                                 </TableCell>
                                 <TableCell className='text-left px-2 py-2 sm:px-4 md:px-6 text-xs sm:text-sm'>
                                     {formatTime(schedule.collection_time)}
-                                </TableCell>
-                                <TableCell className='text-left px-2 py-2 sm:px-4 md:px-6 text-xs sm:text-sm'>
-                                    {getWasteTypeLabel(schedule.waste_type)}
                                 </TableCell>
                                 <TableCell className='text-left px-2 py-2 sm:px-4 md:px-6 text-xs sm:text-sm'>
                                     {getFrequencyLabel(schedule.frequency)}

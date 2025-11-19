@@ -21,10 +21,6 @@ return new class extends Migration
 
             $table->time('collection_time');
 
-            $table->enum('waste_type', [
-                'biodegradable', 'non-biodegradable', 'recyclable', 'special', 'all'
-            ])->default('all');
-
             $table->enum('frequency', [
                 'weekly', 'bi-weekly', 'monthly'
             ])->default('weekly');
@@ -33,7 +29,7 @@ return new class extends Migration
             $table->text('notes')->nullable();
 
             $table->foreignId('created_by')
-                ->constrained('residents')
+                ->constrained('users')
                 ->onDelete('cascade');
 
             $table->timestamps();

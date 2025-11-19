@@ -27,6 +27,9 @@ return new class extends Migration
             $table->date('preferred_date')->nullable();
             $table->time('preferred_time')->nullable();
 
+            $table->decimal('latitude', 10, 7)->nullable();
+            $table->decimal('longitude', 10, 7)->nullable();
+
             $table->enum('waste_type', [
                 'biodegradable', 'non-biodegradable', 'recyclable', 'special', 'all'
             ])->default('all');

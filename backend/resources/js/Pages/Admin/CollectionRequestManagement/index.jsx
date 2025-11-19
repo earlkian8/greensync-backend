@@ -8,7 +8,7 @@ import {
   TableRow,
 } from "@/Components/ui/table";
 import { toast } from 'sonner';
-import { Trash2, SquarePen, Eye, Filter, UserPlus, Play, CheckCircle2, XCircle } from 'lucide-react';
+import { Trash2, SquarePen, Eye, Filter, Play, CheckCircle2, Route } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -23,11 +23,10 @@ import {
   PopoverTrigger,
 } from "@/Components/ui/popover";
 
-import AddCollectionRequest from './add';
 import EditCollectionRequest from './edit';
 import DeleteCollectionRequest from './delete';
 import ShowCollectionRequest from './show';
-import AssignCollectorModal from './assign';
+import ToRouteModal from './to-route';
 
 export default function CollectionRequestManagement() {
     const columns = [
@@ -42,7 +41,6 @@ export default function CollectionRequestManagement() {
         { header: 'Action', width: '8%' },
     ];
 
-    const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [editRequest, setEditRequest] = useState(null);
 
@@ -52,8 +50,8 @@ export default function CollectionRequestManagement() {
     const [showViewModal, setShowViewModal] = useState(false);
     const [viewRequest, setViewRequest] = useState(null);
 
-    const [showAssignModal, setShowAssignModal] = useState(false);
-    const [assignRequest, setAssignRequest] = useState(null);
+    const [showToRouteModal, setShowToRouteModal] = useState(false);
+    const [toRouteRequest, setToRouteRequest] = useState(null);
 
     const [showFilterPopover, setShowFilterPopover] = useState(false);
 
@@ -174,21 +172,6 @@ export default function CollectionRequestManagement() {
         );
     };
 
-    const handleCancel = (request) => {
-        router.post(
-            route('admin.collection-request-management.cancel', request.id),
-            {},
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    
-                },
-                onError: () => {
-                    toast.error('Failed to cancel request');
-                },
-            }
-        );
-    };
 
     const getStatusBadge = (status) => {
         const badges = {
@@ -296,12 +279,6 @@ export default function CollectionRequestManagement() {
 
     return (
         <>
-        {showAddModal && (
-            <AddCollectionRequest 
-                setShowAddModal={setShowAddModal}
-            />
-        )}
-
         {showEditModal && (
             <EditCollectionRequest 
                 setShowEditModal={setShowEditModal} 
@@ -323,11 +300,10 @@ export default function CollectionRequestManagement() {
             />
         )}
 
-        {showAssignModal && (
-            <AssignCollectorModal 
-                setShowAssignModal={setShowAssignModal} 
-                request={assignRequest}
-                collectors={collectors}
+        {showToRouteModal && (
+            <ToRouteModal 
+                setShowToRouteModal={setShowToRouteModal} 
+                request={toRouteRequest}
             />
         )}
 
@@ -479,15 +455,6 @@ export default function CollectionRequestManagement() {
                                 </Popover>
                             </div>
 
-                            {/* Add Request Button */}
-                            <div className="w-full sm:w-auto">
-                                <Button 
-                                    className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white" 
-                                    onClick={() => setShowAddModal(true)}
-                                >
-                                    Add Request
-                                </Button>
-                            </div>
                         </div>
                     </div>
 
@@ -572,18 +539,18 @@ export default function CollectionRequestManagement() {
                                         >
                                             <SquarePen size={18} />
                                         </button>
-                                        {(request.status === 'pending' && !request.assigned_collector_id) && (
+                                        {(request.status === 'pending' || request.status === 'assigned') && (
                                             <button
                                                 onClick={() => {
-                                                    setAssignRequest(request);
-                                                    setShowAssignModal(true);
+                                                    setToRouteRequest(request);
+                                                    setShowToRouteModal(true);
                                                 }}
                                                 className="p-2 rounded hover:bg-purple-100 text-purple-600 hover:text-purple-700 transition"
-                                                title="Assign Collector"
-                                                aria-label="Assign Collector"
+                                                title="Add to Route"
+                                                aria-label="Add to Route"
                                                 type="button"
                                             >
-                                                <UserPlus size={18} />
+                                                <Route size={18} />
                                             </button>
                                         )}
                                         {request.status === 'assigned' && (
@@ -606,17 +573,6 @@ export default function CollectionRequestManagement() {
                                                 type="button"
                                             >
                                                 <CheckCircle2 size={18} />
-                                            </button>
-                                        )}
-                                        {(request.status === 'pending' || request.status === 'assigned' || request.status === 'in_progress') && (
-                                            <button
-                                                onClick={() => handleCancel(request)}
-                                                className="p-2 rounded hover:bg-orange-100 text-orange-600 hover:text-orange-700 transition"
-                                                title="Cancel"
-                                                aria-label="Cancel"
-                                                type="button"
-                                            >
-                                                <XCircle size={18} />
                                             </button>
                                         )}
                                         <button

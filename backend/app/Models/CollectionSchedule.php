@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\User;
 
 class CollectionSchedule extends Model
 {
@@ -13,7 +14,6 @@ class CollectionSchedule extends Model
         'barangay',
         'collection_day',
         'collection_time',
-        'waste_type',
         'frequency',
         'is_active',
         'notes',
@@ -33,7 +33,7 @@ class CollectionSchedule extends Model
 
     public function creator()
     {
-        return $this->belongsTo(Resident::class, 'created_by');
+        return $this->belongsTo(User::class, 'created_by');
     }
 
     public function routeAssignments()

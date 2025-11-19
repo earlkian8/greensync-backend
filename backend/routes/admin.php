@@ -60,12 +60,10 @@ Route::middleware('auth')->group(function () {
         // Waste Bin Management
         Route::prefix('waste-bin-management')->name('waste-bin-management.')->group(function(){
             Route::get('/', [WasteBinController::class, 'index'])->name('index');
-            Route::get('/create', [WasteBinController::class, 'create'])->name('create');
-            Route::post('/store', [WasteBinController::class, 'store'])->name('store');
             Route::get('/statistics', [WasteBinController::class, 'statistics'])->name('statistics');
             Route::post('/update-status/{wasteBin}', [WasteBinController::class, 'updateStatus'])->name('update-status');
-            Route::post('/mark-collected/{wasteBin}', [WasteBinController::class, 'markCollected'])->name('mark-collected');
             Route::get('/generate-qr/{wasteBin}', [WasteBinController::class, 'generateQrCode'])->name('generate-qr');
+            Route::get('/{wasteBin}/qr-code', [WasteBinController::class, 'serveQrCode'])->name('qr-code');
             Route::get('/{wasteBin}', [WasteBinController::class, 'show'])->name('show');
             Route::get('/{wasteBin}/edit', [WasteBinController::class, 'edit'])->name('edit');
             Route::put('/update/{wasteBin}', [WasteBinController::class, 'update'])->name('update');
@@ -121,17 +119,14 @@ Route::middleware('auth')->group(function () {
         // Collection Request Management Routes
         Route::prefix('collection-request-management')->name('collection-request-management.')->group(function () {
             Route::get('/', [CollectionRequestController::class, 'index'])->name('index');
-            Route::get('/create', [CollectionRequestController::class, 'create'])->name('create');
-            Route::post('/store', [CollectionRequestController::class, 'store'])->name('store');
             
             // Statistics should come BEFORE the resource routes to avoid conflicts
             Route::get('/statistics', [CollectionRequestController::class, 'statistics'])->name('statistics');
             
             // Workflow actions (these should also come before resource routes)
-            Route::post('/assign/{collectionRequest}', [CollectionRequestController::class, 'assign'])->name('assign');
+            Route::post('/to-route/{collectionRequest}', [CollectionRequestController::class, 'toRoute'])->name('to-route');
             Route::post('/start-progress/{collectionRequest}', [CollectionRequestController::class, 'startProgress'])->name('start-progress');
             Route::post('/complete/{collectionRequest}', [CollectionRequestController::class, 'complete'])->name('complete');
-            Route::post('/cancel/{collectionRequest}', [CollectionRequestController::class, 'cancel'])->name('cancel');
             
             // Resource routes (these should be at the bottom)
             Route::get('/{collectionRequest}', [CollectionRequestController::class, 'show'])->name('show');
