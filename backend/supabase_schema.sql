@@ -109,6 +109,66 @@ CREATE INDEX IF NOT EXISTS personal_access_tokens_tokenable_type_tokenable_id_in
 CREATE INDEX IF NOT EXISTS personal_access_tokens_expires_at_index ON personal_access_tokens(expires_at);
 
 -- ============================================
+-- Philippine Location Tables
+-- ============================================
+-- IMPORTANT: These tables must be created BEFORE the residents table
+-- to allow foreign key constraints
+
+-- Philippine regions table
+CREATE TABLE IF NOT EXISTS philippine_regions (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    code VARCHAR(255) NOT NULL,
+    psgc VARCHAR(255) NOT NULL UNIQUE,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS philippine_regions_code_index ON philippine_regions(code);
+
+-- Philippine provinces table
+CREATE TABLE IF NOT EXISTS philippine_provinces (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    code VARCHAR(255) NOT NULL,
+    region_code VARCHAR(255) NOT NULL,
+    psgc VARCHAR(255) NOT NULL UNIQUE,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS philippine_provinces_code_index ON philippine_provinces(code);
+CREATE INDEX IF NOT EXISTS philippine_provinces_region_code_index ON philippine_provinces(region_code);
+
+-- Philippine cities table
+CREATE TABLE IF NOT EXISTS philippine_cities (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    code VARCHAR(255) NOT NULL,
+    province_code VARCHAR(255) NOT NULL,
+    region_code VARCHAR(255) NOT NULL,
+    psgc VARCHAR(255) NOT NULL UNIQUE,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS philippine_cities_code_index ON philippine_cities(code);
+CREATE INDEX IF NOT EXISTS philippine_cities_province_code_index ON philippine_cities(province_code);
+CREATE INDEX IF NOT EXISTS philippine_cities_region_code_index ON philippine_cities(region_code);
+
+-- Philippine barangays table
+CREATE TABLE IF NOT EXISTS philippine_barangays (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    city_code VARCHAR(255) NOT NULL,
+    province_code VARCHAR(255) NOT NULL,
+    region_code VARCHAR(255) NOT NULL,
+    psgc VARCHAR(255) NOT NULL UNIQUE,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS philippine_barangays_city_code_index ON philippine_barangays(city_code);
+CREATE INDEX IF NOT EXISTS philippine_barangays_province_code_index ON philippine_barangays(province_code);
+CREATE INDEX IF NOT EXISTS philippine_barangays_region_code_index ON philippine_barangays(region_code);
+
+-- ============================================
 -- Application Tables
 -- ============================================
 
@@ -128,8 +188,28 @@ CREATE TABLE IF NOT EXISTS residents (
     postal_code VARCHAR(10) NOT NULL,
     profile_image VARCHAR(255) NULL,
     is_verified BOOLEAN NOT NULL DEFAULT FALSE,
+    region_id BIGINT NULL,
+    province_id BIGINT NULL,
+    city_id BIGINT NULL,
+    barangay_id BIGINT NULL,
     created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT residents_region_id_foreign 
+        FOREIGN KEY (region_id) 
+        REFERENCES philippine_regions(id) 
+        ON DELETE SET NULL,
+    CONSTRAINT residents_province_id_foreign 
+        FOREIGN KEY (province_id) 
+        REFERENCES philippine_provinces(id) 
+        ON DELETE SET NULL,
+    CONSTRAINT residents_city_id_foreign 
+        FOREIGN KEY (city_id) 
+        REFERENCES philippine_cities(id) 
+        ON DELETE SET NULL,
+    CONSTRAINT residents_barangay_id_foreign 
+        FOREIGN KEY (barangay_id) 
+        REFERENCES philippine_barangays(id) 
+        ON DELETE SET NULL
 );
 
 -- Collectors table
@@ -154,8 +234,16 @@ CREATE TABLE IF NOT EXISTS collectors (
 );
 
 -- Waste bins table
-CREATE TYPE bin_type_enum AS ENUM ('biodegradable', 'non-biodegradable', 'recyclable', 'hazardous');
-CREATE TYPE bin_status_enum AS ENUM ('active', 'inactive', 'damaged', 'full');
+DO $$ BEGIN
+    CREATE TYPE bin_type_enum AS ENUM ('biodegradable', 'non-biodegradable', 'recyclable', 'hazardous');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+DO $$ BEGIN
+    CREATE TYPE bin_status_enum AS ENUM ('active', 'inactive', 'damaged', 'full');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 CREATE TABLE IF NOT EXISTS waste_bins (
     id BIGSERIAL PRIMARY KEY,
@@ -175,9 +263,21 @@ CREATE TABLE IF NOT EXISTS waste_bins (
 );
 
 -- Collection schedules table
-CREATE TYPE collection_day_enum AS ENUM ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday');
-CREATE TYPE waste_type_enum AS ENUM ('biodegradable', 'non-biodegradable', 'recyclable', 'special', 'all');
-CREATE TYPE frequency_enum AS ENUM ('weekly', 'bi-weekly', 'monthly');
+DO $$ BEGIN
+    CREATE TYPE collection_day_enum AS ENUM ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+DO $$ BEGIN
+    CREATE TYPE waste_type_enum AS ENUM ('biodegradable', 'non-biodegradable', 'recyclable', 'special', 'all');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+DO $$ BEGIN
+    CREATE TYPE frequency_enum AS ENUM ('weekly', 'bi-weekly', 'monthly');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 CREATE TABLE IF NOT EXISTS collection_schedules (
     id BIGSERIAL PRIMARY KEY,
@@ -233,7 +333,11 @@ CREATE TABLE IF NOT EXISTS route_stops (
 );
 
 -- Route assignments table
-CREATE TYPE assignment_status_enum AS ENUM ('pending', 'in_progress', 'completed', 'cancelled');
+DO $$ BEGIN
+    CREATE TYPE assignment_status_enum AS ENUM ('pending', 'in_progress', 'completed', 'cancelled');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 CREATE TABLE IF NOT EXISTS route_assignments (
     id BIGSERIAL PRIMARY KEY,
@@ -267,8 +371,16 @@ CREATE TABLE IF NOT EXISTS route_assignments (
 );
 
 -- Collection requests table
-CREATE TYPE priority_enum AS ENUM ('low', 'medium', 'high', 'urgent');
-CREATE TYPE request_status_enum AS ENUM ('pending', 'assigned', 'in_progress', 'completed', 'cancelled');
+DO $$ BEGIN
+    CREATE TYPE priority_enum AS ENUM ('low', 'medium', 'high', 'urgent');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+DO $$ BEGIN
+    CREATE TYPE request_status_enum AS ENUM ('pending', 'assigned', 'in_progress', 'completed', 'cancelled');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 CREATE TABLE IF NOT EXISTS collection_requests (
     id BIGSERIAL PRIMARY KEY,
@@ -304,7 +416,11 @@ CREATE TABLE IF NOT EXISTS collection_requests (
 );
 
 -- QR collections table
-CREATE TYPE collection_status_enum AS ENUM ('successful', 'skipped', 'failed');
+DO $$ BEGIN
+    CREATE TYPE collection_status_enum AS ENUM ('successful', 'skipped', 'failed');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 CREATE TABLE IF NOT EXISTS qr_collections (
     id BIGSERIAL PRIMARY KEY,
@@ -345,8 +461,16 @@ CREATE TABLE IF NOT EXISTS qr_collections (
 );
 
 -- Notifications table
-CREATE TYPE recipient_type_enum AS ENUM ('resident', 'collector', 'all_residents', 'all_collectors', 'specific');
-CREATE TYPE notification_type_enum AS ENUM ('schedule', 'alert', 'announcement', 'request_update', 'route_assignment');
+DO $$ BEGIN
+    CREATE TYPE recipient_type_enum AS ENUM ('resident', 'collector', 'all_residents', 'all_collectors', 'specific');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
+DO $$ BEGIN
+    CREATE TYPE notification_type_enum AS ENUM ('schedule', 'alert', 'announcement', 'request_update', 'route_assignment');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 CREATE TABLE IF NOT EXISTS notifications (
     id BIGSERIAL PRIMARY KEY,
@@ -477,6 +601,10 @@ CREATE INDEX IF NOT EXISTS qr_collections_assignment_id_index ON qr_collections(
 CREATE INDEX IF NOT EXISTS notifications_recipient_id_index ON notifications(recipient_id);
 CREATE INDEX IF NOT EXISTS notifications_sender_id_index ON notifications(sender_id);
 CREATE INDEX IF NOT EXISTS activity_logs_user_id_index ON activity_logs(user_id);
+CREATE INDEX IF NOT EXISTS residents_region_id_index ON residents(region_id);
+CREATE INDEX IF NOT EXISTS residents_province_id_index ON residents(province_id);
+CREATE INDEX IF NOT EXISTS residents_city_id_index ON residents(city_id);
+CREATE INDEX IF NOT EXISTS residents_barangay_id_index ON residents(barangay_id);
 
 -- ============================================
 -- Seed Data
@@ -500,15 +628,79 @@ VALUES (
 ON CONFLICT (email) DO NOTHING; -- Prevents duplicate insertion if user already exists
 
 -- ============================================
--- Notes:
+-- Philippine Location Tables
 -- ============================================
--- 1. This SQL script creates all tables based on your Laravel migrations
+-- Note: These tables must be created BEFORE the residents table
+-- to allow foreign key constraints
+
+-- Philippine regions table
+CREATE TABLE IF NOT EXISTS philippine_regions (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    code VARCHAR(255) NOT NULL,
+    psgc VARCHAR(255) NOT NULL UNIQUE,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS philippine_regions_code_index ON philippine_regions(code);
+
+-- Philippine provinces table
+CREATE TABLE IF NOT EXISTS philippine_provinces (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    code VARCHAR(255) NOT NULL,
+    region_code VARCHAR(255) NOT NULL,
+    psgc VARCHAR(255) NOT NULL UNIQUE,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS philippine_provinces_code_index ON philippine_provinces(code);
+CREATE INDEX IF NOT EXISTS philippine_provinces_region_code_index ON philippine_provinces(region_code);
+
+-- Philippine cities table
+CREATE TABLE IF NOT EXISTS philippine_cities (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    code VARCHAR(255) NOT NULL,
+    province_code VARCHAR(255) NOT NULL,
+    region_code VARCHAR(255) NOT NULL,
+    psgc VARCHAR(255) NOT NULL UNIQUE,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS philippine_cities_code_index ON philippine_cities(code);
+CREATE INDEX IF NOT EXISTS philippine_cities_province_code_index ON philippine_cities(province_code);
+CREATE INDEX IF NOT EXISTS philippine_cities_region_code_index ON philippine_cities(region_code);
+
+-- Philippine barangays table
+CREATE TABLE IF NOT EXISTS philippine_barangays (
+    id BIGSERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    city_code VARCHAR(255) NOT NULL,
+    province_code VARCHAR(255) NOT NULL,
+    region_code VARCHAR(255) NOT NULL,
+    psgc VARCHAR(255) NOT NULL UNIQUE,
+    created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS philippine_barangays_city_code_index ON philippine_barangays(city_code);
+CREATE INDEX IF NOT EXISTS philippine_barangays_province_code_index ON philippine_barangays(province_code);
+CREATE INDEX IF NOT EXISTS philippine_barangays_region_code_index ON philippine_barangays(region_code);
+
+-- ============================================
+-- Notes
+-- ============================================
+-- 1. This schema includes all tables needed for the GreenSync application
 -- 2. All foreign key constraints are included with appropriate CASCADE/SET NULL actions
 -- 3. All indexes are created for better query performance
 -- 4. ENUM types are used for PostgreSQL (Supabase) compatibility
 -- 5. Timestamps default to CURRENT_TIMESTAMP
 -- 6. Run this script in your Supabase SQL editor
--- 7. Make sure to run migrations in order if you encounter foreign key errors
+-- 7. IMPORTANT: Philippine location tables must be created BEFORE residents table
+--    due to foreign key constraints
 -- 8. You may need to adjust data types if you have specific requirements
 -- 9. Default admin account: dev@unisync.com / password
+-- 10. Philippine location tables use the structure from woenel/prpcmblmts package
+-- 11. Residents table includes both old string fields (for backward compatibility)
+--     and new foreign key fields (region_id, province_id, city_id, barangay_id)
 

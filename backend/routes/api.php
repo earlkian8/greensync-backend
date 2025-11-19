@@ -12,8 +12,32 @@ use App\Http\Controllers\Api\Residents\ResidentsController;
 use App\Http\Controllers\Api\Residents\BinsController;
 use App\Http\Controllers\Api\Residents\CollectionRequestController;
 use App\Http\Controllers\Api\Residents\NotificationController;
+use App\Http\Controllers\Api\Residents\PhilippineAddressController;
 
 Route::prefix('v1')->group(function () {
+
+    // ============================================
+    // PHILIPPINE ADDRESSES MODULE (Public)
+    // ============================================
+    Route::prefix('addresses')->group(function () {
+        // Regions
+        Route::get('/regions', [PhilippineAddressController::class, 'getRegions']);
+        Route::get('/regions/{id}', [PhilippineAddressController::class, 'getRegion']);
+        
+        // Provinces - specific routes first to avoid conflicts
+        Route::get('/provinces/region/{regionId}', [PhilippineAddressController::class, 'getProvincesByRegion']);
+        Route::get('/provinces/{id}', [PhilippineAddressController::class, 'getProvince']);
+        Route::get('/provinces', [PhilippineAddressController::class, 'getProvincesByRegion']);
+        
+        // Cities - specific routes first to avoid conflicts
+        Route::get('/cities/province/{provinceId}', [PhilippineAddressController::class, 'getCitiesByProvince']);
+        Route::get('/cities/{id}', [PhilippineAddressController::class, 'getCity']);
+        Route::get('/cities', [PhilippineAddressController::class, 'getCitiesByProvince']);
+        
+        // Barangays - specific routes first to avoid conflicts
+        Route::get('/barangays/city/{cityId}', [PhilippineAddressController::class, 'getBarangaysByCity']);
+        Route::get('/barangays/{id}', [PhilippineAddressController::class, 'getBarangay']);
+    });
 
     // ============================================
     // RESIDENTS MODULE

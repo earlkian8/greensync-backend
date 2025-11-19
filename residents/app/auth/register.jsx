@@ -15,6 +15,13 @@ import { useState, useRef, useEffect } from "react";
 import { Ionicons } from '@expo/vector-icons';
 import { Link, useRouter } from "expo-router";
 import { api } from '@/config/api';
+import AddressDropdown from '@/components/AddressDropdown';
+import {
+  fetchRegions,
+  fetchProvincesByRegion,
+  fetchCitiesByProvince,
+  fetchBarangaysByCity
+} from '@/services/philippineAddressService';
 
 const Register = () => {
   const router = useRouter();
@@ -29,14 +36,26 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
-  // Address fields
+  // Address fields - new structure with IDs
   const [houseNo, setHouseNo] = useState("");
   const [street, setStreet] = useState("");
-  const [barangay, setBarangay] = useState("");
-  const [city, setCity] = useState("");
-  const [province, setProvince] = useState("");
-  const [country, setCountry] = useState("");
+  const [regionId, setRegionId] = useState(null);
+  const [provinceId, setProvinceId] = useState(null);
+  const [cityId, setCityId] = useState(null);
+  const [barangayId, setBarangayId] = useState(null);
   const [postalCode, setPostalCode] = useState("");
+
+  // Address options for dropdowns
+  const [regions, setRegions] = useState([]);
+  const [provinces, setProvinces] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [barangays, setBarangays] = useState([]);
+
+  // Loading states for address dropdowns
+  const [loadingRegions, setLoadingRegions] = useState(false);
+  const [loadingProvinces, setLoadingProvinces] = useState(false);
+  const [loadingCities, setLoadingCities] = useState(false);
+  const [loadingBarangays, setLoadingBarangays] = useState(false);
 
   // Validation errors
   const [errors, setErrors] = useState({});
@@ -62,6 +81,90 @@ const Register = () => {
     }
   }, [generalError, successMessage]);
 
+  // Fetch regions on component mount
+  useEffect(() => {
+    const loadRegions = async () => {
+      setLoadingRegions(true);
+      const result = await fetchRegions();
+      console.log('Regions fetch result:', result);
+      if (result.success) {
+        console.log('Setting regions:', result.data);
+        setRegions(result.data);
+      } else {
+        console.error('Failed to fetch regions:', result.error);
+        setGeneralError(`Failed to load regions: ${result.error}`);
+      }
+      setLoadingRegions(false);
+    };
+    loadRegions();
+  }, []);
+
+  // Fetch provinces when region is selected
+  useEffect(() => {
+    if (regionId) {
+      const loadProvinces = async () => {
+        setLoadingProvinces(true);
+        setProvinces([]);
+        setCities([]);
+        setBarangays([]);
+        setProvinceId(null);
+        setCityId(null);
+        setBarangayId(null);
+        const result = await fetchProvincesByRegion(regionId);
+        if (result.success) {
+          setProvinces(result.data);
+        }
+        setLoadingProvinces(false);
+      };
+      loadProvinces();
+    } else {
+      setProvinces([]);
+      setProvinceId(null);
+    }
+  }, [regionId]);
+
+  // Fetch cities when province is selected
+  useEffect(() => {
+    if (provinceId) {
+      const loadCities = async () => {
+        setLoadingCities(true);
+        setCities([]);
+        setBarangays([]);
+        setCityId(null);
+        setBarangayId(null);
+        const result = await fetchCitiesByProvince(provinceId);
+        if (result.success) {
+          setCities(result.data);
+        }
+        setLoadingCities(false);
+      };
+      loadCities();
+    } else {
+      setCities([]);
+      setCityId(null);
+    }
+  }, [provinceId]);
+
+  // Fetch barangays when city is selected
+  useEffect(() => {
+    if (cityId) {
+      const loadBarangays = async () => {
+        setLoadingBarangays(true);
+        setBarangays([]);
+        setBarangayId(null);
+        const result = await fetchBarangaysByCity(cityId);
+        if (result.success) {
+          setBarangays(result.data);
+        }
+        setLoadingBarangays(false);
+      };
+      loadBarangays();
+    } else {
+      setBarangays([]);
+      setBarangayId(null);
+    }
+  }, [cityId]);
+
   const validateForm = () => {
     const newErrors = {};
 
@@ -85,9 +188,11 @@ const Register = () => {
       newErrors.confirmPassword = "Passwords do not match";
     }
     
-    // Address fields
-    if (!barangay.trim()) newErrors.barangay = "Barangay is required";
-    if (!city.trim()) newErrors.city = "City is required";
+    // Address fields - new structure validation
+    if (!regionId) newErrors.region_id = "Region is required";
+    if (!provinceId) newErrors.province_id = "Province is required";
+    if (!cityId) newErrors.city_id = "City is required";
+    if (!barangayId) newErrors.barangay_id = "Barangay is required";
 
     // Phone number validation (max 20 chars if provided)
     if (phoneNumber.trim() && phoneNumber.length > 20) {
@@ -123,10 +228,10 @@ const Register = () => {
         password: password,
         house_no: houseNo.trim() || null,
         street: street.trim() || null,
-        barangay: barangay.trim(),
-        city: city.trim(),
-        province: province.trim() || null,
-        country: country.trim() || null,
+        region_id: regionId,
+        province_id: provinceId,
+        city_id: cityId,
+        barangay_id: barangayId,
         postal_code: postalCode.trim() || null
       };
       
@@ -143,10 +248,10 @@ const Register = () => {
         setConfirmPassword("");
         setHouseNo("");
         setStreet("");
-        setBarangay("");
-        setCity("");
-        setProvince("");
-        setCountry("");
+        setRegionId(null);
+        setProvinceId(null);
+        setCityId(null);
+        setBarangayId(null);
         setPostalCode("");
         setErrors({});
         
@@ -393,95 +498,89 @@ const Register = () => {
                 </View>
               </View>
 
+              {/* Region Dropdown */}
+              <AddressDropdown
+                label="Region"
+                value={regionId}
+                options={regions}
+                onSelect={(id) => {
+                  setRegionId(id);
+                  clearError('region_id');
+                }}
+                placeholder="Select region"
+                error={errors.region_id}
+                loading={loadingRegions}
+                required
+              />
+
+              {/* Province Dropdown */}
+              <AddressDropdown
+                label="Province"
+                value={provinceId}
+                options={provinces}
+                onSelect={(id) => {
+                  setProvinceId(id);
+                  clearError('province_id');
+                }}
+                placeholder={regionId ? "Select province" : "Select region first"}
+                error={errors.province_id}
+                loading={loadingProvinces}
+                required
+                disabled={!regionId}
+              />
+
+              {/* City Dropdown */}
+              <AddressDropdown
+                label="City/Municipality"
+                value={cityId}
+                options={cities}
+                onSelect={(id) => {
+                  setCityId(id);
+                  clearError('city_id');
+                }}
+                placeholder={provinceId ? "Select city" : "Select province first"}
+                error={errors.city_id}
+                loading={loadingCities}
+                required
+                disabled={!provinceId}
+              />
+
+              {/* Barangay Dropdown */}
+              <AddressDropdown
+                label="Barangay"
+                value={barangayId}
+                options={barangays}
+                onSelect={(id) => {
+                  setBarangayId(id);
+                  clearError('barangay_id');
+                }}
+                placeholder={cityId ? "Select barangay" : "Select city first"}
+                error={errors.barangay_id}
+                loading={loadingBarangays}
+                required
+                disabled={!cityId}
+              />
+
+              {/* Postal Code */}
               <View className="mb-4">
-                <Text className="text-gray-700 mb-1 font-medium">
-                  Barangay <Text className="text-red-500">*</Text>
-                </Text>
+                <Text className="text-gray-700 mb-1 font-medium">Postal Code</Text>
                 <TextInput
-                  placeholder="Enter your barangay"
-                  value={barangay}
+                  placeholder="Optional"
+                  value={postalCode}
                   onChangeText={(text) => {
-                    setBarangay(text);
-                    clearError('barangay');
+                    setPostalCode(text);
+                    clearError('postal_code');
                   }}
-                  className={`border ${errors.barangay ? 'border-red-500 bg-red-50' : 'border-gray-300'} w-full rounded-lg p-3 text-base`}
+                  keyboardType="number-pad"
+                  maxLength={20}
+                  className={`border ${errors.postal_code ? 'border-red-500 bg-red-50' : 'border-gray-300'} w-full rounded-lg p-3 text-base`}
                 />
-                {errors.barangay && (
+                {errors.postal_code && (
                   <View className="flex-row items-center mt-1 bg-red-50 p-2 rounded">
                     <Ionicons name="alert-circle-outline" size={14} color="#EF4444" style={{ marginRight: 4 }} />
-                    <Text className="text-red-600 text-xs flex-1">{errors.barangay}</Text>
+                    <Text className="text-red-600 text-xs flex-1">{errors.postal_code}</Text>
                   </View>
                 )}
-              </View>
-
-              <View className="flex-row mb-4 gap-2">
-                <View className="flex-1">
-                  <Text className="text-gray-700 mb-1 font-medium">
-                    City <Text className="text-red-500">*</Text>
-                  </Text>
-                  <TextInput
-                    placeholder="Enter city"
-                    value={city}
-                    onChangeText={(text) => {
-                      setCity(text);
-                      clearError('city');
-                    }}
-                    className={`border ${errors.city ? 'border-red-500 bg-red-50' : 'border-gray-300'} w-full rounded-lg p-3 text-base`}
-                  />
-                  {errors.city && (
-                    <View className="flex-row items-center mt-1 bg-red-50 p-2 rounded">
-                      <Ionicons name="alert-circle-outline" size={14} color="#EF4444" style={{ marginRight: 4 }} />
-                      <Text className="text-red-600 text-xs flex-1">{errors.city}</Text>
-                    </View>
-                  )}
-                </View>
-                <View className="flex-1">
-                  <Text className="text-gray-700 mb-1 font-medium">Province</Text>
-                  <TextInput
-                    placeholder="Optional"
-                    value={province}
-                    onChangeText={(text) => {
-                      setProvince(text);
-                      clearError('province');
-                    }}
-                    className={`border ${errors.province ? 'border-red-500 bg-red-50' : 'border-gray-300'} w-full rounded-lg p-3 text-base`}
-                  />
-                </View>
-              </View>
-
-              <View className="flex-row mb-4 gap-2">
-                <View className="flex-1">
-                  <Text className="text-gray-700 mb-1 font-medium">Country</Text>
-                  <TextInput
-                    placeholder="Optional"
-                    value={country}
-                    onChangeText={(text) => {
-                      setCountry(text);
-                      clearError('country');
-                    }}
-                    className={`border ${errors.country ? 'border-red-500 bg-red-50' : 'border-gray-300'} w-full rounded-lg p-3 text-base`}
-                  />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-gray-700 mb-1 font-medium">Postal Code</Text>
-                  <TextInput
-                    placeholder="Optional"
-                    value={postalCode}
-                    onChangeText={(text) => {
-                      setPostalCode(text);
-                      clearError('postal_code');
-                    }}
-                    keyboardType="number-pad"
-                    maxLength={20}
-                    className={`border ${errors.postal_code ? 'border-red-500 bg-red-50' : 'border-gray-300'} w-full rounded-lg p-3 text-base`}
-                  />
-                  {errors.postal_code && (
-                    <View className="flex-row items-center mt-1 bg-red-50 p-2 rounded">
-                      <Ionicons name="alert-circle-outline" size={14} color="#EF4444" style={{ marginRight: 4 }} />
-                      <Text className="text-red-600 text-xs flex-1">{errors.postal_code}</Text>
-                    </View>
-                  )}
-                </View>
               </View>
             </View>
 

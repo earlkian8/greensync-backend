@@ -7,6 +7,7 @@ use App\Models\Resident;
 use App\Models\CollectionRequest;
 use App\Models\WasteBin;
 use App\Models\Notification;
+use Woenel\Prpcmblmts\Facades\Philippines;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -24,15 +25,57 @@ class ResidentsController extends Controller
             'name' => 'required|string|max:255',
             'house_no' => 'nullable|string|max:50',
             'street' => 'nullable|string|max:255',
-            'barangay' => 'required|string|max:255',
-            'city' => 'required|string|max:255',
+            // New structure with foreign keys
+            'region_id' => 'nullable|exists:philippine_regions,id',
+            'province_id' => 'nullable|exists:philippine_provinces,id',
+            'city_id' => 'nullable|exists:philippine_cities,id',
+            'barangay_id' => 'nullable|exists:philippine_barangays,id',
+            // Old structure for backward compatibility
+            'barangay' => 'nullable|string|max:255',
+            'city' => 'nullable|string|max:255',
             'province' => 'nullable|string|max:255',
             'country' => 'nullable|string|max:255',
             'postal_code' => 'nullable|string|max:20',
             'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
+        // Validate that if using new structure, all required fields are present
+        if ($request->has('region_id') || $request->has('province_id') || $request->has('city_id') || $request->has('barangay_id')) {
+            if (!$request->region_id || !$request->province_id || !$request->city_id || !$request->barangay_id) {
+                throw ValidationException::withMessages([
+                    'address' => ['When using the new address structure, all of region_id, province_id, city_id, and barangay_id are required.'],
+                ]);
+            }
+            
+            // Validate relationships
+            $province = Philippines::provinces()->where('id', $request->province_id)->first();
+            if (!$province || $province->region_code !== Philippines::regions()->where('id', $request->region_id)->first()?->code) {
+                throw ValidationException::withMessages([
+                    'province_id' => ['The selected province does not belong to the selected region.'],
+                ]);
+            }
+            
+            $city = Philippines::cities()->where('id', $request->city_id)->first();
+            if (!$city || $city->province_code !== $province->code) {
+                throw ValidationException::withMessages([
+                    'city_id' => ['The selected city does not belong to the selected province.'],
+                ]);
+            }
+            
+            $barangay = Philippines::barangays()->where('id', $request->barangay_id)->first();
+            if (!$barangay || $barangay->city_code !== $city->code) {
+                throw ValidationException::withMessages([
+                    'barangay_id' => ['The selected barangay does not belong to the selected city.'],
+                ]);
+            }
+        }
+
         $validated['password'] = Hash::make($request->password);
+        
+        // Set default country if using new structure
+        if ($request->has('region_id') && !$request->has('country')) {
+            $validated['country'] = 'Philippines';
+        }
 
         // Handle profile image upload
         if ($request->hasFile('profile_image')) {
@@ -45,6 +88,9 @@ class ResidentsController extends Controller
         $validated['is_verified'] = $resident->isAddressComplete();
 
         $resident = Resident::create($validated);
+        
+        // Load address relationships for response
+        $resident->load(['region', 'provinceRelation', 'cityRelation', 'barangayRelation']);
 
         $token = $resident->createToken('auth_token')->plainTextToken;
 
@@ -100,6 +146,12 @@ class ResidentsController extends Controller
             'name' => 'nullable|string|max:255',
             'house_no' => 'nullable|string|max:50',
             'street' => 'nullable|string|max:255',
+            // New structure with foreign keys
+            'region_id' => 'nullable|exists:philippine_regions,id',
+            'province_id' => 'nullable|exists:philippine_provinces,id',
+            'city_id' => 'nullable|exists:philippine_cities,id',
+            'barangay_id' => 'nullable|exists:philippine_barangays,id',
+            // Old structure for backward compatibility
             'barangay' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:255',
             'province' => 'nullable|string|max:255',
@@ -107,6 +159,55 @@ class ResidentsController extends Controller
             'postal_code' => 'nullable|string|max:20',
             'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
+
+        // Validate relationships if using new structure
+        if ($request->has('region_id') || $request->has('province_id') || $request->has('city_id') || $request->has('barangay_id')) {
+            // If any new structure field is provided, all should be provided
+            $hasNewStructure = $request->region_id || $request->province_id || $request->city_id || $request->barangay_id;
+            $hasAllNewFields = $request->region_id && $request->province_id && $request->city_id && $request->barangay_id;
+            
+            if ($hasNewStructure && !$hasAllNewFields) {
+                throw ValidationException::withMessages([
+                    'address' => ['When updating address with new structure, all of region_id, province_id, city_id, and barangay_id are required.'],
+                ]);
+            }
+            
+            if ($hasAllNewFields) {
+                // Validate relationships
+                $region = Philippines::regions()->where('id', $request->region_id)->first();
+                if (!$region) {
+                    throw ValidationException::withMessages([
+                        'region_id' => ['The selected region does not exist.'],
+                    ]);
+                }
+                
+                $province = Philippines::provinces()->where('id', $request->province_id)->first();
+                if (!$province || $province->region_code !== $region->code) {
+                    throw ValidationException::withMessages([
+                        'province_id' => ['The selected province does not belong to the selected region.'],
+                    ]);
+                }
+                
+                $city = Philippines::cities()->where('id', $request->city_id)->first();
+                if (!$city || $city->province_code !== $province->code) {
+                    throw ValidationException::withMessages([
+                        'city_id' => ['The selected city does not belong to the selected province.'],
+                    ]);
+                }
+                
+                $barangay = Philippines::barangays()->where('id', $request->barangay_id)->first();
+                if (!$barangay || $barangay->city_code !== $city->code) {
+                    throw ValidationException::withMessages([
+                        'barangay_id' => ['The selected barangay does not belong to the selected city.'],
+                    ]);
+                }
+                
+                // Set default country if not provided
+                if (!$request->has('country')) {
+                    $validated['country'] = 'Philippines';
+                }
+            }
+        }
 
         // Handle profile image upload
         if ($request->hasFile('profile_image')) {
@@ -124,10 +225,13 @@ class ResidentsController extends Controller
         if ($resident->isAddressComplete() && !$resident->is_verified) {
             $resident->update(['is_verified' => true]);
         }
+        
+        // Load address relationships for response
+        $resident->load(['region', 'provinceRelation', 'cityRelation', 'barangayRelation']);
 
         return response()->json([
             'message' => 'Profile updated successfully.',
-            'resident' => $resident->fresh()
+            'resident' => $resident->fresh(['region', 'provinceRelation', 'cityRelation', 'barangayRelation'])
         ]);
     }
 
@@ -146,8 +250,9 @@ class ResidentsController extends Controller
     {
         $resident = $request->user();
         
-        // Load relationships for accurate counts
+        // Load relationships for accurate counts and address data
         $resident->loadCount(['wasteBins', 'collectionRequests', 'verifiedCollections']);
+        $resident->load(['region', 'provinceRelation', 'cityRelation', 'barangayRelation']);
 
         return response()->json([
             'message' => 'Profile fetched successfully.',
@@ -187,7 +292,7 @@ class ResidentsController extends Controller
                     'collection_time' => $time,
                     'waste_type' => ucfirst(str_replace('-', ' ', $request->waste_type ?? 'General Waste')),
                     'status' => ucfirst(str_replace('_', ' ', $request->status ?? 'Scheduled')),
-                    'bin_location' => $resident->barangay ?? 'N/A',
+                    'bin_location' => $resident->barangayRelation?->name ?? $resident->barangay ?? 'N/A',
                 ];
             });
 
