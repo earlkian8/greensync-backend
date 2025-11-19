@@ -26,15 +26,22 @@ export default function Login({ status, canResetPassword }) {
         e.preventDefault();
 
         post(route('login'), {
-            onFinish: () => {
+            onSuccess: () => {
                 reset('password');
-                // Check if there were no errors to determine success
-                if (Object.keys(errors).length === 0) {
-                    toast.success('Login Successfully!');
+                // Inertia will automatically handle the redirect
+            },
+            onError: (errors) => {
+                reset('password');
+                if (errors.email) {
+                    toast.error(errors.email);
+                } else if (errors.message) {
+                    toast.error(errors.message);
+                } else {
+                    toast.error('Wrong Credentials!');
                 }
             },
-            onError: () => {
-                toast.error('Wrong Credentials!');
+            onFinish: () => {
+                reset('password');
             }
         });
     };
