@@ -24,19 +24,28 @@ import { useState, useEffect } from 'react';
 
 const EditCollector = ({ collector, setShowEditModal }) => {
   const [imagePreview, setImagePreview] = useState(
-    collector?.profile_image ? `/storage/${collector.profile_image}` : null
+    collector?.profile_image_url || null
+  );
+  const [licenseImagePreview, setLicenseImagePreview] = useState(
+    collector?.license_number_image_url || null
+  );
+  const [plateImagePreview, setPlateImagePreview] = useState(
+    collector?.vehicle_plate_number_image_url || null
+  );
+  const [vehicleTypeImagePreview, setVehicleTypeImagePreview] = useState(
+    collector?.vehicle_type_image_url || null
   );
 
   const { data, setData, post, errors, processing } = useForm({
     name: collector?.name || '',
     email: collector?.email || '',
     phone_number: collector?.phone_number || '',
-    password: '',
-    password_confirmation: '',
-    employee_id: collector?.employee_id || '',
     license_number: collector?.license_number || '',
+    license_number_image: null,
     vehicle_plate_number: collector?.vehicle_plate_number || '',
+    vehicle_plate_number_image: null,
     vehicle_type: collector?.vehicle_type || '',
+    vehicle_type_image: null,
     profile_image: null,
     is_active: collector?.is_active ?? true,
     is_verified: collector?.is_verified ?? false,
@@ -49,18 +58,21 @@ const EditCollector = ({ collector, setShowEditModal }) => {
         name: collector.name || '',
         email: collector.email || '',
         phone_number: collector.phone_number || '',
-        password: '',
-        password_confirmation: '',
-        employee_id: collector.employee_id || '',
         license_number: collector.license_number || '',
+        license_number_image: null,
         vehicle_plate_number: collector.vehicle_plate_number || '',
+        vehicle_plate_number_image: null,
         vehicle_type: collector.vehicle_type || '',
+        vehicle_type_image: null,
         profile_image: null,
         is_active: collector.is_active ?? true,
         is_verified: collector.is_verified ?? false,
         _method: 'PUT'
       });
-      setImagePreview(collector.profile_image ? `/storage/${collector.profile_image}` : null);
+      setImagePreview(collector.profile_image_url || null);
+      setLicenseImagePreview(collector.license_number_image_url || null);
+      setPlateImagePreview(collector.vehicle_plate_number_image_url || null);
+      setVehicleTypeImagePreview(collector.vehicle_type_image_url || null);
     }
   }, [collector]);
 
@@ -75,13 +87,21 @@ const EditCollector = ({ collector, setShowEditModal }) => {
     });
   };
 
-  const handleImageChange = (e) => {
+  const handleImageChange = (e, type) => {
     const file = e.target.files[0];
     if (file) {
-      setData('profile_image', file);
+      setData(type, file);
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result);
+        if (type === 'profile_image') {
+          setImagePreview(reader.result);
+        } else if (type === 'license_number_image') {
+          setLicenseImagePreview(reader.result);
+        } else if (type === 'vehicle_plate_number_image') {
+          setPlateImagePreview(reader.result);
+        } else if (type === 'vehicle_type_image') {
+          setVehicleTypeImagePreview(reader.result);
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -120,7 +140,7 @@ const EditCollector = ({ collector, setShowEditModal }) => {
               <Input
                 type="file"
                 accept="image/jpeg,image/png,image/jpg,image/gif"
-                onChange={handleImageChange}
+                onChange={(e) => handleImageChange(e, 'profile_image')}
                 className={inputClass(errors.profile_image)}
               />
             </div>
@@ -140,17 +160,16 @@ const EditCollector = ({ collector, setShowEditModal }) => {
             <InputError message={errors.name} />
           </div>
 
-          {/* Employee ID */}
+          {/* Employee ID - Read Only */}
           <div>
             <Label className="text-zinc-800">Employee ID </Label>
             <Input
-              type="number"
-              value={data.employee_id}
-              onChange={e => setData('employee_id', e.target.value)}
-              placeholder="12345"
-              className={inputClass(errors.employee_id)}
+              type="text"
+              value={`#${collector?.employee_id || ''}`}
+              readOnly
+              className={inputClass(errors.employee_id, true)}
             />
-            <InputError message={errors.employee_id} />
+            <p className="text-xs text-zinc-500 mt-1">Employee ID is auto-generated and cannot be changed</p>
           </div>
 
           {/* Email */}
@@ -179,31 +198,6 @@ const EditCollector = ({ collector, setShowEditModal }) => {
             <InputError message={errors.phone_number} />
           </div>
 
-          {/* Password */}
-          <div>
-            <Label className="text-zinc-800">Password (Leave blank to keep current)</Label>
-            <Input
-              type="password"
-              value={data.password}
-              onChange={e => setData('password', e.target.value)}
-              placeholder="••••••••"
-              className={inputClass(errors.password)}
-            />
-            <InputError message={errors.password} />
-          </div>
-
-          {/* Password Confirmation */}
-          <div>
-            <Label className="text-zinc-800">Confirm Password</Label>
-            <Input
-              type="password"
-              value={data.password_confirmation}
-              onChange={e => setData('password_confirmation', e.target.value)}
-              placeholder="••••••••"
-              className={inputClass(errors.password_confirmation)}
-            />
-            <InputError message={errors.password_confirmation} />
-          </div>
 
           {/* Vehicle Information Section */}
           <div className="md:col-span-2">
@@ -221,6 +215,25 @@ const EditCollector = ({ collector, setShowEditModal }) => {
               className={inputClass(errors.license_number)}
             />
             <InputError message={errors.license_number} />
+          </div>
+
+          {/* License Number Image */}
+          <div>
+            <Label className="text-zinc-800">License Number Image</Label>
+            <div className="flex items-center gap-4">
+              {licenseImagePreview && (
+                <div className="w-20 h-20 rounded overflow-hidden border-2 border-zinc-300">
+                  <img src={licenseImagePreview} alt="License Preview" className="w-full h-full object-cover" />
+                </div>
+              )}
+              <Input
+                type="file"
+                accept="image/jpeg,image/png,image/jpg,image/gif"
+                onChange={(e) => handleImageChange(e, 'license_number_image')}
+                className={inputClass(errors.license_number_image)}
+              />
+            </div>
+            <InputError message={errors.license_number_image} />
           </div>
 
           {/* Vehicle Type */}
@@ -245,7 +258,7 @@ const EditCollector = ({ collector, setShowEditModal }) => {
           </div>
 
           {/* Vehicle Plate Number */}
-          <div className="md:col-span-2">
+          <div>
             <Label className="text-zinc-800">Vehicle Plate Number</Label>
             <Input
               type="text"
@@ -255,6 +268,44 @@ const EditCollector = ({ collector, setShowEditModal }) => {
               className={inputClass(errors.vehicle_plate_number)}
             />
             <InputError message={errors.vehicle_plate_number} />
+          </div>
+
+          {/* Vehicle Plate Number Image */}
+          <div>
+            <Label className="text-zinc-800">Vehicle Plate Number Image</Label>
+            <div className="flex items-center gap-4">
+              {plateImagePreview && (
+                <div className="w-20 h-20 rounded overflow-hidden border-2 border-zinc-300">
+                  <img src={plateImagePreview} alt="Plate Preview" className="w-full h-full object-cover" />
+                </div>
+              )}
+              <Input
+                type="file"
+                accept="image/jpeg,image/png,image/jpg,image/gif"
+                onChange={(e) => handleImageChange(e, 'vehicle_plate_number_image')}
+                className={inputClass(errors.vehicle_plate_number_image)}
+              />
+            </div>
+            <InputError message={errors.vehicle_plate_number_image} />
+          </div>
+
+          {/* Vehicle Type Image */}
+          <div className="md:col-span-2">
+            <Label className="text-zinc-800">Vehicle Type Image</Label>
+            <div className="flex items-center gap-4">
+              {vehicleTypeImagePreview && (
+                <div className="w-20 h-20 rounded overflow-hidden border-2 border-zinc-300">
+                  <img src={vehicleTypeImagePreview} alt="Vehicle Type Preview" className="w-full h-full object-cover" />
+                </div>
+              )}
+              <Input
+                type="file"
+                accept="image/jpeg,image/png,image/jpg,image/gif"
+                onChange={(e) => handleImageChange(e, 'vehicle_type_image')}
+                className={inputClass(errors.vehicle_type_image)}
+              />
+            </div>
+            <InputError message={errors.vehicle_type_image} />
           </div>
 
           {/* Status Switches */}

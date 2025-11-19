@@ -49,9 +49,9 @@ const ShowCollector = ({ setShowViewModal, collector }) => {
             <h3 className="text-sm font-semibold text-zinc-800 mb-4">Profile</h3>
             <div className="flex flex-col items-center">
               <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-zinc-200 mb-4">
-                {collector.profile_image ? (
+                {collector.profile_image_url ? (
                   <img 
-                    src={`/storage/${collector.profile_image}`} 
+                    src={collector.profile_image_url} 
                     alt={collector.name}
                     className="w-full h-full object-cover"
                   />
@@ -131,16 +131,61 @@ const ShowCollector = ({ setShowViewModal, collector }) => {
                 label="License Number" 
                 value={collector.license_number} 
               />
+              {collector.license_number_image_url ? (
+                <div className="flex items-start gap-3 py-2">
+                  <CreditCard className="h-5 w-5 text-zinc-600 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-zinc-600 mb-2">License Number Image</p>
+                    <div className="w-full max-w-xs rounded overflow-hidden border-2 border-zinc-300">
+                      <img 
+                        src={collector.license_number_image_url} 
+                        alt="License"
+                        className="w-full h-auto object-cover"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : null}
               <InfoRow 
                 icon={Truck} 
                 label="Vehicle Type" 
                 value={collector.vehicle_type} 
               />
+              {collector.vehicle_type_image_url ? (
+                <div className="flex items-start gap-3 py-2">
+                  <Truck className="h-5 w-5 text-zinc-600 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-zinc-600 mb-2">Vehicle Type Image</p>
+                    <div className="w-full max-w-xs rounded overflow-hidden border-2 border-zinc-300">
+                      <img 
+                        src={collector.vehicle_type_image_url} 
+                        alt="Vehicle Type"
+                        className="w-full h-auto object-cover"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : null}
               <InfoRow 
                 icon={Truck} 
                 label="Vehicle Plate Number" 
                 value={collector.vehicle_plate_number} 
               />
+              {collector.vehicle_plate_number_image_url ? (
+                <div className="flex items-start gap-3 py-2">
+                  <Truck className="h-5 w-5 text-zinc-600 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-zinc-600 mb-2">Vehicle Plate Number Image</p>
+                    <div className="w-full max-w-xs rounded overflow-hidden border-2 border-zinc-300">
+                      <img 
+                        src={collector.vehicle_plate_number_image_url} 
+                        alt="Vehicle Plate"
+                        className="w-full h-auto object-cover"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             {collector.vehicle_type && collector.vehicle_plate_number && (
@@ -181,7 +226,7 @@ const ShowCollector = ({ setShowViewModal, collector }) => {
                   <p className="text-sm text-blue-600 font-medium">Route Assignments</p>
                 </div>
                 <p className="text-2xl font-bold text-blue-900">
-                  {collector.route_assignments?.length || 0}
+                  {collector.route_assignments_count || collector.route_assignments?.length || 0}
                 </p>
               </div>
               <div className="bg-green-50 p-4 rounded-lg">
@@ -190,7 +235,7 @@ const ShowCollector = ({ setShowViewModal, collector }) => {
                   <p className="text-sm text-green-600 font-medium">Collection Requests</p>
                 </div>
                 <p className="text-2xl font-bold text-green-900">
-                  {collector.collection_requests?.length || 0}
+                  {collector.collection_requests_count || collector.collection_requests?.length || 0}
                 </p>
               </div>
               <div className="bg-purple-50 p-4 rounded-lg">
@@ -199,7 +244,7 @@ const ShowCollector = ({ setShowViewModal, collector }) => {
                   <p className="text-sm text-purple-600 font-medium">QR Collections</p>
                 </div>
                 <p className="text-2xl font-bold text-purple-900">
-                  {collector.qr_collections?.length || 0}
+                  {collector.qr_collections_count || collector.qr_collections?.length || 0}
                 </p>
               </div>
             </div>

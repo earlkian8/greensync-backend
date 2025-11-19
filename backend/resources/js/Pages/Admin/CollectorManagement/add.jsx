@@ -21,9 +21,15 @@ import {
   SelectValue,
 } from "@/Components/ui/select"
 import { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 
 const AddCollector = ({ setShowAddModal }) => {
   const [imagePreview, setImagePreview] = useState(null);
+  const [licenseImagePreview, setLicenseImagePreview] = useState(null);
+  const [plateImagePreview, setPlateImagePreview] = useState(null);
+  const [vehicleTypeImagePreview, setVehicleTypeImagePreview] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false);
 
   const { data, setData, post, errors, processing } = useForm({
     name: '',
@@ -31,10 +37,12 @@ const AddCollector = ({ setShowAddModal }) => {
     phone_number: '',
     password: '',
     password_confirmation: '',
-    employee_id: '',
     license_number: '',
+    license_number_image: null,
     vehicle_plate_number: '',
+    vehicle_plate_number_image: null,
     vehicle_type: '',
+    vehicle_type_image: null,
     profile_image: null,
     is_active: true,
     is_verified: false,
@@ -51,13 +59,21 @@ const AddCollector = ({ setShowAddModal }) => {
     });
   };
 
-  const handleImageChange = (e) => {
+  const handleImageChange = (e, type) => {
     const file = e.target.files[0];
     if (file) {
-      setData('profile_image', file);
+      setData(type, file);
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result);
+        if (type === 'profile_image') {
+          setImagePreview(reader.result);
+        } else if (type === 'license_number_image') {
+          setLicenseImagePreview(reader.result);
+        } else if (type === 'vehicle_plate_number_image') {
+          setPlateImagePreview(reader.result);
+        } else if (type === 'vehicle_type_image') {
+          setVehicleTypeImagePreview(reader.result);
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -96,7 +112,7 @@ const AddCollector = ({ setShowAddModal }) => {
               <Input
                 type="file"
                 accept="image/jpeg,image/png,image/jpg,image/gif"
-                onChange={handleImageChange}
+                onChange={(e) => handleImageChange(e, 'profile_image')}
                 className={inputClass(errors.profile_image)}
               />
             </div>
@@ -116,18 +132,6 @@ const AddCollector = ({ setShowAddModal }) => {
             <InputError message={errors.name} />
           </div>
 
-          {/* Employee ID */}
-          <div>
-            <Label className="text-zinc-800">Employee ID </Label>
-            <Input
-              type="number"
-              value={data.employee_id}
-              onChange={e => setData('employee_id', e.target.value)}
-              placeholder="12345"
-              className={inputClass(errors.employee_id)}
-            />
-            <InputError message={errors.employee_id} />
-          </div>
 
           {/* Email */}
           <div>
@@ -158,26 +162,44 @@ const AddCollector = ({ setShowAddModal }) => {
           {/* Password */}
           <div>
             <Label className="text-zinc-800">Password </Label>
-            <Input
-              type="password"
-              value={data.password}
-              onChange={e => setData('password', e.target.value)}
-              placeholder="••••••••"
-              className={inputClass(errors.password)}
-            />
+            <div className="relative">
+              <Input
+                type={showPassword ? "text" : "password"}
+                value={data.password}
+                onChange={e => setData('password', e.target.value)}
+                placeholder="••••••••"
+                className={inputClass(errors.password)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-800"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
             <InputError message={errors.password} />
           </div>
 
           {/* Password Confirmation */}
           <div>
             <Label className="text-zinc-800">Confirm Password </Label>
-            <Input
-              type="password"
-              value={data.password_confirmation}
-              onChange={e => setData('password_confirmation', e.target.value)}
-              placeholder="••••••••"
-              className={inputClass(errors.password_confirmation)}
-            />
+            <div className="relative">
+              <Input
+                type={showPasswordConfirmation ? "text" : "password"}
+                value={data.password_confirmation}
+                onChange={e => setData('password_confirmation', e.target.value)}
+                placeholder="••••••••"
+                className={inputClass(errors.password_confirmation)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPasswordConfirmation(!showPasswordConfirmation)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-zinc-800"
+              >
+                {showPasswordConfirmation ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
             <InputError message={errors.password_confirmation} />
           </div>
 
@@ -197,6 +219,25 @@ const AddCollector = ({ setShowAddModal }) => {
               className={inputClass(errors.license_number)}
             />
             <InputError message={errors.license_number} />
+          </div>
+
+          {/* License Number Image */}
+          <div>
+            <Label className="text-zinc-800">License Number Image</Label>
+            <div className="flex items-center gap-4">
+              {licenseImagePreview && (
+                <div className="w-20 h-20 rounded overflow-hidden border-2 border-zinc-300">
+                  <img src={licenseImagePreview} alt="License Preview" className="w-full h-full object-cover" />
+                </div>
+              )}
+              <Input
+                type="file"
+                accept="image/jpeg,image/png,image/jpg,image/gif"
+                onChange={(e) => handleImageChange(e, 'license_number_image')}
+                className={inputClass(errors.license_number_image)}
+              />
+            </div>
+            <InputError message={errors.license_number_image} />
           </div>
 
           {/* Vehicle Type */}
@@ -221,7 +262,7 @@ const AddCollector = ({ setShowAddModal }) => {
           </div>
 
           {/* Vehicle Plate Number */}
-          <div className="md:col-span-2">
+          <div>
             <Label className="text-zinc-800">Vehicle Plate Number</Label>
             <Input
               type="text"
@@ -231,6 +272,44 @@ const AddCollector = ({ setShowAddModal }) => {
               className={inputClass(errors.vehicle_plate_number)}
             />
             <InputError message={errors.vehicle_plate_number} />
+          </div>
+
+          {/* Vehicle Plate Number Image */}
+          <div>
+            <Label className="text-zinc-800">Vehicle Plate Number Image</Label>
+            <div className="flex items-center gap-4">
+              {plateImagePreview && (
+                <div className="w-20 h-20 rounded overflow-hidden border-2 border-zinc-300">
+                  <img src={plateImagePreview} alt="Plate Preview" className="w-full h-full object-cover" />
+                </div>
+              )}
+              <Input
+                type="file"
+                accept="image/jpeg,image/png,image/jpg,image/gif"
+                onChange={(e) => handleImageChange(e, 'vehicle_plate_number_image')}
+                className={inputClass(errors.vehicle_plate_number_image)}
+              />
+            </div>
+            <InputError message={errors.vehicle_plate_number_image} />
+          </div>
+
+          {/* Vehicle Type Image */}
+          <div className="md:col-span-2">
+            <Label className="text-zinc-800">Vehicle Type Image</Label>
+            <div className="flex items-center gap-4">
+              {vehicleTypeImagePreview && (
+                <div className="w-20 h-20 rounded overflow-hidden border-2 border-zinc-300">
+                  <img src={vehicleTypeImagePreview} alt="Vehicle Type Preview" className="w-full h-full object-cover" />
+                </div>
+              )}
+              <Input
+                type="file"
+                accept="image/jpeg,image/png,image/jpg,image/gif"
+                onChange={(e) => handleImageChange(e, 'vehicle_type_image')}
+                className={inputClass(errors.vehicle_type_image)}
+              />
+            </div>
+            <InputError message={errors.vehicle_type_image} />
           </div>
 
           {/* Status Switches */}

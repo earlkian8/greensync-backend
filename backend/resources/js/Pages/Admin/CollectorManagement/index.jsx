@@ -8,7 +8,7 @@ import {
   TableRow,
 } from "@/Components/ui/table";
 import { toast } from 'sonner';
-import { Trash2, SquarePen, Eye, UserCheck, UserX, CheckCircle, XCircle, Filter } from 'lucide-react';
+import { Trash2, SquarePen, Eye, UserCheck, UserX, CheckCircle, XCircle, Filter, User } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -30,6 +30,7 @@ import ShowCollector from './show';
 
 export default function CollectorManagement() {
     const columns = [
+        { header: 'Profile', width: '8%' },
         { header: 'Employee ID', width: '10%' },
         { header: 'Name', width: '15%' },
         { header: 'Email', width: '15%' },
@@ -141,6 +142,22 @@ export default function CollectorManagement() {
             preserveScroll: true,
             onSuccess: () => {
                 toast.success(`Collector ${collector.is_verified ? 'unverified' : 'verified'} successfully`);
+            }
+        });
+    };
+
+    const handleApprove = (collector) => {
+        router.post(route('admin.collector-management.approve', collector.id), {}, {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success('Collector approved and verified successfully');
+            },
+            onError: (errors) => {
+                if (errors.message) {
+                    toast.error(errors.message);
+                } else {
+                    toast.error('Failed to approve collector');
+                }
             }
         });
     };
@@ -304,6 +321,23 @@ export default function CollectorManagement() {
                     >
                         {collectorData.map(collector => (
                             <TableRow key={collector.id}>
+                                <TableCell className='text-left px-2 py-2 sm:px-4 md:px-6 text-xs sm:text-sm'>
+                                    <div className="flex items-center justify-center">
+                                        {collector.profile_image_url ? (
+                                            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-zinc-300">
+                                                <img 
+                                                    src={collector.profile_image_url} 
+                                                    alt={collector.name}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            </div>
+                                        ) : (
+                                            <div className="w-10 h-10 rounded-full bg-zinc-200 flex items-center justify-center">
+                                                <User size={20} className="text-zinc-400" />
+                                            </div>
+                                        )}
+                                    </div>
+                                </TableCell>
                                 <TableCell className='text-left px-2 py-2 sm:px-4 md:px-6 text-xs sm:text-sm font-semibold'>
                                     #{collector.employee_id}
                                 </TableCell>
@@ -373,6 +407,17 @@ export default function CollectorManagement() {
                                         >
                                             <SquarePen size={18} />
                                         </button>
+                                        {!collector.is_verified && (
+                                            <button
+                                                onClick={() => handleApprove(collector)}
+                                                className="p-2 rounded hover:bg-purple-100 text-purple-600 hover:text-purple-700 transition"
+                                                title="Approve & Verify"
+                                                aria-label="Approve & Verify"
+                                                type="button"
+                                            >
+                                                <CheckCircle size={18} />
+                                            </button>
+                                        )}
                                         <button
                                             onClick={() => {
                                                 setDeleteCollector(collector);

@@ -41,8 +41,16 @@ Route::middleware('auth')->group(function () {
             Route::get('/statistics', [CollectorController::class, 'statistics'])->name('statistics');
             Route::post('/verify/{collector}', [CollectorController::class, 'verify'])->name('verify');
             Route::post('/unverify/{collector}', [CollectorController::class, 'unverify'])->name('unverify');
+            Route::post('/approve/{collector}', [CollectorController::class, 'approve'])->name('approve');
             Route::post('/activate/{collector}', [CollectorController::class, 'activate'])->name('activate');
             Route::post('/deactivate/{collector}', [CollectorController::class, 'deactivate'])->name('deactivate');
+            
+            // Image serving routes (must be before resource routes)
+            Route::get('/{collector}/profile-image', [CollectorController::class, 'serveProfileImage'])->name('profile-image');
+            Route::get('/{collector}/license-image', [CollectorController::class, 'serveLicenseImage'])->name('license-image');
+            Route::get('/{collector}/vehicle-plate-image', [CollectorController::class, 'serveVehiclePlateImage'])->name('vehicle-plate-image');
+            Route::get('/{collector}/vehicle-type-image', [CollectorController::class, 'serveVehicleTypeImage'])->name('vehicle-type-image');
+            
             Route::get('/{collector}', [CollectorController::class, 'show'])->name('show');
             Route::get('/{collector}/edit', [CollectorController::class, 'edit'])->name('edit');
             Route::put('/update/{collector}', [CollectorController::class, 'update'])->name('update');

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Collector;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class CollectorsController extends Controller
@@ -18,16 +19,55 @@ class CollectorsController extends Controller
             'phone_number' => 'nullable|string|max:20|unique:collectors,phone_number',
             'password' => 'required|min:6',
             'name' => 'required|string|max:255',
-            'employee_id' => 'required|integer|unique:collectors,employee_id',
             'license_number' => 'nullable|string|max:50',
+            'license_number_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'vehicle_plate_number' => 'nullable|string|max:20',
+            'vehicle_plate_number_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'vehicle_type' => 'nullable|string|max:50',
-            'profile_image' => 'nullable|string|max:255',
+            'vehicle_type_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        $validated['password'] = Hash::make($request->password);
+        // Auto-generate employee_id
+        $lastEmployeeId = Collector::max('employee_id') ?? 0;
+        $employeeId = $lastEmployeeId + 1;
 
-        $collector = Collector::create($validated);
+        $collectorData = [
+            'email' => $validated['email'],
+            'phone_number' => $validated['phone_number'] ?? null,
+            'password' => Hash::make($request->password),
+            'name' => $validated['name'],
+            'employee_id' => $employeeId,
+            'license_number' => $validated['license_number'] ?? null,
+            'vehicle_plate_number' => $validated['vehicle_plate_number'] ?? null,
+            'vehicle_type' => $validated['vehicle_type'] ?? null,
+        ];
+
+        // Handle profile image upload
+        if ($request->hasFile('profile_image')) {
+            $path = $request->file('profile_image')->store('collectors/profiles', 'private');
+            $collectorData['profile_image'] = $path;
+        }
+
+        // Handle license number image upload
+        if ($request->hasFile('license_number_image')) {
+            $path = $request->file('license_number_image')->store('collectors/licenses', 'private');
+            $collectorData['license_number_image'] = $path;
+        }
+
+        // Handle vehicle plate number image upload
+        if ($request->hasFile('vehicle_plate_number_image')) {
+            $path = $request->file('vehicle_plate_number_image')->store('collectors/vehicle-plates', 'private');
+            $collectorData['vehicle_plate_number_image'] = $path;
+        }
+
+        // Handle vehicle type image upload
+        if ($request->hasFile('vehicle_type_image')) {
+            $path = $request->file('vehicle_type_image')->store('collectors/vehicle-types', 'private');
+            $collectorData['vehicle_type_image'] = $path;
+        }
+
+        $collector = Collector::create($collectorData);
 
         $token = $collector->createToken('auth_token')->plainTextToken;
 
@@ -95,16 +135,67 @@ class CollectorsController extends Controller
             'phone_number' => 'nullable|string|max:20|unique:collectors,phone_number,' . $collector->id,
             'name' => 'nullable|string|max:255',
             'license_number' => 'nullable|string|max:50',
+            'license_number_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'vehicle_plate_number' => 'nullable|string|max:20',
+            'vehicle_plate_number_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             'vehicle_type' => 'nullable|string|max:50',
-            'profile_image' => 'nullable|string|max:255',
+            'vehicle_type_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+            'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
-        $collector->update($validated);
+        $updateData = [
+            'phone_number' => $validated['phone_number'] ?? $collector->phone_number,
+            'name' => $validated['name'] ?? $collector->name,
+            'license_number' => $validated['license_number'] ?? $collector->license_number,
+            'vehicle_plate_number' => $validated['vehicle_plate_number'] ?? $collector->vehicle_plate_number,
+            'vehicle_type' => $validated['vehicle_type'] ?? $collector->vehicle_type,
+        ];
+
+        // Handle profile image upload
+        if ($request->hasFile('profile_image')) {
+            // Delete old image if exists
+            if ($collector->profile_image) {
+                Storage::disk('private')->delete($collector->profile_image);
+            }
+            $path = $request->file('profile_image')->store('collectors/profiles', 'private');
+            $updateData['profile_image'] = $path;
+        }
+
+        // Handle license number image upload
+        if ($request->hasFile('license_number_image')) {
+            // Delete old image if exists
+            if ($collector->license_number_image) {
+                Storage::disk('private')->delete($collector->license_number_image);
+            }
+            $path = $request->file('license_number_image')->store('collectors/licenses', 'private');
+            $updateData['license_number_image'] = $path;
+        }
+
+        // Handle vehicle plate number image upload
+        if ($request->hasFile('vehicle_plate_number_image')) {
+            // Delete old image if exists
+            if ($collector->vehicle_plate_number_image) {
+                Storage::disk('private')->delete($collector->vehicle_plate_number_image);
+            }
+            $path = $request->file('vehicle_plate_number_image')->store('collectors/vehicle-plates', 'private');
+            $updateData['vehicle_plate_number_image'] = $path;
+        }
+
+        // Handle vehicle type image upload
+        if ($request->hasFile('vehicle_type_image')) {
+            // Delete old image if exists
+            if ($collector->vehicle_type_image) {
+                Storage::disk('private')->delete($collector->vehicle_type_image);
+            }
+            $path = $request->file('vehicle_type_image')->store('collectors/vehicle-types', 'private');
+            $updateData['vehicle_type_image'] = $path;
+        }
+
+        $collector->update($updateData);
 
         return response()->json([
             'message' => 'Profile updated successfully.',
-            'collector' => $collector
+            'collector' => $collector->fresh()
         ]);
     }
 
