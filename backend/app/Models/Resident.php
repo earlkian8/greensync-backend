@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\HasApiTokens;
 
 class Resident extends Authenticatable
@@ -36,6 +37,39 @@ class Resident extends Authenticatable
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    protected $appends = ['profile_image_url'];
+
+    /** -------------------------
+     * Accessors
+     * ------------------------- */
+
+    /**
+     * Get the profile image URL.
+     */
+    public function getProfileImageUrlAttribute()
+    {
+        if ($this->profile_image) {
+            return Storage::url($this->profile_image);
+        }
+        return null;
+    }
+
+    /** -------------------------
+     * Helper Methods
+     * ------------------------- */
+
+    /**
+     * Check if the address is complete.
+     */
+    public function isAddressComplete(): bool
+    {
+        return !empty($this->barangay) && 
+               !empty($this->city) && 
+               !empty($this->province) && 
+               !empty($this->country) && 
+               !empty($this->postal_code);
+    }
 
     /** -------------------------
      * Relationships

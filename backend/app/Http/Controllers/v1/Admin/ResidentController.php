@@ -54,6 +54,8 @@ class ResidentController extends Controller
                           ->paginate(10)
                           ->withQueryString();
 
+        // Profile image URLs are automatically included via the model accessor
+
         // Get unique barangays for filter dropdown
         $barangays = Resident::select('barangay')
                             ->distinct()
@@ -119,6 +121,12 @@ class ResidentController extends Controller
             $residentData['profile_image'] = $path;
         }
 
+        // Auto-verify if address is complete (only if is_verified is not explicitly set)
+        $tempResident = new Resident($residentData);
+        if ($tempResident->isAddressComplete() && !array_key_exists('is_verified', $validated)) {
+            $residentData['is_verified'] = true;
+        }
+
         $resident = Resident::create($residentData);
 
         $this->adminActivityLogs(
@@ -136,8 +144,9 @@ class ResidentController extends Controller
      */
     public function show(Resident $resident): Response
     {
-        // Load relationships
+        // Load relationships with accurate counts
         $resident->load(['wasteBins', 'collectionRequests', 'verifiedCollections']);
+        $resident->loadCount(['wasteBins', 'collectionRequests', 'verifiedCollections']);
 
         $this->adminActivityLogs(
             'Resident',
@@ -225,6 +234,15 @@ class ResidentController extends Controller
             }
             $path = $request->file('profile_image')->store('residents/profiles', 'public');
             $updateData['profile_image'] = $path;
+        }
+
+        // Auto-verify if address is complete (only if is_verified is not explicitly set to false)
+        $tempResident = $resident->replicate();
+        $tempResident->fill($updateData);
+        
+        // Only auto-verify if address is complete and is_verified wasn't explicitly set to false
+        if ($tempResident->isAddressComplete() && (!array_key_exists('is_verified', $validated) || $validated['is_verified'] !== false)) {
+            $updateData['is_verified'] = true;
         }
 
         $resident->update($updateData);

@@ -9,6 +9,7 @@ use App\Models\WasteBin;
 use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Carbon\Carbon;
 
@@ -28,9 +29,20 @@ class ResidentsController extends Controller
             'province' => 'nullable|string|max:255',
             'country' => 'nullable|string|max:255',
             'postal_code' => 'nullable|string|max:20',
+            'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
 
         $validated['password'] = Hash::make($request->password);
+
+        // Handle profile image upload
+        if ($request->hasFile('profile_image')) {
+            $path = $request->file('profile_image')->store('residents/profiles', 'public');
+            $validated['profile_image'] = $path;
+        }
+
+        // Auto-verify if address is complete
+        $resident = new Resident($validated);
+        $validated['is_verified'] = $resident->isAddressComplete();
 
         $resident = Resident::create($validated);
 
@@ -93,13 +105,29 @@ class ResidentsController extends Controller
             'province' => 'nullable|string|max:255',
             'country' => 'nullable|string|max:255',
             'postal_code' => 'nullable|string|max:20',
+            'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
+
+        // Handle profile image upload
+        if ($request->hasFile('profile_image')) {
+            // Delete old image if exists
+            if ($resident->profile_image) {
+                Storage::disk('public')->delete($resident->profile_image);
+            }
+            $path = $request->file('profile_image')->store('residents/profiles', 'public');
+            $validated['profile_image'] = $path;
+        }
 
         $resident->update($validated);
 
+        // Auto-verify if address is complete
+        if ($resident->isAddressComplete() && !$resident->is_verified) {
+            $resident->update(['is_verified' => true]);
+        }
+
         return response()->json([
             'message' => 'Profile updated successfully.',
-            'resident' => $resident
+            'resident' => $resident->fresh()
         ]);
     }
 
@@ -117,6 +145,9 @@ class ResidentsController extends Controller
     public function profile(Request $request)
     {
         $resident = $request->user();
+        
+        // Load relationships for accurate counts
+        $resident->loadCount(['wasteBins', 'collectionRequests', 'verifiedCollections']);
 
         return response()->json([
             'message' => 'Profile fetched successfully.',
