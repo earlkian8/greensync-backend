@@ -14,7 +14,7 @@ export default function Dashboard() {
                 <div className="w-full sm:px-6 lg:px-8">
                     <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
                         <div className="p-6 text-gray-900">
-                            You're logged in!a
+                            You're logged in!adevelopment
 
                         </div>
                     </div>

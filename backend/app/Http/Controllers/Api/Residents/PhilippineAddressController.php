@@ -7,6 +7,7 @@ use Woenel\Prpcmblmts\Facades\Philippines;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Woenel\Prpcmblmts\Philippines as PrpcmblmtsPhilippines;
 
 class PhilippineAddressController extends Controller
 {
@@ -17,7 +18,7 @@ class PhilippineAddressController extends Controller
     {
         try {
             // Try using the Philippines facade
-            $regions = Philippines::regions()
+            $regions = PrpcmblmtsPhilippines::regions()
                 ->orderBy('name', 'asc')
                 ->get(['id', 'name', 'code', 'psgc']);
 
@@ -27,7 +28,7 @@ class PhilippineAddressController extends Controller
             // If no regions found, try direct database query as fallback
             if (empty($regionsArray)) {
                 Log::warning('No regions found via facade, trying direct query');
-                $regionsArray = \DB::table('philippine_regions')
+                $regionsArray = DB::table('philippine_regions')
                     ->select('id', 'name', 'code', 'psgc')
                     ->orderBy('name', 'asc')
                     ->get()
@@ -67,11 +68,11 @@ class PhilippineAddressController extends Controller
     public function getProvincesByRegion(Request $request, $regionId = null)
     {
         try {
-            $query = Philippines::provinces();
+            $query = PrpcmblmtsPhilippines::provinces();
 
             if ($regionId) {
                 // Get region first to use relationship
-                $region = Philippines::regions()->where('id', $regionId)->first();
+                $region = PrpcmblmtsPhilippines::regions()->where('id', $regionId)->first();
                 
                 if (!$region) {
                     return response()->json([
@@ -106,11 +107,11 @@ class PhilippineAddressController extends Controller
     public function getCitiesByProvince(Request $request, $provinceId = null)
     {
         try {
-            $query = Philippines::cities();
+            $query = PrpcmblmtsPhilippines::cities();
 
             if ($provinceId) {
                 // Get province first to use relationship
-                $province = Philippines::provinces()->where('id', $provinceId)->first();
+                $province = PrpcmblmtsPhilippines::provinces()->where('id', $provinceId)->first();
                 
                 if (!$province) {
                     return response()->json([
@@ -145,11 +146,11 @@ class PhilippineAddressController extends Controller
     public function getBarangaysByCity(Request $request, $cityId = null)
     {
         try {
-            $query = Philippines::barangays();
+            $query = PrpcmblmtsPhilippines::barangays();
 
             if ($cityId) {
                 // Get city first to use relationship
-                $city = Philippines::cities()->where('id', $cityId)->first();
+                $city = PrpcmblmtsPhilippines::cities()->where('id', $cityId)->first();
                 
                 if (!$city) {
                     return response()->json([
@@ -185,7 +186,7 @@ class PhilippineAddressController extends Controller
     public function getRegion($id)
     {
         try {
-            $region = Philippines::regions()->where('id', $id)->first();
+            $region = PrpcmblmtsPhilippines::regions()->where('id', $id)->first();
 
             if (!$region) {
                 return response()->json([
@@ -211,7 +212,7 @@ class PhilippineAddressController extends Controller
     public function getProvince($id)
     {
         try {
-            $province = Philippines::provinces()->where('id', $id)->first();
+            $province = PrpcmblmtsPhilippines::provinces()->where('id', $id)->first();
 
             if (!$province) {
                 return response()->json([
@@ -237,7 +238,7 @@ class PhilippineAddressController extends Controller
     public function getCity($id)
     {
         try {
-            $city = Philippines::cities()->where('id', $id)->first();
+            $city = PrpcmblmtsPhilippines::cities()->where('id', $id)->first();
 
             if (!$city) {
                 return response()->json([
@@ -263,7 +264,7 @@ class PhilippineAddressController extends Controller
     public function getBarangay($id)
     {
         try {
-            $barangay = Philippines::barangays()->where('id', $id)->first();
+            $barangay = PrpcmblmtsPhilippines::barangays()->where('id', $id)->first();
 
             if (!$barangay) {
                 return response()->json([
