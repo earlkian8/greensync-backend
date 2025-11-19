@@ -6,7 +6,7 @@ import TableComponent from '@/Components/AdminLayout/table';
 import { 
   TableRow, 
   TableCell 
-} from "@/components/ui/table"
+} from "@/Components/ui/table"
 
 export default function ActivityLogsIndex() {
   const breadcrumbs = [

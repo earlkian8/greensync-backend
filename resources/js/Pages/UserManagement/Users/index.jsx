@@ -5,7 +5,7 @@ import TableComponent from '@/Components/AdminLayout/table';
 import {
   TableRow,
   TableCell
-} from "@/components/ui/table";
+} from "@/Components/ui/table";
 import { toast } from 'sonner';
 import { Trash2, SquarePen, UnlockIcon } from 'lucide-react';
 

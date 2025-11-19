@@ -15,13 +15,13 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/Components/ui/select";
 import { Button } from '@/Components/ui/button';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover";
+} from "@/Components/ui/popover";
 
 import AddCollectionRequest from './add';
 import EditCollectionRequest from './edit';
