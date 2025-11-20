@@ -297,13 +297,11 @@ class ResidentsController extends Controller
             ], 404);
         }
 
-        $path = Storage::disk('private')->path($resident->profile_image);
-        $mime = Storage::disk('private')->mimeType($resident->profile_image) ?? 'image/jpeg';
-
-        return response()->file($path, [
-            'Content-Type' => $mime,
-            'Cache-Control' => 'public, max-age=86400',
-        ]);
+        return Storage::disk('private')->response(
+            $resident->profile_image,
+            null,
+            ['Cache-Control' => 'public, max-age=86400']
+        );
     }
 
     /** Get Dashboard Data */

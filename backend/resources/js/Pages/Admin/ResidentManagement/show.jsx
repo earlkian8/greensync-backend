@@ -48,9 +48,9 @@ const ShowResident = ({ setShowViewModal, resident }) => {
             <h3 className="text-sm font-semibold text-zinc-800 mb-4">Profile</h3>
             <div className="flex flex-col items-center">
               <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-zinc-200 mb-4">
-                {resident.profile_image ? (
+                {resident.profile_image_url ? (
                   <img 
-                    src={`/storage/${resident.profile_image}`} 
+                    src={resident.profile_image_url} 
                     alt={resident.name}
                     className="w-full h-full object-cover"
                   />

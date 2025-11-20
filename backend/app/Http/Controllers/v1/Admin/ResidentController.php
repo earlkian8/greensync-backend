@@ -314,6 +314,18 @@ class ResidentController extends Controller
     }
 
     /**
+     * Serve resident profile image stored in private disk.
+     */
+    public function serveProfileImage(Resident $resident)
+    {
+        if (!$resident->profile_image || !Storage::disk('private')->exists($resident->profile_image)) {
+            abort(404);
+        }
+
+        return Storage::disk('private')->response($resident->profile_image);
+    }
+
+    /**
      * Get resident statistics for dashboard.
      */
     public function statistics(): Response

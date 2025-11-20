@@ -27,6 +27,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/statistics', [ResidentController::class, 'statistics'])->name('statistics');
             Route::get('/export', [ResidentController::class, 'export'])->name('export');
             Route::post('/bulk-delete', [ResidentController::class, 'bulkDelete'])->name('bulk-delete');
+            Route::get('/{resident}/profile-image', [ResidentController::class, 'serveProfileImage'])->name('profile-image');
             Route::get('/{resident}', [ResidentController::class, 'show'])->name('show');
             Route::get('/{resident}/edit', [ResidentController::class, 'edit'])->name('edit');
             Route::put('/update/{resident}', [ResidentController::class, 'update'])->name('update');
