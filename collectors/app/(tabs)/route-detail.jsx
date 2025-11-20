@@ -1,12 +1,27 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, Modal, Pressable } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE, PROVIDER_DEFAULT } from 'react-native-maps';
-import { Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, Modal, Pressable, Linking } from 'react-native';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import Constants from 'expo-constants';
 import collectorRoutesService from '@/services/collectorRoutesService';
-import { ArrowLeftIcon, CameraIcon, MapIcon, MapPinnedIcon, RefreshCwIcon, ListIcon, AlertTriangleIcon, NavigationIcon } from 'lucide-react-native';
+import { CameraIcon, MapIcon, MapPinnedIcon, RefreshCwIcon, ListIcon, AlertTriangleIcon, NavigationIcon } from 'lucide-react-native';
+
+// Conditionally import react-native-maps (only available in development builds)
+let MapView, Marker, Polyline, PROVIDER_GOOGLE;
+let isMapsAvailable = false;
+
+try {
+  const mapsModule = require('react-native-maps');
+  MapView = mapsModule.default;
+  Marker = mapsModule.Marker;
+  Polyline = mapsModule.Polyline;
+  PROVIDER_GOOGLE = mapsModule.PROVIDER_GOOGLE;
+  isMapsAvailable = true;
+} catch (e) {
+  // Maps not available (Expo Go)
+  isMapsAvailable = false;
+}
 
 const { width, height } = Dimensions.get('window');
 
@@ -144,12 +159,16 @@ const RouteDetailScreen = () => {
         throw new Error('Bin not found for scanned code.');
       }
 
+      // Ensure coordinates are valid numbers
+      const lat = selectedStop.latitude ? parseFloat(selectedStop.latitude) : 0;
+      const lng = selectedStop.longitude ? parseFloat(selectedStop.longitude) : 0;
+
       await collectorRoutesService.recordCollection({
         assignmentId,
         binId,
         qrCode,
-        latitude: parseFloat(selectedStop.latitude) || 0,
-        longitude: parseFloat(selectedStop.longitude) || 0,
+        latitude: lat,
+        longitude: lng,
         wasteType: 'mixed',
       });
 
@@ -161,11 +180,8 @@ const RouteDetailScreen = () => {
       }, 1200);
     } catch (err) {
       console.error('QR scan failed', err);
-      const message =
-        err?.response?.data?.message ??
-        err?.message ??
-        'Failed to record collection. Please try again.';
-      setScanError(message);
+      const errorMessage = err?.response?.data?.message || err?.response?.data?.errors || err?.message || 'Failed to record collection. Please try again.';
+      setScanError(errorMessage);
     } finally {
       setScanProcessing(false);
     }
@@ -338,8 +354,52 @@ const RouteDetailScreen = () => {
       !isNaN(parseFloat(stop.longitude))
     );
 
-    // Use Google Maps on Android, default on iOS
-    const mapProvider = Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT;
+    // Check if running in Expo Go
+    const isExpoGo = Constants.executionEnvironment === 'storeClient';
+
+    // If maps not available (Expo Go), show fallback UI
+    if (!isMapsAvailable || isExpoGo) {
+      return (
+        <View className="mt-4 rounded-2xl overflow-hidden border border-gray-200 bg-gray-50" style={{ height: Math.min(height * 0.55, 500) }}>
+          <View className="flex-1 items-center justify-center p-6">
+            <MapIcon size={48} color="#9CA3AF" />
+            <Text className="text-gray-700 text-center mt-4 font-semibold text-base">
+              Map View Not Available
+            </Text>
+            <Text className="text-gray-500 text-center mt-2 text-sm px-4">
+              Google Maps requires a development build. The map view is only available in the full app version.
+            </Text>
+            {validStops.length > 0 && (
+              <View className="mt-6 w-full px-4">
+                <Text className="text-gray-700 font-medium mb-3">Route Stops ({validStops.length}):</Text>
+                <ScrollView className="max-h-64">
+                  {validStops.map((stop, index) => (
+                    <View key={stop.id} className="bg-white rounded-lg p-3 mb-2 border border-gray-200">
+                      <Text className="font-semibold text-gray-900">
+                        Stop #{stop.stop_order}: {stop.address}
+                      </Text>
+                      {stop.latitude && stop.longitude && (
+                        <TouchableOpacity
+                          className="mt-2"
+                          onPress={() => {
+                            const url = `https://www.google.com/maps?q=${stop.latitude},${stop.longitude}`;
+                            Linking.openURL(url);
+                          }}
+                        >
+                          <Text className="text-green-600 text-sm">
+                            Open in Google Maps →
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+          </View>
+        </View>
+      );
+    }
 
     if (validStops.length === 0) {
       return (
@@ -353,6 +413,9 @@ const RouteDetailScreen = () => {
         </View>
       );
     }
+
+    // Use Google Maps on both platforms
+    const mapProvider = PROVIDER_GOOGLE;
 
     return (
       <View className="mt-4 rounded-2xl overflow-hidden border border-gray-200">
@@ -585,70 +648,63 @@ const RouteDetailScreen = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <View className="flex-row items-center px-4 py-3 bg-white border-b border-gray-100">
-        <TouchableOpacity
-          className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center mr-3"
-          onPress={() => router.back()}
-        >
-          <ArrowLeftIcon size={20} color="#111827" />
-        </TouchableOpacity>
-        <View>
-          <Text className="text-xs text-gray-500 uppercase">Route Details</Text>
-          <Text className="text-base font-semibold text-gray-900">
-            Assignment #{assignmentId}
-          </Text>
-        </View>
-      </View>
+    <>
+      <Stack.Screen
+        options={{
+          title: assignmentData?.route?.name || `Route Details #${assignmentId || ''}`,
+          headerShown: true,
+        }}
+      />
+      <SafeAreaView className="flex-1 bg-gray-50">
+        {renderContent()}
 
-      {renderContent()}
-
-      <Modal visible={scannerVisible} animationType="slide" onRequestClose={closeScanner}>
-        <SafeAreaView className="flex-1 bg-black">
-          <View className="flex-row items-center justify-between px-4 py-3">
-            <Text className="text-white font-semibold text-lg">Scan QR Code</Text>
-            <Pressable onPress={closeScanner}>
-              <Text className="text-gray-200 text-sm">Close</Text>
-            </Pressable>
-          </View>
-
-          <View className="flex-1 items-center justify-center">
-            {!cameraPermission?.granted ? (
-              <Text className="text-white px-6 text-center">
-                Camera permission is required to scan QR codes.
-              </Text>
-            ) : (
-              <CameraView
-                style={{ width: width - 40, height: width - 40 }}
-                facing="back"
-                barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-                onBarcodeScanned={scanProcessing ? undefined : handleBarcodeScanned}
-              />
-            )}
-
-            <View className="mt-6 px-4 w-full">
-              {scanProcessing ? (
-                <View className="flex-row items-center justify-center gap-2">
-                  <ActivityIndicator color="#ffffff" />
-                  <Text className="text-white text-sm">Processing scan...</Text>
-                </View>
-              ) : null}
-              {scanSuccess ? (
-                <Text className="text-green-400 text-center mt-3">{scanSuccess}</Text>
-              ) : null}
-              {scanError ? (
-                <Text className="text-red-400 text-center mt-3">{scanError}</Text>
-              ) : null}
-              {selectedStop ? (
-                <Text className="text-gray-200 text-center mt-4 text-sm">
-                  Stop #{selectedStop.stop_order} • {selectedStop.address}
-                </Text>
-              ) : null}
+        <Modal visible={scannerVisible} animationType="slide" onRequestClose={closeScanner}>
+          <SafeAreaView className="flex-1 bg-black">
+            <View className="flex-row items-center justify-between px-4 py-3">
+              <Text className="text-white font-semibold text-lg">Scan QR Code</Text>
+              <Pressable onPress={closeScanner}>
+                <Text className="text-gray-200 text-sm">Close</Text>
+              </Pressable>
             </View>
-          </View>
-        </SafeAreaView>
-      </Modal>
-    </SafeAreaView>
+
+            <View className="flex-1 items-center justify-center">
+              {!cameraPermission?.granted ? (
+                <Text className="text-white px-6 text-center">
+                  Camera permission is required to scan QR codes.
+                </Text>
+              ) : (
+                <CameraView
+                  style={{ width: width - 40, height: width - 40 }}
+                  facing="back"
+                  barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
+                  onBarcodeScanned={scanProcessing ? undefined : handleBarcodeScanned}
+                />
+              )}
+
+              <View className="mt-6 px-4 w-full">
+                {scanProcessing ? (
+                  <View className="flex-row items-center justify-center gap-2">
+                    <ActivityIndicator color="#ffffff" />
+                    <Text className="text-white text-sm">Processing scan...</Text>
+                  </View>
+                ) : null}
+                {scanSuccess ? (
+                  <Text className="text-green-400 text-center mt-3">{scanSuccess}</Text>
+                ) : null}
+                {scanError ? (
+                  <Text className="text-red-400 text-center mt-3">{scanError}</Text>
+                ) : null}
+                {selectedStop ? (
+                  <Text className="text-gray-200 text-center mt-4 text-sm">
+                    Stop #{selectedStop.stop_order} • {selectedStop.address}
+                  </Text>
+                ) : null}
+              </View>
+            </View>
+          </SafeAreaView>
+        </Modal>
+      </SafeAreaView>
+    </>
   );
 };
 

@@ -124,7 +124,7 @@ class QRCollectionController extends Controller
                 'latitude' => 'required|numeric|between:-90,90',
                 'longitude' => 'required|numeric|between:-180,180',
                 'waste_weight' => 'nullable|numeric|min:0',
-                'waste_type' => 'nullable|string|in:biodegradable,non-biodegradable,recyclable,hazardous,mixed',
+                'waste_type' => 'nullable|string|in:biodegradable,non-biodegradable,recyclable,hazardous,mixed,all',
                 'notes' => 'nullable|string|max:500',
             ]);
 

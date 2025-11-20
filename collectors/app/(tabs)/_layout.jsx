@@ -69,6 +69,13 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      <Tabs.Screen 
+        name="route-detail" 
+        options={{
+          href: null, // Hide from tab bar
+        }}
+      />
     </Tabs>
   );
 }

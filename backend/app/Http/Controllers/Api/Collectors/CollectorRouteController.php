@@ -18,10 +18,31 @@ class CollectorRouteController extends Controller
      * 
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getTodayAssignments()
+    public function getTodayAssignments(Request $request)
     {
         try {
-            $collectorId = Auth::guard('collector')->id();
+            // Get authenticated collector - try multiple methods for compatibility
+            $collector = $request->user();
+            
+            // If not available from request, try guards
+            if (!$collector) {
+                $collector = Auth::guard('collector')->user();
+            }
+            
+            if (!$collector) {
+                $collector = Auth::user();
+            }
+            
+            if (!$collector) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated. Please login again.',
+                    'data' => []
+                ], 401);
+            }
+
+            $collectorId = $collector->id;
+
             $today = Carbon::today();
 
             $assignments = RouteAssignment::with([
@@ -33,31 +54,50 @@ class CollectorRouteController extends Controller
             ->orderBy('assignment_date', 'desc')
             ->get()
             ->map(function ($assignment) {
+                // Handle case where route might be null
+                if (!$assignment->route) {
+                    return null;
+                }
+
+                // Safely calculate completed stops using query method
+                $completedStops = 0;
+                try {
+                    $completedStops = $assignment->qrCollections()
+                        ->whereIn('collection_status', ['completed', 'collected', 'successful'])
+                        ->count();
+                } catch (\Exception $e) {
+                    \Log::warning('Error counting completed stops for assignment ' . $assignment->id . ': ' . $e->getMessage());
+                }
+
                 return [
                     'id' => $assignment->id,
                     'assignment_date' => $assignment->assignment_date->format('Y-m-d'),
-                    'status' => $assignment->status,
+                    'status' => $assignment->status ?? 'pending',
                     'start_time' => $assignment->start_time?->format('Y-m-d H:i:s'),
                     'end_time' => $assignment->end_time?->format('Y-m-d H:i:s'),
                     'notes' => $assignment->notes,
                     'route' => [
                         'id' => $assignment->route->id,
                         'name' => $assignment->route->route_name,
+                        'route_name' => $assignment->route->route_name, // Add both for compatibility
                         'barangay' => $assignment->route->barangay,
                         'start_location' => $assignment->route->start_location,
                         'end_location' => $assignment->route->end_location,
-                        'total_stops' => $assignment->route->total_stops,
+                        'total_stops' => $assignment->route->total_stops ?? 0,
                     ],
+                    'route_id' => $assignment->route->id, // Add route_id for compatibility
                     'schedule' => $assignment->schedule ? [
                         'collection_day' => $assignment->schedule->collection_day,
                         'collection_time' => $assignment->schedule->collection_time,
                         'frequency' => $assignment->schedule->frequency,
                     ] : null,
                     // Calculate progress
-                    'completed_stops' => $assignment->qrCollections()->where('status', 'completed')->count(),
-                    'total_stops' => $assignment->route->total_stops,
+                    'completed_stops' => $completedStops,
+                    'total_stops' => $assignment->route->total_stops ?? 0,
                 ];
-            });
+            })
+            ->filter() // Remove null entries
+            ->values(); // Re-index array
 
             return response()->json([
                 'success' => true,
@@ -66,10 +106,15 @@ class CollectorRouteController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
+            \Log::error('Error in getTodayAssignments: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve assignments',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'data' => []
             ], 500);
         }
     }

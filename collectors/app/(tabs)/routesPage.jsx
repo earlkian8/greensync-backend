@@ -71,7 +71,7 @@ export default function RoutesPage() {
 
   const handleRouteClick = (assignment) => {
     router.push({
-      pathname: '/route-detail',
+      pathname: '/(tabs)/route-detail',
       params: {
         assignmentId: assignment?.id,
         routeId: assignment?.route?.id,

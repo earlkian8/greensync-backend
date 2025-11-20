@@ -120,7 +120,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/login', [CollectorsController::class, 'login']);
 
         // -------------------- Protected Routes (Requires Authentication) --------------------
-        Route::middleware('auth:sanctum')->group(function () {
+        // Use collector guard for Sanctum authentication
+        Route::middleware(['auth:sanctum'])->group(function () {
             
             // === Profile Management ===
             // Get logged-in collector profile

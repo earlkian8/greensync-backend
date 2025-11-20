@@ -1,93 +1,96 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
-// Mock Data
-const mockCollectionHistory = [
-  {
-    id: 1,
-    qr_code: "QR-001-2024",
-    waste_type: "Biodegradable",
-    waste_weight: 5.2,
-    collection_timestamp: "2024-11-08T09:30:00",
-    collection_status: "completed",
-    is_verified: true,
-  },
-  {
-    id: 2,
-    qr_code: "QR-002-2024",
-    waste_type: "Non-Biodegradable",
-    waste_weight: 3.8,
-    collection_timestamp: "2024-11-08T10:15:00",
-    collection_status: "completed",
-    is_verified: true,
-  },
-  {
-    id: 3,
-    qr_code: "QR-003-2024",
-    waste_type: "Recyclable",
-    waste_weight: 7.5,
-    collection_timestamp: "2024-11-08T11:00:00",
-    collection_status: "pending",
-    is_verified: false,
-  },
-  {
-    id: 4,
-    qr_code: "QR-004-2024",
-    waste_type: "Biodegradable",
-    waste_weight: 4.3,
-    collection_timestamp: "2024-11-07T14:20:00",
-    collection_status: "completed",
-    is_verified: true,
-  },
-  {
-    id: 5,
-    qr_code: "QR-005-2024",
-    waste_type: "Special Waste",
-    waste_weight: 2.1,
-    collection_timestamp: "2024-11-07T15:45:00",
-    collection_status: "skipped",
-    is_verified: false,
-  },
-  {
-    id: 6,
-    qr_code: "QR-006-2024",
-    waste_type: "Recyclable",
-    waste_weight: 6.9,
-    collection_timestamp: "2024-11-06T08:30:00",
-    collection_status: "completed",
-    is_verified: true,
-  },
-];
+import collectorService from '@/services/collectorService';
 
 export default function History() {
   const [collections, setCollections] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [error, setError] = useState(null);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    lastPage: 1,
+    total: 0,
+  });
+
+  const fetchCollections = useCallback(async (isRefreshing = false, search = null) => {
+    try {
+      if (!isRefreshing) {
+        setLoading(true);
+      } else {
+        setRefreshing(true);
+      }
+      setError(null);
+
+      const filters = {
+        per_page: 50,
+      };
+
+      // Add status filter if not 'all'
+      if (filterStatus !== 'all') {
+        filters.status = filterStatus;
+      }
+
+      // Add search filter - use provided search or current searchTerm
+      const searchValue = search !== null ? search : searchTerm;
+      if (searchValue && searchValue.trim()) {
+        filters.search = searchValue.trim();
+      }
+
+      const response = await collectorService.getCollectionHistory(filters);
+      
+      if (response) {
+        // Handle paginated response
+        if (response.data && Array.isArray(response.data)) {
+          setCollections(response.data);
+          setPagination({
+            currentPage: response.current_page || 1,
+            lastPage: response.last_page || 1,
+            total: response.total || response.data.length,
+          });
+        } else if (Array.isArray(response)) {
+          setCollections(response);
+          setPagination({
+            currentPage: 1,
+            lastPage: 1,
+            total: response.length,
+          });
+        } else {
+          setCollections([]);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching collections:', err);
+      setError(err?.response?.data?.message || 'Failed to load collection history. Please try again.');
+      setCollections([]);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [filterStatus, searchTerm]);
 
   useEffect(() => {
-    const fetchCollections = async () => {
-      try {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setCollections(mockCollectionHistory);
-      } catch (error) {
-        console.error('Error fetching collections:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchCollections();
-  }, []);
+  }, [fetchCollections]);
 
-  const filteredCollections = collections
-    .filter(collection =>
-      (filterStatus === 'all' || collection.collection_status === filterStatus) &&
-      (collection.waste_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-       collection.qr_code.toLowerCase().includes(searchTerm.toLowerCase()))
-    )
-    .sort((a, b) => new Date(b.collection_timestamp).getTime() - new Date(a.collection_timestamp).getTime());
+  // Debounce search
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      fetchCollections(false, searchTerm);
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
+
+  const handleRefresh = () => {
+    fetchCollections(true);
+  };
+
+  // Collections are already filtered by the API, but we can do client-side filtering for search if needed
+  const filteredCollections = collections;
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -120,7 +123,12 @@ export default function History() {
 
   return (
     <View className="flex-1 bg-gray-50">
-      <ScrollView className="flex-1">
+      <ScrollView 
+        className="flex-1"
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+      >
 
         {/* Search and Filter */}
         <View className="bg-white p-4 border-b border-gray-200">
@@ -130,6 +138,7 @@ export default function History() {
               placeholder="Search by waste type or QR code..."
               value={searchTerm}
               onChangeText={setSearchTerm}
+              onSubmitEditing={() => fetchCollections()}
               className="flex-1 ml-2 text-base"
               placeholderTextColor="#9CA3AF"
             />
@@ -145,7 +154,10 @@ export default function History() {
                 className={`px-3 py-1 rounded-full mr-2 ${
                   filterStatus === 'all' ? 'bg-green-100' : 'bg-gray-100'
                 }`}
-                onPress={() => setFilterStatus('all')}
+                onPress={() => {
+                  setFilterStatus('all');
+                  // fetchCollections will be called by useEffect when filterStatus changes
+                }}
               >
                 <Text className={`text-sm ${
                   filterStatus === 'all' ? 'text-green-700 font-medium' : 'text-gray-600'
@@ -158,7 +170,9 @@ export default function History() {
                 className={`px-3 py-1 rounded-full mr-2 ${
                   filterStatus === 'completed' ? 'bg-green-100' : 'bg-gray-100'
                 }`}
-                onPress={() => setFilterStatus('completed')}
+                onPress={() => {
+                  setFilterStatus('completed');
+                }}
               >
                 <Text className={`text-sm ${
                   filterStatus === 'completed' ? 'text-green-700 font-medium' : 'text-gray-600'
@@ -171,7 +185,9 @@ export default function History() {
                 className={`px-3 py-1 rounded-full mr-2 ${
                   filterStatus === 'pending' ? 'bg-yellow-100' : 'bg-gray-100'
                 }`}
-                onPress={() => setFilterStatus('pending')}
+                onPress={() => {
+                  setFilterStatus('pending');
+                }}
               >
                 <Text className={`text-sm ${
                   filterStatus === 'pending' ? 'text-yellow-700 font-medium' : 'text-gray-600'
@@ -184,7 +200,9 @@ export default function History() {
                 className={`px-3 py-1 rounded-full ${
                   filterStatus === 'skipped' ? 'bg-red-100' : 'bg-gray-100'
                 }`}
-                onPress={() => setFilterStatus('skipped')}
+                onPress={() => {
+                  setFilterStatus('skipped');
+                }}
               >
                 <Text className={`text-sm ${
                   filterStatus === 'skipped' ? 'text-red-700 font-medium' : 'text-gray-600'
@@ -201,6 +219,17 @@ export default function History() {
           {loading ? (
             <View className="items-center justify-center py-12">
               <ActivityIndicator size="large" color="#16A34A" />
+            </View>
+          ) : error ? (
+            <View className="items-center py-12 bg-white rounded-lg border border-red-200">
+              <Ionicons name="alert-circle-outline" size={48} color="#DC2626" />
+              <Text className="text-red-600 mt-3 text-base text-center">{error}</Text>
+              <TouchableOpacity 
+                className="mt-4 px-6 py-2 bg-red-600 rounded-lg active:bg-red-700"
+                onPress={() => fetchCollections()}
+              >
+                <Text className="text-white font-medium">Retry</Text>
+              </TouchableOpacity>
             </View>
           ) : filteredCollections.length === 0 ? (
             <View className="items-center py-12 bg-white rounded-lg border border-gray-200">
@@ -224,11 +253,16 @@ export default function History() {
                         </View>
                         <View className="ml-3 flex-1">
                           <Text className="font-semibold text-gray-900 text-base">
-                            {collection.waste_type}
+                            {collection.waste_type || 'Mixed'}
                           </Text>
                           <Text className="text-sm text-gray-600 mt-0.5">
                             QR: {collection.qr_code}
                           </Text>
+                          {collection.route?.name && (
+                            <Text className="text-xs text-gray-500 mt-1">
+                              Route: {collection.route.name}
+                            </Text>
+                          )}
                         </View>
                       </View>
 
@@ -236,13 +270,13 @@ export default function History() {
                         <View className="flex-row items-center">
                           <Ionicons name="calendar-outline" size={14} color="#9CA3AF" />
                           <Text className="text-sm text-gray-500 ml-1">
-                            {formatDate(collection.collection_timestamp)}
+                            {collection.collection_date || formatDate(collection.collection_timestamp)}
                           </Text>
                         </View>
                         <View className="flex-row items-center">
                           <Ionicons name="time-outline" size={14} color="#9CA3AF" />
                           <Text className="text-sm text-gray-500 ml-1">
-                            {formatTime(collection.collection_timestamp)}
+                            {collection.collection_time || formatTime(collection.collection_timestamp)}
                           </Text>
                         </View>
                       </View>
@@ -251,13 +285,15 @@ export default function History() {
                     <View className="items-end ml-2">
                       <View className={`px-3 py-1 rounded-full ${getStatusStyle(collection.collection_status)}`}>
                         <Text className="text-xs font-semibold uppercase">
-                          {collection.collection_status}
+                          {collection.collection_status || 'completed'}
                         </Text>
                       </View>
                       
-                      <Text className="text-sm text-gray-700 mt-2 font-medium">
-                        {collection.waste_weight} kg
-                      </Text>
+                      {collection.waste_weight && (
+                        <Text className="text-sm text-gray-700 mt-2 font-medium">
+                          {collection.waste_weight} kg
+                        </Text>
+                      )}
 
                       <View className="mt-2">
                         {collection.is_verified ? (
@@ -276,6 +312,14 @@ export default function History() {
                   </View>
                 </View>
               ))}
+            </View>
+          )}
+          
+          {pagination.total > filteredCollections.length && (
+            <View className="mt-4 items-center">
+              <Text className="text-xs text-gray-400">
+                Showing {filteredCollections.length} of {pagination.total} collections
+              </Text>
             </View>
           )}
         </View>

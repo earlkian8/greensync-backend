@@ -7,9 +7,12 @@
     "icon": "./assets/images/icon.png",
     "scheme": "collectors",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "config": {
+        "googleMapsApiKey": "AIzaSyB9Z95Q-GkCc-MPi4oYD4Leg54EbAQVaxI"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -26,7 +29,9 @@
         }
       },
       "permissions": [
-        "android.permission.CAMERA"
+        "android.permission.CAMERA",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
       ],
       "package": "com.earlkian8.collectors"
     },
@@ -48,8 +53,7 @@
           }
         }
       ],
-      "expo-web-browser",
-      "expo-barcode-scanner"
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,

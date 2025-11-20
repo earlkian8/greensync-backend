@@ -17,10 +17,31 @@ class CollectorPerformanceController extends Controller
      * 
      * @return \Illuminate\Http\JsonResponse
      */
-    public function getPerformanceSummary()
+    public function getPerformanceSummary(Request $request)
     {
         try {
-            $collectorId = Auth::guard('collector')->id();
+            // Get authenticated collector - try multiple methods for compatibility
+            $collector = $request->user();
+            
+            // If not available from request, try guards
+            if (!$collector) {
+                $collector = Auth::guard('collector')->user();
+            }
+            
+            if (!$collector) {
+                $collector = Auth::user();
+            }
+            
+            // Check if collector is authenticated
+            if (!$collector) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthenticated. Please login again.',
+                    'data' => []
+                ], 401);
+            }
+
+            $collectorId = $collector->id;
 
             // Total collections
             $totalCollections = QrCollection::where('collector_id', $collectorId)
