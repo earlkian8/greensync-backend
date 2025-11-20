@@ -7,15 +7,23 @@ use App\Models\Resident;
 use App\Models\CollectionRequest;
 use App\Models\WasteBin;
 use App\Models\Notification;
-use Woenel\Prpcmblmts\Facades\Philippines;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Carbon\Carbon;
+use Woenel\Prpcmblmts\Facades\Philippines;
+use Woenel\Prpcmblmts\Philippines as PrpcmblmtsPhilippines;
 
 class ResidentsController extends Controller
 {
+    protected PrpcmblmtsPhilippines $philippines;
+
+    public function __construct(PrpcmblmtsPhilippines $philippines)
+    {
+        $this->philippines = $philippines;
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -48,25 +56,40 @@ class ResidentsController extends Controller
             }
             
             // Validate relationships
-            $province = Philippines::provinces()->where('id', $request->province_id)->first();
-            if (!$province || $province->region_code !== Philippines::regions()->where('id', $request->region_id)->first()?->code) {
+            $region = $this->philippines->regions()->where('id', $request->region_id)->first();
+            if (!$region) {
+                throw ValidationException::withMessages([
+                    'region_id' => ['The selected region does not exist.'],
+                ]);
+            }
+
+            $province = $this->philippines->provinces()->where('id', $request->province_id)->first();
+            if (!$province || $province->region_code !== $region->code) {
                 throw ValidationException::withMessages([
                     'province_id' => ['The selected province does not belong to the selected region.'],
                 ]);
             }
             
-            $city = Philippines::cities()->where('id', $request->city_id)->first();
+            $city = $this->philippines->cities()->where('id', $request->city_id)->first();
             if (!$city || $city->province_code !== $province->code) {
                 throw ValidationException::withMessages([
                     'city_id' => ['The selected city does not belong to the selected province.'],
                 ]);
             }
             
-            $barangay = Philippines::barangays()->where('id', $request->barangay_id)->first();
+            $barangay = $this->philippines->barangays()->where('id', $request->barangay_id)->first();
             if (!$barangay || $barangay->city_code !== $city->code) {
                 throw ValidationException::withMessages([
                     'barangay_id' => ['The selected barangay does not belong to the selected city.'],
                 ]);
+            }
+
+            // Ensure legacy string columns are populated for backward compatibility
+            $validated['province'] = $province->name;
+            $validated['city'] = $city->name;
+            $validated['barangay'] = $barangay->name;
+            if (!isset($validated['country'])) {
+                $validated['country'] = 'Philippines';
             }
         }
 
@@ -77,9 +100,9 @@ class ResidentsController extends Controller
             $validated['country'] = 'Philippines';
         }
 
-        // Handle profile image upload
+        // Handle profile image upload using private storage
         if ($request->hasFile('profile_image')) {
-            $path = $request->file('profile_image')->store('residents/profiles', 'public');
+            $path = $request->file('profile_image')->store('residents/profiles', 'private');
             $validated['profile_image'] = $path;
         }
 
@@ -174,36 +197,39 @@ class ResidentsController extends Controller
             
             if ($hasAllNewFields) {
                 // Validate relationships
-                $region = Philippines::regions()->where('id', $request->region_id)->first();
+                $region = $this->philippines->regions()->where('id', $request->region_id)->first();
                 if (!$region) {
                     throw ValidationException::withMessages([
                         'region_id' => ['The selected region does not exist.'],
                     ]);
                 }
                 
-                $province = Philippines::provinces()->where('id', $request->province_id)->first();
+                $province = $this->philippines->provinces()->where('id', $request->province_id)->first();
                 if (!$province || $province->region_code !== $region->code) {
                     throw ValidationException::withMessages([
                         'province_id' => ['The selected province does not belong to the selected region.'],
                     ]);
                 }
                 
-                $city = Philippines::cities()->where('id', $request->city_id)->first();
+                $city = $this->philippines->cities()->where('id', $request->city_id)->first();
                 if (!$city || $city->province_code !== $province->code) {
                     throw ValidationException::withMessages([
                         'city_id' => ['The selected city does not belong to the selected province.'],
                     ]);
                 }
                 
-                $barangay = Philippines::barangays()->where('id', $request->barangay_id)->first();
+                $barangay = $this->philippines->barangays()->where('id', $request->barangay_id)->first();
                 if (!$barangay || $barangay->city_code !== $city->code) {
                     throw ValidationException::withMessages([
                         'barangay_id' => ['The selected barangay does not belong to the selected city.'],
                     ]);
                 }
                 
-                // Set default country if not provided
-                if (!$request->has('country')) {
+                // Sync legacy string columns for backward compatibility
+                $validated['province'] = $province->name;
+                $validated['city'] = $city->name;
+                $validated['barangay'] = $barangay->name;
+                if (!isset($validated['country'])) {
                     $validated['country'] = 'Philippines';
                 }
             }
@@ -213,9 +239,9 @@ class ResidentsController extends Controller
         if ($request->hasFile('profile_image')) {
             // Delete old image if exists
             if ($resident->profile_image) {
-                Storage::disk('public')->delete($resident->profile_image);
+                Storage::disk('private')->delete($resident->profile_image);
             }
-            $path = $request->file('profile_image')->store('residents/profiles', 'public');
+            $path = $request->file('profile_image')->store('residents/profiles', 'private');
             $validated['profile_image'] = $path;
         }
 
@@ -257,6 +283,26 @@ class ResidentsController extends Controller
         return response()->json([
             'message' => 'Profile fetched successfully.',
             'resident' => $resident
+        ]);
+    }
+
+    /**
+     * Serve the resident's profile image from private storage.
+     */
+    public function profileImage(Resident $resident)
+    {
+        if (!$resident->profile_image || !Storage::disk('private')->exists($resident->profile_image)) {
+            return response()->json([
+                'message' => 'Profile image not found.',
+            ], 404);
+        }
+
+        $path = Storage::disk('private')->path($resident->profile_image);
+        $mime = Storage::disk('private')->mimeType($resident->profile_image) ?? 'image/jpeg';
+
+        return response()->file($path, [
+            'Content-Type' => $mime,
+            'Cache-Control' => 'public, max-age=86400',
         ]);
     }
 

@@ -46,6 +46,8 @@ Route::prefix('v1')->group(function () {
 
         Route::post('/register', [ResidentsController::class, 'store']);
         Route::post('/login', [ResidentsController::class, 'login']);
+        Route::get('/profile-image/{resident}', [ResidentsController::class, 'profileImage'])
+            ->name('resident.profile-image');
 
         Route::middleware('auth:sanctum')->group(function () {
             

@@ -54,7 +54,7 @@ class Resident extends Authenticatable
     public function getProfileImageUrlAttribute()
     {
         if ($this->profile_image) {
-            return Storage::url($this->profile_image);
+            return route('resident.profile-image', ['resident' => $this->id]);
         }
         return null;
     }

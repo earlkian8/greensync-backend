@@ -1,17 +1,18 @@
-import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  KeyboardAvoidingView, 
-  Platform, 
-  Image, 
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  Image,
   ScrollView,
   Pressable,
   ActivityIndicator,
   Animated
 } from "react-native";
 import { useState, useRef, useEffect } from "react";
+import * as ImagePicker from "expo-image-picker";
 import { Ionicons } from '@expo/vector-icons';
 import { Link, useRouter } from "expo-router";
 import { api } from '@/config/api';
@@ -44,6 +45,7 @@ const Register = () => {
   const [cityId, setCityId] = useState(null);
   const [barangayId, setBarangayId] = useState(null);
   const [postalCode, setPostalCode] = useState("");
+  const [profileImage, setProfileImage] = useState(null);
 
   // Address options for dropdowns
   const [regions, setRegions] = useState([]);
@@ -208,6 +210,50 @@ const Register = () => {
     return Object.keys(newErrors).length === 0;
   };
 
+  
+
+  const handleSelectProfileImage = async () => {
+    try {
+      if (Platform.OS !== "web") {
+        const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (permissionResult.status !== "granted") {
+          setGeneralError("Media library permission is required to select a profile image.");
+          return;
+        }
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (!result.canceled && result.assets?.length) {
+        setProfileImage(result.assets[0]);
+        clearError('profile_image');
+      }
+    } catch (error) {
+      console.error("Image picker error:", error);
+      setGeneralError(error?.message ?? "Unable to select image. Please try again.");
+    }
+  };
+
+  function getMimeType(uri) {
+    const ext = uri.split('.').pop().toLowerCase();
+    switch (ext) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'gif':
+        return 'image/gif';
+      default:
+        return 'image/jpeg';
+    }
+  }
+  
   const handleRegister = async () => {
     // Clear previous messages
     setGeneralError("");
@@ -221,21 +267,52 @@ const Register = () => {
     setLoading(true);
     
     try {
-      const registrationData = {
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        phone_number: phoneNumber.trim() || null,
-        password: password,
-        house_no: houseNo.trim() || null,
-        street: street.trim() || null,
-        region_id: regionId,
-        province_id: provinceId,
-        city_id: cityId,
-        barangay_id: barangayId,
-        postal_code: postalCode.trim() || null
-      };
+      const formData = new FormData();
+      formData.append('name', name.trim());
+      formData.append('email', email.trim().toLowerCase());
+      formData.append('password', password);
+      formData.append('region_id', String(regionId));
+      formData.append('province_id', String(provinceId));
+      formData.append('city_id', String(cityId));
+      formData.append('barangay_id', String(barangayId));
+
+      if (phoneNumber.trim()) formData.append('phone_number', phoneNumber.trim());
+      if (houseNo.trim()) formData.append('house_no', houseNo.trim());
+      if (street.trim()) formData.append('street', street.trim());
+      if (postalCode.trim()) formData.append('postal_code', postalCode.trim());
+
+      if (profileImage) {
+        const fileType = getMimeType(profileImage.uri);
+        const fileExtension = fileType.split('/')[1] || 'jpeg';
+        const fileName = profileImage.fileName || `profile_${Date.now()}.${fileExtension}`;
+
+        if (Platform.OS === "web") {
+          const response = await fetch(profileImage.uri);
+          const blob = await response.blob();
+          const typedBlob =
+            blob.type && blob.type !== 'application/octet-stream'
+              ? blob
+              : new Blob([blob], { type: fileType });
+          const file =
+            typeof File !== "undefined"
+              ? new File([typedBlob], fileName, { type: fileType })
+              : typedBlob;
+          formData.append('profile_image', file, fileName);
+        } else {
+          formData.append('profile_image', {
+            uri: profileImage.uri,
+            name: fileName,
+            type: fileType,
+          });
+        }
+      }
       
-      const response = await api.post('v1/resident/register', registrationData);
+      const response = await api.post('v1/resident/register', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Accept': 'application/json',
+        },
+      });
 
       if (response.data) {
         setSuccessMessage("Account created successfully! Redirecting to login...");
@@ -253,6 +330,7 @@ const Register = () => {
         setCityId(null);
         setBarangayId(null);
         setPostalCode("");
+        setProfileImage(null);
         setErrors({});
         
         // Navigate to login after 2 seconds
@@ -579,6 +657,46 @@ const Register = () => {
                   <View className="flex-row items-center mt-1 bg-red-50 p-2 rounded">
                     <Ionicons name="alert-circle-outline" size={14} color="#EF4444" style={{ marginRight: 4 }} />
                     <Text className="text-red-600 text-xs flex-1">{errors.postal_code}</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {/* Profile Image Section */}
+            <View className="mb-6">
+              <View className="flex-row items-center mb-3">
+                <Ionicons name="image-outline" size={20} color="#374151" style={{ marginRight: 6 }} />
+                <Text className="text-lg font-bold text-gray-800">
+                  Profile Photo
+                </Text>
+              </View>
+
+              <View className="items-center">
+                <View className="w-28 h-28 rounded-full bg-gray-100 border border-dashed border-gray-300 overflow-hidden mb-3 justify-center items-center">
+                  {profileImage ? (
+                    <Image
+                      source={{ uri: profileImage.uri }}
+                      style={{ width: '100%', height: '100%' }}
+                    />
+                  ) : (
+                    <Ionicons name="person-circle-outline" size={64} color="#9CA3AF" />
+                  )}
+                </View>
+
+                <TouchableOpacity
+                  className="px-4 py-2 bg-white border border-gray-300 rounded-full flex-row items-center"
+                  onPress={handleSelectProfileImage}
+                >
+                  <Ionicons name="cloud-upload-outline" size={18} color="#16A34A" style={{ marginRight: 6 }} />
+                  <Text className="text-green-600 font-medium">
+                    {profileImage ? "Change Photo" : "Upload Photo (Optional)"}
+                  </Text>
+                </TouchableOpacity>
+
+                {errors.profile_image && (
+                  <View className="flex-row items-center mt-2 bg-red-50 p-2 rounded">
+                    <Ionicons name="alert-circle-outline" size={14} color="#EF4444" style={{ marginRight: 4 }} />
+                    <Text className="text-red-600 text-xs flex-1">{errors.profile_image}</Text>
                   </View>
                 )}
               </View>
