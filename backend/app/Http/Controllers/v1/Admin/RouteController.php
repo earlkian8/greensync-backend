@@ -148,7 +148,7 @@ class RouteController extends Controller
                 $query->orderBy('stop_order');
             },
             'assignments.collector:id,name',
-            'assignments.schedule:id,barangay,collection_day,waste_type'
+            'assignments.schedule:id,barangay,collection_day,collection_time,frequency'
         ]);
         $route->loadCount(['assignments']);
 

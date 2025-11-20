@@ -26,7 +26,7 @@ class CollectorRouteController extends Controller
 
             $assignments = RouteAssignment::with([
                 'route:id,route_name,barangay,start_location,end_location,total_stops',
-                'schedule:id,collection_day,collection_time,waste_type'
+                'schedule:id,collection_day,collection_time,frequency'
             ])
             ->where('collector_id', $collectorId)
             ->whereDate('assignment_date', $today)
@@ -51,7 +51,7 @@ class CollectorRouteController extends Controller
                     'schedule' => $assignment->schedule ? [
                         'collection_day' => $assignment->schedule->collection_day,
                         'collection_time' => $assignment->schedule->collection_time,
-                        'waste_type' => $assignment->schedule->waste_type,
+                        'frequency' => $assignment->schedule->frequency,
                     ] : null,
                     // Calculate progress
                     'completed_stops' => $assignment->qrCollections()->where('status', 'completed')->count(),
@@ -90,7 +90,7 @@ class CollectorRouteController extends Controller
                     $query->orderBy('stop_order', 'asc');
                 },
                 'schedule',
-                'qrCollections'
+                'qrCollections.wasteBin.resident'
             ])
             ->where('id', $assignmentId)
             ->where('collector_id', $collectorId)
@@ -103,10 +103,55 @@ class CollectorRouteController extends Controller
                 ], 404);
             }
 
-            $completedStops = $assignment->qrCollections()
-                ->where('status', 'completed')
-                ->pluck('stop_id')
-                ->toArray();
+            if (!$assignment->route) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Route not found for this assignment'
+                ], 404);
+            }
+
+            // Get successful collections for this assignment
+            $successfulCollections = $assignment->qrCollections()
+                ->where('collection_status', 'successful')
+                ->get();
+
+            // Get collection bin IDs and addresses for matching
+            $collectionBinIds = $successfulCollections->pluck('bin_id')->toArray();
+            
+            // Try to match stops with collections by address
+            // First, get addresses from collections if available
+            $collectionAddresses = [];
+            foreach ($successfulCollections as $collection) {
+                if ($collection->wasteBin && $collection->wasteBin->resident) {
+                    $address = $collection->wasteBin->resident->address;
+                    if ($address) {
+                        $collectionAddresses[] = strtolower(trim($address));
+                    }
+                }
+            }
+
+            // Map stops and determine completion
+            // Ensure stops collection exists and is not null
+            $routeStops = $assignment->route->stops ?? collect([]);
+            
+            $stops = $routeStops->map(function ($stop) use ($collectionAddresses) {
+                $stopAddress = strtolower(trim($stop->stop_address));
+                // Match by address (case-insensitive, trimmed)
+                $isCompleted = !empty($collectionAddresses) && in_array($stopAddress, $collectionAddresses);
+                
+                return [
+                    'id' => $stop->id,
+                    'stop_order' => $stop->stop_order,
+                    'address' => $stop->stop_address,
+                    'latitude' => $stop->latitude ? (string) $stop->latitude : null,
+                    'longitude' => $stop->longitude ? (string) $stop->longitude : null,
+                    'estimated_time' => $stop->estimated_time,
+                    'notes' => $stop->notes,
+                    'is_completed' => $isCompleted,
+                ];
+            });
+
+            $completedCount = $stops->where('is_completed', true)->count();
 
             return response()->json([
                 'success' => true,
@@ -133,26 +178,14 @@ class CollectorRouteController extends Controller
                     'schedule' => $assignment->schedule ? [
                         'collection_day' => $assignment->schedule->collection_day,
                         'collection_time' => $assignment->schedule->collection_time,
-                        'waste_type' => $assignment->schedule->waste_type,
                         'frequency' => $assignment->schedule->frequency,
                     ] : null,
-                    'stops' => $assignment->route->stops->map(function ($stop) use ($completedStops) {
-                        return [
-                            'id' => $stop->id,
-                            'stop_order' => $stop->stop_order,
-                            'address' => $stop->stop_address,
-                            'latitude' => $stop->latitude,
-                            'longitude' => $stop->longitude,
-                            'estimated_time' => $stop->estimated_time,
-                            'notes' => $stop->notes,
-                            'is_completed' => in_array($stop->id, $completedStops),
-                        ];
-                    }),
+                    'stops' => $stops->values(),
                     'progress' => [
-                        'completed' => count($completedStops),
-                        'total' => $assignment->route->total_stops,
-                        'percentage' => $assignment->route->total_stops > 0 
-                            ? round((count($completedStops) / $assignment->route->total_stops) * 100, 2)
+                        'completed' => $completedCount,
+                        'total' => $stops->count(),
+                        'percentage' => $stops->count() > 0 
+                            ? round(($completedCount / $stops->count()) * 100, 2)
                             : 0,
                     ]
                 ]
@@ -378,7 +411,7 @@ class CollectorRouteController extends Controller
 
             $query = RouteAssignment::with([
                 'route:id,route_name,barangay,total_stops',
-                'schedule:id,collection_day,waste_type'
+                'schedule:id,collection_day,frequency'
             ])
             ->where('collector_id', $collectorId);
 
@@ -615,7 +648,7 @@ class CollectorRouteController extends Controller
 
             $assignments = RouteAssignment::with([
                 'route:id,route_name,barangay,total_stops',
-                'schedule:id,collection_day,collection_time,waste_type'
+                'schedule:id,collection_day,collection_time,frequency'
             ])
             ->where('collector_id', $collectorId)
             ->whereBetween('assignment_date', [$startDate, $endDate])
@@ -636,7 +669,7 @@ class CollectorRouteController extends Controller
                     ],
                     'schedule' => $assignment->schedule ? [
                         'collection_time' => $assignment->schedule->collection_time,
-                        'waste_type' => $assignment->schedule->waste_type,
+                        'frequency' => $assignment->schedule->frequency,
                     ] : null,
                 ];
             });

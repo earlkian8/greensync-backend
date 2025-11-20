@@ -18,7 +18,10 @@ import {
   Trash2,
   Image as ImageIcon,
   Phone,
-  Mail
+  Mail,
+  Compass,
+  ExternalLink,
+  Copy
 } from 'lucide-react';
 
 const ShowCollectionRequest = ({ setShowViewModal, request }) => {
@@ -151,6 +154,13 @@ const ShowCollectionRequest = ({ setShowViewModal, request }) => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const hasCoordinates = request?.latitude && request?.longitude;
+
+  const copyCoordinates = () => {
+    if (!hasCoordinates || !navigator?.clipboard) return;
+    navigator.clipboard.writeText(`${request.latitude}, ${request.longitude}`);
   };
 
   return (
@@ -299,6 +309,56 @@ const ShowCollectionRequest = ({ setShowViewModal, request }) => {
                 label="Preferred Time" 
                 value={formatTime(request.preferred_time)} 
               />
+            </div>
+
+            <Separator className="my-4" />
+
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Compass className="h-5 w-5 text-zinc-600" />
+                <h4 className="text-sm font-semibold text-zinc-700">Location Coordinates</h4>
+                <span
+                  className={`text-xs px-2 py-1 rounded-full ${
+                    hasCoordinates ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                  }`}
+                >
+                  {hasCoordinates ? 'Available' : 'Missing'}
+                </span>
+              </div>
+
+              {hasCoordinates ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="border rounded-md p-3 bg-white">
+                    <p className="text-xs text-zinc-500 uppercase tracking-wide">Latitude</p>
+                    <p className="text-base font-semibold text-zinc-900">{Number(request.latitude).toFixed(6)}</p>
+                  </div>
+                  <div className="border rounded-md p-3 bg-white">
+                    <p className="text-xs text-zinc-500 uppercase tracking-wide">Longitude</p>
+                    <p className="text-base font-semibold text-zinc-900">{Number(request.longitude).toFixed(6)}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={copyCoordinates}
+                    className="flex items-center justify-center gap-2 border rounded-md p-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition"
+                  >
+                    <Copy className="h-4 w-4" />
+                    Copy Coordinates
+                  </button>
+                  <a
+                    href={`https://www.google.com/maps?q=${request.latitude},${request.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 border rounded-md p-3 text-sm font-medium text-blue-600 hover:bg-blue-50 transition"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Open in Google Maps
+                  </a>
+                </div>
+              ) : (
+                <p className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-md p-3">
+                  This request does not include latitude/longitude. Encourage the resident to refresh their location so routing can proceed.
+                </p>
+              )}
             </div>
 
             {request.description && (

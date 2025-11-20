@@ -19,7 +19,16 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyB9Z95Q-GkCc-MPi4oYD4Leg54EbAQVaxI"
+        }
+      },
+      "permissions": [
+        "android.permission.CAMERA"
+      ],
+      "package": "com.earlkian8.collectors"
     },
     "web": {
       "output": "static",
@@ -39,11 +48,18 @@
           }
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-barcode-scanner"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "9f49c64a-4886-4f2b-8180-74802ec093c8"
+      }
     }
   }
 }

@@ -31,7 +31,7 @@ class RouteAssignmentController extends Controller
         $query = RouteAssignment::with([
             'route:id,route_name,barangay',
             'collector:id,name,phone_number,employee_id',
-            'schedule:id,barangay,collection_day,collection_time,waste_type',
+            'schedule:id,barangay,collection_day,collection_time,frequency',
             'assignedBy:id,name'
         ]);
 
@@ -78,7 +78,7 @@ class RouteAssignmentController extends Controller
 
         // Get active schedules for dropdown
         $schedules = CollectionSchedule::where('is_active', true)
-                                      ->select('id', 'barangay', 'collection_day', 'collection_time', 'waste_type')
+                                      ->select('id', 'barangay', 'collection_day', 'collection_time', 'frequency')
                                       ->orderBy('barangay')
                                       ->orderBy('collection_day')
                                       ->get();
@@ -114,7 +114,7 @@ class RouteAssignmentController extends Controller
 
         // Get active schedules
         $schedules = CollectionSchedule::where('is_active', true)
-                                      ->select('id', 'barangay', 'collection_day', 'collection_time', 'waste_type')
+                                      ->select('id', 'barangay', 'collection_day', 'collection_time', 'frequency')
                                       ->orderBy('barangay')
                                       ->orderBy('collection_day')
                                       ->get();
@@ -218,7 +218,7 @@ class RouteAssignmentController extends Controller
 
         // Get active schedules
         $schedules = CollectionSchedule::where('is_active', true)
-                                      ->select('id', 'barangay', 'collection_day', 'collection_time', 'waste_type')
+                                      ->select('id', 'barangay', 'collection_day', 'collection_time', 'frequency')
                                       ->orderBy('barangay')
                                       ->orderBy('collection_day')
                                       ->get();

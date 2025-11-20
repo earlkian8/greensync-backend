@@ -1,106 +1,82 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, TextInput } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { MapIcon, CalendarIcon, ChevronRightIcon, SearchIcon } from 'lucide-react-native';
-
-// Mock Data
-const mockRoutes = [
-  {
-    id: 1,
-    route_name: 'Route A - Downtown',
-    barangay: 'Barangay Tetuan',
-    total_stops: 15,
-    estimated_duration: 45
-  },
-  {
-    id: 2,
-    route_name: 'Route B - Coastal',
-    barangay: 'Barangay Rio Hondo',
-    total_stops: 12,
-    estimated_duration: 38
-  },
-  {
-    id: 3,
-    route_name: 'Route C - Hills',
-    barangay: 'Barangay Guiwan',
-    total_stops: 18,
-    estimated_duration: 52
-  },
-  {
-    id: 4,
-    route_name: 'Route D - Market',
-    barangay: 'Barangay Zone 1',
-    total_stops: 20,
-    estimated_duration: 60
-  }
-];
-
-const mockRouteAssignments = [
-  {
-    id: 1,
-    route_id: 1,
-    assignment_date: '2024-01-15',
-    status: 'completed'
-  },
-  {
-    id: 2,
-    route_id: 2,
-    assignment_date: '2024-01-16',
-    status: 'in_progress'
-  },
-  {
-    id: 3,
-    route_id: 3,
-    assignment_date: '2024-01-17',
-    status: 'pending'
-  },
-  {
-    id: 4,
-    route_id: 4,
-    assignment_date: '2024-01-18',
-    status: 'pending'
-  }
-];
+import React, { useEffect, useState, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, RefreshControl } from 'react-native';
+import { useRouter } from 'expo-router';
+import { MapIcon, CalendarIcon, ChevronRightIcon, SearchIcon, AlertTriangleIcon } from 'lucide-react-native';
+import { api } from '@/config/api';
 
 export default function RoutesPage() {
-  const navigation = useNavigation();
-  const [routes, setRoutes] = useState([]);
+  const router = useRouter();
+  const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState(null);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    lastPage: 1,
+    total: 0,
+  });
+
+  const loadAssignments = useCallback(async () => {
+    setError(null);
+    if (!refreshing) {
+      setLoading(true);
+    }
+
+    try {
+      const response = await api.get('v1/collector/routes/all', {
+        params: {
+          per_page: 50,
+        },
+      });
+
+      const payload = response?.data?.data;
+      const items = payload?.data ?? [];
+
+      setAssignments(items);
+      setPagination({
+        currentPage: payload?.current_page ?? 1,
+        lastPage: payload?.last_page ?? 1,
+        total: payload?.total ?? items.length,
+      });
+    } catch (err) {
+      console.error('Error fetching routes:', err);
+      const message = err?.response?.data?.message ?? 'Unable to load assigned routes. Please try again.';
+      setError(message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [refreshing]);
 
   useEffect(() => {
-    const fetchRoutes = async () => {
-      try {
-        // Simulate API call
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        // Combine routes with their assignments
-        const routesWithAssignments = mockRoutes.map(route => {
-          const assignments = mockRouteAssignments.filter(
-            assignment => assignment.route_id === route.id
-          );
-          return {
-            ...route,
-            assignments
-          };
-        });
-        setRoutes(routesWithAssignments);
-      } catch (error) {
-        console.error('Error fetching routes:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchRoutes();
-  }, []);
+    loadAssignments();
+  }, [loadAssignments]);
 
-  const filteredRoutes = routes.filter(
-    route =>
-      route.route_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      route.barangay.toLowerCase().includes(searchTerm.toLowerCase())
+  const handleRefresh = () => {
+    setRefreshing(true);
+    loadAssignments();
+  };
+
+  const filteredAssignments = assignments.filter(
+    assignment => {
+      const routeName = assignment?.route?.route_name ?? '';
+      const barangay = assignment?.route?.barangay ?? '';
+      return (
+        routeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        barangay.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
   );
 
-  const handleRouteClick = (routeId) => {
-    navigation.navigate('RouteDetail', { routeId });
+  const handleRouteClick = (assignment) => {
+    router.push({
+      pathname: '/route-detail',
+      params: {
+        assignmentId: assignment?.id,
+        routeId: assignment?.route?.id,
+      },
+    });
   };
 
   const formatDate = (dateString) => {
@@ -114,6 +90,7 @@ export default function RoutesPage() {
     switch (status) {
       case 'completed':
         return 'bg-green-100';
+      case 'in-progress':
       case 'in_progress':
         return 'bg-blue-100';
       default:
@@ -125,11 +102,17 @@ export default function RoutesPage() {
     switch (status) {
       case 'completed':
         return 'text-green-800';
+      case 'in-progress':
       case 'in_progress':
         return 'text-blue-800';
       default:
         return 'text-yellow-800';
     }
+  };
+
+  const renderStatusLabel = (status) => {
+    if (!status) return 'pending';
+    return status.replace(/[_-]/g, ' ');
   };
 
   return (
@@ -150,44 +133,68 @@ export default function RoutesPage() {
       </View>
 
       {/* Routes List */}
-      <ScrollView className="flex-1 p-4">
+      <ScrollView 
+        className="flex-1 p-4"
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+      >
         {loading ? (
           <View className="flex justify-center items-center h-40">
             <ActivityIndicator size="large" color="#059669" />
           </View>
-        ) : filteredRoutes.length === 0 ? (
-          <View className="bg-white rounded-lg shadow-sm py-8">
-            <Text className="text-center text-gray-500">No routes found</Text>
+        ) : error ? (
+          <View className="bg-white rounded-lg shadow-sm p-6 border border-red-100">
+            <View className="flex-row items-center mb-3">
+              <AlertTriangleIcon size={20} color="#DC2626" />
+              <Text className="text-base font-medium text-red-700 ml-2">Unable to load routes</Text>
+            </View>
+            <Text className="text-sm text-red-600">{error}</Text>
+            <TouchableOpacity
+              className="mt-4 px-4 py-2 bg-red-600 rounded-lg"
+              onPress={loadAssignments}
+            >
+              <Text className="text-white text-center font-semibold">Retry</Text>
+            </TouchableOpacity>
+          </View>
+        ) : filteredAssignments.length === 0 ? (
+          <View className="bg-white rounded-lg shadow-sm py-8 border border-gray-200">
+            <Text className="text-center text-gray-500">No routes assigned</Text>
+            <Text className="text-center text-gray-400 text-sm mt-2">
+              Try adjusting your search or check back later.
+            </Text>
           </View>
         ) : (
           <View>
-            {filteredRoutes.map(route => (
+            {filteredAssignments.map(assignment => (
               <TouchableOpacity
-                key={route.id}
+                key={assignment.id}
                 className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm mb-4"
-                onPress={() => handleRouteClick(route.id)}
+                onPress={() => handleRouteClick(assignment)}
                 activeOpacity={0.7}
               >
                 <View className="flex-row justify-between items-start">
-                  <View className="flex-1">
+                  <View className="flex-1 pr-3">
                     <Text className="font-medium text-gray-900">
-                      {route.route_name}
+                      {assignment?.route?.route_name ?? 'Unnamed Route'}
                     </Text>
                     <Text className="text-sm text-gray-600 mt-1">
-                      {route.barangay} • {route.total_stops} stops
+                      {assignment?.route?.barangay ?? 'No barangay'} • {assignment?.route?.total_stops ?? 0} stops
                     </Text>
                     <View className="flex-row items-center mt-2">
-                      <View className="flex-row items-center mr-4">
-                        <MapIcon size={14} color="#059669" />
-                        <Text className="text-sm text-gray-500 ml-1">
-                          {route.estimated_duration} mins
-                        </Text>
-                      </View>
-                      {route.assignments && route.assignments.length > 0 && (
+                      {!!assignment?.route?.estimated_duration && (
+                        <View className="flex-row items-center mr-4">
+                          <MapIcon size={14} color="#059669" />
+                          <Text className="text-sm text-gray-500 ml-1">
+                            {assignment.route.estimated_duration} mins
+                          </Text>
+                        </View>
+                      )}
+                      {!!assignment?.assignment_date && (
                         <View className="flex-row items-center">
                           <CalendarIcon size={14} color="#059669" />
                           <Text className="text-sm text-gray-500 ml-1">
-                            {formatDate(route.assignments[0].assignment_date)}
+                            {formatDate(assignment.assignment_date)}
                           </Text>
                         </View>
                       )}
@@ -197,17 +204,20 @@ export default function RoutesPage() {
                 </View>
 
                 {/* Status Badge */}
-                {route.assignments && route.assignments.length > 0 && (
-                  <View className="mt-3 flex-row justify-end">
-                    <View className={`px-2 py-1 rounded ${getStatusStyle(route.assignments[0].status)}`}>
-                      <Text className={`text-xs font-medium uppercase ${getStatusTextStyle(route.assignments[0].status)}`}>
-                        {route.assignments[0].status}
-                      </Text>
-                    </View>
+                <View className="mt-3 flex-row justify-end">
+                  <View className={`px-2 py-1 rounded ${getStatusStyle(assignment.status)}`}>
+                    <Text className={`text-xs font-medium uppercase ${getStatusTextStyle(assignment.status)}`}>
+                      {renderStatusLabel(assignment.status)}
+                    </Text>
                   </View>
-                )}
+                </View>
               </TouchableOpacity>
             ))}
+            {pagination?.total > filteredAssignments.length && (
+              <Text className="text-center text-xs text-gray-400 mt-2">
+                Showing {filteredAssignments.length} of {pagination.total} assignments
+              </Text>
+            )}
           </View>
         )}
       </ScrollView>

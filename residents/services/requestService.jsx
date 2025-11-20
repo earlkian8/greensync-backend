@@ -85,6 +85,8 @@ export const createCollectionRequest = async (requestData) => {
       waste_type: requestData.waste_type,
       image_url: requestData.image_url || null,
       priority: requestData.priority || 'medium',
+      latitude: requestData.latitude,
+      longitude: requestData.longitude,
     };
 
     const response = await api.post('v1/resident/collection-requests', payload);

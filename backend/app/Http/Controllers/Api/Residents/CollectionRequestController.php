@@ -70,6 +70,8 @@ class CollectionRequestController extends Controller
             'waste_type' => 'required|string|in:biodegradable,non-biodegradable,recyclable,hazardous,mixed',
             'image_url' => 'nullable|url|max:255',
             'priority' => 'nullable|string|in:low,medium,high,urgent',
+            'latitude' => 'required|numeric|between:-90,90',
+            'longitude' => 'required|numeric|between:-180,180',
         ]);
 
         // Verify bin ownership

@@ -166,7 +166,7 @@ const EditRouteAssignment = ({ assignment: assignmentData, setShowEditModal }) =
                 {schedules && schedules.length > 0 ? (
                   schedules.map((schedule) => (
                     <SelectItem key={schedule.id} value={schedule.id.toString()}>
-                      {schedule.barangay} - {schedule.collection_day} ({schedule.waste_type})
+                      {schedule.barangay} - {schedule.collection_day} ({schedule.frequency})
                     </SelectItem>
                   ))
                 ) : (

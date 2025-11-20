@@ -47,6 +47,8 @@ const Request = () => {
       preferred_date: formData.preferred_date,
       preferred_time: formData.preferred_time,
       priority: formData.priority,
+      latitude: formData.latitude,
+      longitude: formData.longitude,
     };
 
     const result = await createCollectionRequest(payload);

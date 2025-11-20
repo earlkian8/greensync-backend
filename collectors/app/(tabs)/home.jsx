@@ -117,7 +117,7 @@ export default function Home() {
       <View className="flex-row p-4 gap-4">
         <TouchableOpacity 
           className="flex-1 h-20 bg-green-600 rounded-lg items-center justify-center active:bg-green-700"
-          onPress={() => router.push('/routes')}
+          onPress={() => router.push('/(tabs)/routesPage')}
         >
           <Ionicons name="map-outline" size={24} color="#ffffff" />
           <Text className="text-lg font-semibold text-white mt-1">My Routes</Text>
@@ -152,7 +152,7 @@ export default function Home() {
               <Text className="text-gray-500 mt-3 text-base">No routes scheduled for today</Text>
               <TouchableOpacity 
                 className="mt-4 px-6 py-2 border border-gray-300 rounded-lg active:bg-gray-50"
-                onPress={() => router.push('/routes')}
+                onPress={() => router.push('/(tabs)/routesPage')}
               >
                 <Text className="text-gray-700 font-medium">View All Routes</Text>
               </TouchableOpacity>
@@ -197,7 +197,15 @@ export default function Home() {
                     
                     <TouchableOpacity 
                       className="px-4 border border-gray-300 rounded-lg py-3 items-center justify-center active:bg-gray-50"
-                      onPress={() => router.push(`/routes/${assignment.route_id}`)}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/route-detail',
+                          params: {
+                            assignmentId: assignment.id,
+                            routeId: assignment.route_id,
+                          },
+                        })
+                      }
                     >
                       <Text className="text-gray-700 font-medium">View</Text>
                     </TouchableOpacity>
