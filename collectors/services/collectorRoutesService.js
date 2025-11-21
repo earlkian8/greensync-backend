@@ -114,6 +114,16 @@ const collectorRoutesService = {
     const response = await api.post('v1/collector/collections/manual', payload);
     return normalizeResponse(response);
   },
+
+  async getDirections(waypoints) {
+    const response = await api.post('v1/collector/maps/directions', {
+      waypoints: waypoints.map(point => ({
+        lat: point.latitude,
+        lng: point.longitude,
+      })),
+    });
+    return normalizeResponse(response);
+  },
 };
 
 export default collectorRoutesService;

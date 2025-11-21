@@ -1,6 +1,7 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, Dimensions, TouchableOpacity, Platform, StyleSheet } from 'react-native';
 import { MapIcon, NavigationIcon } from 'lucide-react-native';
+import collectorRoutesService from '@/services/collectorRoutesService';
 
 const { height } = Dimensions.get('window');
 
@@ -17,6 +18,8 @@ const RouteMapView = ({
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
   const [fallbackMessage, setFallbackMessage] = React.useState(null);
+  const [roadRouteCoordinates, setRoadRouteCoordinates] = useState([]);
+  const [loadingRoute, setLoadingRoute] = useState(false);
   const mapRef = useRef(null);
 
   useEffect(() => {
@@ -91,10 +94,47 @@ const RouteMapView = ({
     }
   }, [selectedStop]);
 
+  // Fetch road-following route from Google Directions API
+  useEffect(() => {
+    const fetchRoadRoute = async () => {
+      // Need at least 2 points for a route
+      if (routeCoordinates.length < 2) {
+        setRoadRouteCoordinates([]);
+        return;
+      }
+
+      setLoadingRoute(true);
+      try {
+        const response = await collectorRoutesService.getDirections(routeCoordinates);
+        
+        if (response && response.coordinates && response.coordinates.length > 0) {
+          // Convert to format expected by react-native-maps
+          const coordinates = response.coordinates.map(coord => ({
+            latitude: coord.latitude,
+            longitude: coord.longitude,
+          }));
+          setRoadRouteCoordinates(coordinates);
+        } else {
+          // Fallback to straight line if API doesn't return coordinates
+          setRoadRouteCoordinates(routeCoordinates);
+        }
+      } catch (err) {
+        console.warn('Failed to fetch road route, using straight line:', err);
+        // Fallback to straight line route if API fails
+        setRoadRouteCoordinates(routeCoordinates);
+      } finally {
+        setLoadingRoute(false);
+      }
+    };
+
+    fetchRoadRoute();
+  }, [routeCoordinates]);
+
   // Fit to stops when map is ready
   useEffect(() => {
-    if (mapRef.current && mapComponents && routeCoordinates.length > 0) {
-      mapRef.current.fitToCoordinates(routeCoordinates, {
+    const coordsToFit = roadRouteCoordinates.length > 0 ? roadRouteCoordinates : routeCoordinates;
+    if (mapRef.current && mapComponents && coordsToFit.length > 0) {
+      mapRef.current.fitToCoordinates(coordsToFit, {
         edgePadding: {
           top: 50,
           right: 50,
@@ -104,7 +144,7 @@ const RouteMapView = ({
         animated: true,
       });
     }
-  }, [mapComponents, routeCoordinates]);
+  }, [mapComponents, roadRouteCoordinates, routeCoordinates]);
 
   const validStops = stops.filter(
     (stop) => stop.latitude && stop.longitude && 
@@ -173,16 +213,26 @@ const RouteMapView = ({
         loadingIndicatorColor="#16A34A"
         toolbarEnabled={false}
       >
-        {/* Route polyline */}
-        {routeCoordinates.length > 1 && (
+        {/* Route polyline - use road-following route if available, otherwise fallback to straight line */}
+        {(roadRouteCoordinates.length > 1 || routeCoordinates.length > 1) && (
           <Polyline
-            coordinates={routeCoordinates}
+            coordinates={roadRouteCoordinates.length > 1 ? roadRouteCoordinates : routeCoordinates}
             strokeColor="#16A34A"
             strokeWidth={5}
             lineCap="round"
             lineJoin="round"
             miterLimit={10}
           />
+        )}
+        
+        {/* Show loading indicator while fetching route */}
+        {loadingRoute && (
+          <View style={[styles.absolute, { top: 16, left: 16 }]}>
+            <View style={[styles.bgWhite, styles.roundedLg, { padding: 8 }, styles.shadowLg]}>
+              <ActivityIndicator size="small" color="#16A34A" />
+              <Text style={[styles.textXs, styles.textGray500, styles.mt1]}>Loading route...</Text>
+            </View>
+          </View>
         )}
 
         {/* Markers for each stop */}
@@ -264,8 +314,14 @@ const styles = StyleSheet.create({
   roundedFull: {
     borderRadius: 9999,
   },
+  roundedLg: {
+    borderRadius: 8,
+  },
   overflowHidden: {
     overflow: 'hidden',
+  },
+  mt1: {
+    marginTop: 4,
   },
   border: {
     borderWidth: 1,

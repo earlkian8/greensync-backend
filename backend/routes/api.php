@@ -155,6 +155,12 @@ Route::prefix('v1')->group(function () {
                 // Get collection history with filters
                 Route::get('/collections', [CollectorPerformanceController::class, 'getCollectionHistory']);
             });
+
+            // === Google Maps Integration ===
+            Route::prefix('maps')->group(function () {
+                // Get directions route that follows roads
+                Route::post('/directions', [\App\Http\Controllers\Api\Collectors\GoogleMapsController::class, 'getDirections']);
+            });
         });
     });
 
