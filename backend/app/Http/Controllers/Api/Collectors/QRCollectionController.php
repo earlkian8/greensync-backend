@@ -193,6 +193,7 @@ class QRCollectionController extends Controller
      */
     public function manualCollectStop(Request $request)
     {
+        dd($request->all());
         try {
             $validator = Validator::make($request->all(), [
                 'assignment_id' => 'required|exists:route_assignments,id',

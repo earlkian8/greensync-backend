@@ -466,11 +466,29 @@ const RouteDetailScreen = () => {
 
     setStopActionLoading(stop.id);
     try {
+      // Parse coordinates properly - handle 0 as valid value
+      let latitude = null;
+      let longitude = null;
+      
+      if (stop.latitude !== undefined && stop.latitude !== null && stop.latitude !== '') {
+        const parsedLat = parseFloat(stop.latitude);
+        if (!isNaN(parsedLat)) {
+          latitude = parsedLat;
+        }
+      }
+      
+      if (stop.longitude !== undefined && stop.longitude !== null && stop.longitude !== '') {
+        const parsedLng = parseFloat(stop.longitude);
+        if (!isNaN(parsedLng)) {
+          longitude = parsedLng;
+        }
+      }
+      
       await collectorRoutesService.manualCollectStop({
         assignmentId,
         stopId: stop.id,
-        latitude: parseFloat(stop.latitude) || undefined,
-        longitude: parseFloat(stop.longitude) || undefined,
+        latitude,
+        longitude,
         wasteType: 'mixed',
       });
       await fetchDetails(); // Reload route data to reflect backend changes

@@ -84,15 +84,34 @@ const collectorRoutesService = {
     wasteType = 'mixed',
     notes,
   }) {
-    const response = await api.post('v1/collector/collections/manual', {
+    // Build payload, only including defined values (not undefined)
+    const payload = {
       assignment_id: assignmentId,
       stop_id: stopId,
-      latitude,
-      longitude,
-      waste_weight: wasteWeight,
-      waste_type: wasteType,
-      notes,
-    });
+    };
+    
+    // Add optional fields only if they are defined (not undefined)
+    if (latitude !== undefined && latitude !== null) {
+      payload.latitude = typeof latitude === 'number' ? latitude : parseFloat(latitude);
+    }
+    
+    if (longitude !== undefined && longitude !== null) {
+      payload.longitude = typeof longitude === 'number' ? longitude : parseFloat(longitude);
+    }
+    
+    if (wasteWeight !== undefined && wasteWeight !== null) {
+      payload.waste_weight = typeof wasteWeight === 'number' ? wasteWeight : parseFloat(wasteWeight);
+    }
+    
+    if (wasteType !== undefined && wasteType !== null) {
+      payload.waste_type = wasteType;
+    }
+    
+    if (notes !== undefined && notes !== null && notes !== '') {
+      payload.notes = notes;
+    }
+    
+    const response = await api.post('v1/collector/collections/manual', payload);
     return normalizeResponse(response);
   },
 };
