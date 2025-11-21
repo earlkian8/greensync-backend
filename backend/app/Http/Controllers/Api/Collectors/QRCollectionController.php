@@ -193,118 +193,119 @@ class QRCollectionController extends Controller
      */
     public function manualCollectStop(Request $request)
     {
-        // Validate input
-        $validator = Validator::make($request->all(), [
-            'assignment_id' => 'required|exists:route_assignments,id',
-            'stop_id' => 'required|exists:route_stops,id',
-            'latitude' => 'nullable|numeric|between:-90,90',
-            'longitude' => 'nullable|numeric|between:-180,180',
-            'waste_weight' => 'nullable|numeric|min:0',
-            'waste_type' => 'nullable|string|in:biodegradable,non-biodegradable,recyclable,special,all,mixed,hazardous',
-            'notes' => 'nullable|string|max:500',
-        ]);
+        try {
+            $validator = Validator::make($request->all(), [
+                'assignment_id' => 'required|exists:route_assignments,id',
+                'stop_id' => 'required|exists:route_stops,id',
+                'latitude' => 'nullable|numeric|between:-90,90',
+                'longitude' => 'nullable|numeric|between:-180,180',
+                'waste_weight' => 'nullable|numeric|min:0',
+                'waste_type' => 'nullable|string|in:biodegradable,non-biodegradable,recyclable,special,all,mixed,hazardous',
+                'notes' => 'nullable|string|max:500',
+            ]);
 
-        if ($validator->fails()) {
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $collectorId = Auth::guard('collector')->id();
+
+            // Verify assignment belongs to the collector
+            $assignment = RouteAssignment::where('id', $request->assignment_id)
+                ->where('collector_id', $collectorId)
+                ->firstOrFail();
+
+            // Get the route stop and verify it belongs to the assignment's route
+            $routeStop = RouteStop::where('id', $request->stop_id)
+                ->where('route_id', $assignment->route_id)
+                ->with('bin')
+                ->firstOrFail();
+
+            // Verify the stop has a bin_id
+            if (!$routeStop->bin_id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This stop is not linked to a waste bin'
+                ], 400);
+            }
+
+            $binId = $routeStop->bin_id;
+            $wasteBin = $routeStop->bin;
+
+            if (!$wasteBin) {
+                $wasteBin = WasteBin::findOrFail($binId);
+            }
+
+            // Check if already collected
+            if (QrCollection::where('assignment_id', $request->assignment_id)
+                ->where('bin_id', $binId)
+                ->whereIn('collection_status', ['completed', 'collected', 'manual', 'successful'])
+                ->exists()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This bin has already been collected for this assignment'
+                ], 400);
+            }
+
+            // Map 'mixed' and 'hazardous' to database-compatible values
+            $wasteType = $request->waste_type ?? 'mixed';
+            if ($wasteType === 'mixed' || $wasteType === 'hazardous') {
+                $wasteType = 'all'; // Map to 'all' which represents mixed waste in database
+            }
+
+            // Use request coordinates if provided, otherwise use stop coordinates
+            $latitude = $request->latitude ?? $routeStop->latitude;
+            $longitude = $request->longitude ?? $routeStop->longitude;
+
+            // Create manual collection record
+            $collection = QrCollection::create([
+                'bin_id' => $binId,
+                'collector_id' => $collectorId,
+                'assignment_id' => $request->assignment_id,
+                'qr_code' => $wasteBin->qr_code,
+                'collection_timestamp' => Carbon::now(),
+                'latitude' => $latitude,
+                'longitude' => $longitude,
+                'waste_weight' => $request->waste_weight,
+                'waste_type' => $wasteType,
+                'collection_status' => 'manual',
+                'notes' => $request->notes,
+                'is_verified' => false,
+            ]);
+
+            // Update waste bin's last_collected timestamp
+            WasteBin::where('id', $binId)->update(['last_collected' => Carbon::now()]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Stop marked as collected successfully',
+                'data' => [
+                    'collection_id' => $collection->id,
+                    'collection_timestamp' => $collection->collection_timestamp->format('Y-m-d H:i:s'),
+                    'collection_status' => $collection->collection_status,
+                ]
+            ], 201);
+
+        } catch (ModelNotFoundException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Validation failed',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $collectorId = Auth::guard('collector')->id();
-
-        if (!$collectorId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized'
-            ], 401);
-        }
-
-        $assignment = RouteAssignment::where('id', $request->assignment_id)
-            ->where('collector_id', $collectorId)
-            ->first();
-
-        if (!$assignment) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Assignment not found or does not belong to you'
+                'message' => 'Invalid route assignment or stop'
             ], 404);
-        }
-
-        $routeId = $assignment->route_id;
-
-        $stop = RouteStop::where('id', $request->stop_id)
-            ->where('route_id', $routeId)
-            ->first();
-
-        if (!$stop) {
+        } catch (\Exception $e) {
+            Log::error('Manual collect stop failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'success' => false,
-                'message' => 'Stop not found or does not belong to this route'
-            ], 404);
+                'message' => 'Failed to mark stop as collected',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
+            ], 500);
         }
-
-        if (!$stop->bin_id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'This stop is not linked to a registered bin'
-            ], 422);
-        }
-
-        $bin = WasteBin::find($stop->bin_id);
-        
-        if (!$bin) {
-            return response()->json([
-                'success' => false,
-                'message' => 'The waste bin linked to this stop does not exist'
-            ], 422);
-        }
-
-        if (QrCollection::where('assignment_id', $assignment->id)
-            ->where('bin_id', $bin->id)
-            ->whereIn('collection_status', ['completed', 'collected', 'manual', 'successful'])
-            ->exists()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'This stop has already been marked as collected for this assignment'
-            ], 400);
-        }
-
-        // Map 'mixed' and 'hazardous' to database-compatible values
-        $wasteType = $request->waste_type ?? 'mixed';
-        if ($wasteType === 'mixed' || $wasteType === 'hazardous') {
-            $wasteType = 'all';
-        }
-
-        $collection = QrCollection::create([
-            'bin_id' => $bin->id,
-            'collector_id' => $collectorId,
-            'assignment_id' => $assignment->id,
-            'qr_code' => $bin->qr_code ?? '',
-            'collection_timestamp' => Carbon::now(),
-            'latitude' => $request->latitude,
-            'longitude' => $request->longitude,
-            'waste_weight' => $request->waste_weight,
-            'waste_type' => $wasteType,
-            'collection_status' => 'manual',
-            'notes' => $request->notes,
-            'is_verified' => false,
-        ]);
-
-        WasteBin::where('id', $bin->id)->update(['last_collected' => Carbon::now()]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Stop marked as collected successfully',
-            'data' => [
-                'collection_id' => $collection->id,
-                'collection_timestamp' => $collection->collection_timestamp->format('Y-m-d H:i:s'),
-                'collection_status' => $collection->collection_status,
-                'bin_id' => $bin->id,
-                'stop_id' => $stop->id,
-            ]
-        ], 201);
     }
 
 }
