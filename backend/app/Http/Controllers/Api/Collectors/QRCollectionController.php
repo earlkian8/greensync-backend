@@ -214,6 +214,7 @@ class QRCollectionController extends Controller
     public function manualCollectStop(Request $request)
     {
         try {
+            // Validate input
             $validator = Validator::make($request->all(), [
                 'assignment_id' => 'required|exists:route_assignments,id',
                 'stop_id' => 'required|exists:route_stops,id',
@@ -234,7 +235,16 @@ class QRCollectionController extends Controller
 
             $collectorId = Auth::guard('collector')->id();
 
-            $assignment = RouteAssignment::where('id', $request->assignment_id)
+            if (!$collectorId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized'
+                ], 401);
+            }
+
+            // Get and verify assignment
+            $assignment = RouteAssignment::with('route')
+                ->where('id', $request->assignment_id)
                 ->where('collector_id', $collectorId)
                 ->first();
 
@@ -245,6 +255,14 @@ class QRCollectionController extends Controller
                 ], 403);
             }
 
+            if (!$assignment->route) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Route not found for this assignment'
+                ], 404);
+            }
+
+            // Get and verify stop belongs to this route
             $stop = RouteStop::with('bin.resident')
                 ->where('id', $request->stop_id)
                 ->where('route_id', $assignment->route_id)
@@ -257,18 +275,20 @@ class QRCollectionController extends Controller
                 ], 404);
             }
 
-            // Check if stop has bin_id, if not, check relationship
+            // Get bin_id from stop
             $binId = $stop->bin_id;
-            if (!$binId && !$stop->bin) {
+
+            // Verify stop has a bin linked
+            if (!$binId) {
                 return response()->json([
                     'success' => false,
                     'message' => 'This stop is not linked to a registered bin'
                 ], 422);
             }
 
-            // Get bin from relationship or load it if we have bin_id
+            // Get bin - try from relationship first, then load if needed
             $bin = $stop->bin;
-            if (!$bin && $binId) {
+            if (!$bin) {
                 $bin = WasteBin::with('resident')->find($binId);
             }
 
@@ -279,6 +299,7 @@ class QRCollectionController extends Controller
                 ], 422);
             }
 
+            // Check if this bin has already been collected for this assignment
             $alreadyCollected = QrCollection::where('assignment_id', $assignment->id)
                 ->where('bin_id', $bin->id)
                 ->whereIn('collection_status', ['completed', 'collected', 'manual', 'successful'])
@@ -291,11 +312,12 @@ class QRCollectionController extends Controller
                 ], 400);
             }
 
+            // Create collection record
             $collection = QrCollection::create([
                 'bin_id' => $bin->id,
                 'collector_id' => $collectorId,
                 'assignment_id' => $assignment->id,
-                'qr_code' => $bin->qr_code,
+                'qr_code' => $bin->qr_code ?? '',
                 'collection_timestamp' => Carbon::now(),
                 'latitude' => $request->latitude,
                 'longitude' => $request->longitude,
@@ -306,9 +328,7 @@ class QRCollectionController extends Controller
                 'is_verified' => false,
             ]);
 
-            // Note: is_completed is calculated dynamically from collection records
-            // in CollectorRouteController, not stored in route_stops table
-
+            // Update waste bin's last_collected timestamp
             WasteBin::where('id', $bin->id)
                 ->update(['last_collected' => Carbon::now()]);
 
@@ -319,13 +339,21 @@ class QRCollectionController extends Controller
                     'collection_id' => $collection->id,
                     'collection_timestamp' => $collection->collection_timestamp->format('Y-m-d H:i:s'),
                     'collection_status' => $collection->collection_status,
+                    'bin_id' => $bin->id,
+                    'stop_id' => $stop->id,
                 ]
             ], 201);
+
         } catch (\Exception $e) {
+            \Log::error('manualCollectStop error: ' . $e->getMessage(), [
+                'request' => $request->all(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to mark stop as collected',
-                'error' => $e->getMessage()
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
             ], 500);
         }
     }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Collectors;
 use App\Http\Controllers\Controller;
 use App\Models\Route;
 use App\Models\RouteAssignment;
+use App\Models\RouteStop;
 use App\Models\WasteBin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -23,17 +24,39 @@ class CollectorRouteController extends Controller
     {
         try {
             $collectorId = Auth::guard('collector')->id();
+            
+            if (!$collectorId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized'
+                ], 401);
+            }
+
             $today = Carbon::today();
 
             $assignments = RouteAssignment::with([
-                'route:id,route_name,barangay,start_location,end_location,total_stops',
+                'route:id,route_name,barangay,start_location,end_location,total_stops,estimated_duration',
                 'schedule:id,collection_day,collection_time,frequency'
             ])
             ->where('collector_id', $collectorId)
             ->whereDate('assignment_date', $today)
             ->orderBy('assignment_date', 'desc')
             ->get()
+            ->filter(function ($assignment) {
+                return $assignment->route !== null;
+            })
             ->map(function ($assignment) {
+                // Get unique bin IDs that have been collected for this assignment
+                $collectedBinIds = $assignment->qrCollections()
+                    ->whereIn('collection_status', ['collected', 'completed', 'manual', 'successful'])
+                    ->pluck('bin_id')
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all();
+                
+                $completedStops = count($collectedBinIds);
+                
                 return [
                     'id' => $assignment->id,
                     'assignment_date' => $assignment->assignment_date->format('Y-m-d'),
@@ -44,23 +67,23 @@ class CollectorRouteController extends Controller
                     'route' => [
                         'id' => $assignment->route->id,
                         'name' => $assignment->route->route_name,
+                        'route_name' => $assignment->route->route_name,
                         'barangay' => $assignment->route->barangay,
                         'start_location' => $assignment->route->start_location,
                         'end_location' => $assignment->route->end_location,
-                        'total_stops' => $assignment->route->total_stops,
+                        'total_stops' => $assignment->route->total_stops ?? 0,
+                        'estimated_duration' => $assignment->route->estimated_duration,
                     ],
                     'schedule' => $assignment->schedule ? [
                         'collection_day' => $assignment->schedule->collection_day,
                         'collection_time' => $assignment->schedule->collection_time,
                         'frequency' => $assignment->schedule->frequency,
                     ] : null,
-                    // Calculate progress
-                    'completed_stops' => $assignment->qrCollections()
-                        ->whereIn('collection_status', ['collected', 'completed', 'manual', 'successful'])
-                        ->count(),
-                    'total_stops' => $assignment->route->total_stops,
+                    'completed_stops' => $completedStops,
+                    'total_stops' => $assignment->route->total_stops ?? 0,
                 ];
-            });
+            })
+            ->values();
 
             return response()->json([
                 'success' => true,
@@ -69,10 +92,14 @@ class CollectorRouteController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
+            \Log::error('getTodayAssignments error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve assignments',
-                'error' => $e->getMessage()
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
             ], 500);
         }
     }
@@ -88,13 +115,22 @@ class CollectorRouteController extends Controller
         try {
             $collectorId = Auth::guard('collector')->id();
 
+            if (!$collectorId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized'
+                ], 401);
+            }
+
             $assignment = RouteAssignment::with([
                 'route.stops' => function ($query) {
                     $query->with(['bin.resident'])
                         ->orderBy('stop_order', 'asc');
                 },
                 'schedule',
-                'qrCollections.wasteBin.resident'
+                'qrCollections' => function ($query) {
+                    $query->whereIn('collection_status', ['collected', 'completed', 'manual', 'successful']);
+                }
             ])
             ->where('id', $assignmentId)
             ->where('collector_id', $collectorId)
@@ -114,38 +150,47 @@ class CollectorRouteController extends Controller
                 ], 404);
             }
 
-            // Get successful collections for this assignment
-            $successfulCollections = $assignment->qrCollections()
-                ->whereIn('collection_status', ['successful', 'collected', 'completed', 'manual'])
+            // Get all successful collections for this assignment
+            $collections = $assignment->qrCollections()
+                ->whereIn('collection_status', ['collected', 'completed', 'manual', 'successful'])
                 ->get();
 
-            // Get collection bin IDs
-            $collectionBinIds = $successfulCollections->pluck('bin_id')->filter()->unique()->values()->all();
+            // Create a map of bin_id => collection for quick lookup
+            $collectionsByBinId = $collections->keyBy('bin_id');
+            
+            // Get all collected bin IDs
+            $collectedBinIds = $collections->pluck('bin_id')->filter()->unique()->values()->all();
 
             // Map stops and determine completion
             $routeStops = $assignment->route->stops ?? collect([]);
 
-            $stops = $routeStops->map(function ($stop) use ($collectionBinIds, $successfulCollections) {
-                // Get bin from the stop's bin_id (direct relationship)
+            $stops = $routeStops->map(function ($stop) use ($collectedBinIds, $collectionsByBinId) {
+                // Get bin_id from stop
                 $stopBinId = $stop->bin_id;
                 
                 // Check if this stop's bin has been collected
-                $isCompleted = $stopBinId && in_array($stopBinId, $collectionBinIds);
+                $isCompleted = $stopBinId && in_array($stopBinId, $collectedBinIds);
+                
+                // Get the collection record if completed
+                $collection = $isCompleted && $stopBinId 
+                    ? $collectionsByBinId->get($stopBinId) 
+                    : null;
                 
                 // Get bin and resident info
                 $bin = $stop->bin;
                 $resident = $bin?->resident;
                 
-                // If no bin relationship loaded, try to load it
+                // If no bin relationship loaded but we have bin_id, try to load it
                 if ($stopBinId && !$bin) {
                     $bin = WasteBin::with('resident')->find($stopBinId);
                     $resident = $bin?->resident;
                 }
                 
-                // Get collection record for this bin if it exists
-                $collection = $isCompleted 
-                    ? $successfulCollections->firstWhere('bin_id', $stopBinId)
-                    : null;
+                // Format resident name - Resident model uses 'name' field
+                $residentName = null;
+                if ($resident) {
+                    $residentName = $resident->name ?? null;
+                }
                 
                 return [
                     'id' => $stop->id,
@@ -159,9 +204,9 @@ class CollectorRouteController extends Controller
                     'bin_id' => $stopBinId,
                     'qr_code' => $bin?->qr_code,
                     'bin_type' => $bin?->bin_type,
-                    'bin_owner_name' => $resident ? ($resident->first_name . ' ' . $resident->last_name) : null,
-                    'bin_owner_contact' => $resident?->phone_number ?? $resident?->contact_number ?? null,
-                    'bin_owner_address' => $resident?->address ?? $resident?->full_address ?? null,
+                    'bin_owner_name' => $residentName,
+                    'bin_owner_contact' => $resident?->phone_number ?? null,
+                    'bin_owner_address' => $resident?->full_address ?? $resident?->address ?? null,
                     'last_collected_at' => $collection?->collection_timestamp?->format('Y-m-d H:i:s') 
                         ?? $bin?->last_collected?->format('Y-m-d H:i:s'),
                 ];
@@ -173,44 +218,197 @@ class CollectorRouteController extends Controller
                 'success' => true,
                 'message' => 'Route details retrieved successfully',
                 'data' => [
-                    'assignment' => [
-                        'id' => $assignment->id,
-                        'assignment_date' => $assignment->assignment_date->format('Y-m-d'),
-                        'status' => $assignment->status,
-                        'start_time' => $assignment->start_time?->format('Y-m-d H:i:s'),
-                        'end_time' => $assignment->end_time?->format('Y-m-d H:i:s'),
-                        'notes' => $assignment->notes,
-                    ],
+                    'id' => $assignment->id,
+                    'assignment_date' => $assignment->assignment_date->format('Y-m-d'),
+                    'status' => $assignment->status,
+                    'start_time' => $assignment->start_time?->format('Y-m-d H:i:s'),
+                    'end_time' => $assignment->end_time?->format('Y-m-d H:i:s'),
                     'route' => [
                         'id' => $assignment->route->id,
                         'name' => $assignment->route->route_name,
+                        'route_name' => $assignment->route->route_name,
                         'barangay' => $assignment->route->barangay,
-                        'start_location' => $assignment->route->start_location,
-                        'end_location' => $assignment->route->end_location,
-                        'estimated_duration' => $assignment->route->estimated_duration,
                         'total_stops' => $assignment->route->total_stops,
-                        'route_map_data' => $assignment->route->route_map_data,
+                        'estimated_duration' => $assignment->route->estimated_duration,
                     ],
                     'schedule' => $assignment->schedule ? [
                         'collection_day' => $assignment->schedule->collection_day,
                         'collection_time' => $assignment->schedule->collection_time,
                         'frequency' => $assignment->schedule->frequency,
                     ] : null,
-                    'stops' => $stops->values(),
+                    'stops' => $stops->values()->all(),
                     'progress' => [
                         'completed' => $completedCount,
                         'total' => $stops->count(),
-                        'percentage' => $stops->count() > 0 
-                            ? round(($completedCount / $stops->count()) * 100, 2)
-                            : 0,
-                    ]
+                        'percentage' => $stops->count() > 0 ? round(($completedCount / $stops->count()) * 100) : 0,
+                    ],
                 ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            \Log::error('getRouteDetails error: ' . $e->getMessage(), [
+                'assignment_id' => $assignmentId,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve route details',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
+            ], 500);
+        }
+    }
+
+    // ... rest of the methods remain the same ...
+    
+    /**
+     * Get all assignments with optional filters
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getAllAssignments(Request $request)
+    {
+        try {
+            $collectorId = Auth::guard('collector')->id();
+            
+            $query = RouteAssignment::with([
+                'route:id,route_name,barangay,start_location,end_location,total_stops',
+                'schedule:id,collection_day,collection_time,frequency'
+            ])
+            ->where('collector_id', $collectorId);
+
+            // Apply filters
+            if ($request->has('status')) {
+                $query->where('status', $request->status);
+            }
+
+            if ($request->has('start_date')) {
+                $query->whereDate('assignment_date', '>=', $request->start_date);
+            }
+
+            if ($request->has('end_date')) {
+                $query->whereDate('assignment_date', '<=', $request->end_date);
+            }
+
+            if ($request->has('barangay')) {
+                $query->whereHas('route', function ($q) use ($request) {
+                    $q->where('barangay', $request->barangay);
+                });
+            }
+
+            $perPage = $request->get('per_page', 50);
+            $assignments = $query->orderBy('assignment_date', 'desc')
+                ->paginate($perPage);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Assignments retrieved successfully',
+                'data' => $assignments
             ], 200);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to retrieve route details',
+                'message' => 'Failed to retrieve assignments',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get assignment summary statistics
+     * 
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getAssignmentSummary()
+    {
+        try {
+            $collectorId = Auth::guard('collector')->id();
+            $today = Carbon::today();
+
+            $summary = [
+                'today' => [
+                    'total' => RouteAssignment::where('collector_id', $collectorId)
+                        ->whereDate('assignment_date', $today)
+                        ->count(),
+                    'completed' => RouteAssignment::where('collector_id', $collectorId)
+                        ->whereDate('assignment_date', $today)
+                        ->where('status', 'completed')
+                        ->count(),
+                    'in_progress' => RouteAssignment::where('collector_id', $collectorId)
+                        ->whereDate('assignment_date', $today)
+                        ->where('status', 'in-progress')
+                        ->count(),
+                ],
+                'upcoming' => RouteAssignment::where('collector_id', $collectorId)
+                    ->whereDate('assignment_date', '>', $today)
+                    ->count(),
+            ];
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Assignment summary retrieved successfully',
+                'data' => $summary
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve assignment summary',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get upcoming assignments (next 7 days)
+     * 
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getUpcomingAssignments()
+    {
+        try {
+            $collectorId = Auth::guard('collector')->id();
+            $today = Carbon::today();
+            $nextWeek = Carbon::today()->addDays(7);
+
+            $assignments = RouteAssignment::with([
+                'route:id,route_name,barangay,start_location,end_location,total_stops',
+                'schedule:id,collection_day,collection_time,frequency'
+            ])
+            ->where('collector_id', $collectorId)
+            ->whereBetween('assignment_date', [$today, $nextWeek])
+            ->orderBy('assignment_date', 'asc')
+            ->get()
+            ->map(function ($assignment) {
+                return [
+                    'id' => $assignment->id,
+                    'assignment_date' => $assignment->assignment_date->format('Y-m-d'),
+                    'status' => $assignment->status,
+                    'route' => [
+                        'id' => $assignment->route->id,
+                        'name' => $assignment->route->route_name,
+                        'barangay' => $assignment->route->barangay,
+                        'total_stops' => $assignment->route->total_stops,
+                    ],
+                    'schedule' => $assignment->schedule ? [
+                        'collection_day' => $assignment->schedule->collection_day,
+                        'collection_time' => $assignment->schedule->collection_time,
+                    ] : null,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Upcoming assignments retrieved successfully',
+                'data' => $assignments
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve upcoming assignments',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -227,21 +425,9 @@ class CollectorRouteController extends Controller
         try {
             $collectorId = Auth::guard('collector')->id();
 
-            // Verify the collector has an assignment for this route
-            $hasAssignment = RouteAssignment::where('route_id', $routeId)
-                ->where('collector_id', $collectorId)
-                ->exists();
-
-            if (!$hasAssignment) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'You do not have access to this route'
-                ], 403);
-            }
-
-            $route = Route::with(['stops' => function ($query) {
-                $query->orderBy('stop_order', 'asc');
-            }])->find($routeId);
+            $route = Route::with(['stops.bin.resident'])
+                ->where('id', $routeId)
+                ->first();
 
             if (!$route) {
                 return response()->json([
@@ -250,28 +436,26 @@ class CollectorRouteController extends Controller
                 ], 404);
             }
 
+            $stops = $route->stops->map(function ($stop) {
+                return [
+                    'id' => $stop->id,
+                    'stop_order' => $stop->stop_order,
+                    'address' => $stop->stop_address,
+                    'latitude' => $stop->latitude,
+                    'longitude' => $stop->longitude,
+                    'bin_id' => $stop->bin_id,
+                    'bin' => $stop->bin ? [
+                        'id' => $stop->bin->id,
+                        'qr_code' => $stop->bin->qr_code,
+                        'bin_type' => $stop->bin->bin_type,
+                    ] : null,
+                ];
+            });
+
             return response()->json([
                 'success' => true,
                 'message' => 'Route stops retrieved successfully',
-                'data' => [
-                    'route' => [
-                        'id' => $route->id,
-                        'name' => $route->route_name,
-                        'barangay' => $route->barangay,
-                        'total_stops' => $route->total_stops,
-                    ],
-                    'stops' => $route->stops->map(function ($stop) {
-                        return [
-                            'id' => $stop->id,
-                            'stop_order' => $stop->stop_order,
-                            'address' => $stop->stop_address,
-                            'latitude' => $stop->latitude,
-                            'longitude' => $stop->longitude,
-                            'estimated_time' => $stop->estimated_time,
-                            'notes' => $stop->notes,
-                        ];
-                    })
-                ]
+                'data' => $stops
             ], 200);
 
         } catch (\Exception $e) {
@@ -284,12 +468,68 @@ class CollectorRouteController extends Controller
     }
 
     /**
-     * Mark route assignment as started (in-progress)
+     * Get navigation details for route
      * 
      * @param int $assignmentId
      * @return \Illuminate\Http\JsonResponse
      */
-    public function startRoute($assignmentId)
+    public function getRouteNavigation($assignmentId)
+    {
+        try {
+            $collectorId = Auth::guard('collector')->id();
+
+            $assignment = RouteAssignment::with('route.stops')
+                ->where('id', $assignmentId)
+                ->where('collector_id', $collectorId)
+                ->first();
+
+            if (!$assignment) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Route assignment not found'
+                ], 404);
+            }
+
+            $stops = $assignment->route->stops
+                ->sortBy('stop_order')
+                ->map(function ($stop) {
+                    return [
+                        'id' => $stop->id,
+                        'stop_order' => $stop->stop_order,
+                        'address' => $stop->stop_address,
+                        'latitude' => $stop->latitude,
+                        'longitude' => $stop->longitude,
+                    ];
+                })
+                ->values();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Navigation details retrieved successfully',
+                'data' => [
+                    'route_id' => $assignment->route->id,
+                    'route_name' => $assignment->route->route_name,
+                    'stops' => $stops,
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve navigation details',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Start route collection (mark as in-progress)
+     * 
+     * @param int $assignmentId
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function startRoute($assignmentId, Request $request)
     {
         try {
             $collectorId = Auth::guard('collector')->id();
@@ -305,11 +545,10 @@ class CollectorRouteController extends Controller
                 ], 404);
             }
 
-            // Check if already started
-            if ($assignment->status === 'in-progress' || $assignment->status === 'completed') {
+            if ($assignment->status !== 'pending') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Route has already been started or completed'
+                    'message' => 'Route must be pending before it can be started'
                 ], 400);
             }
 
@@ -332,6 +571,108 @@ class CollectorRouteController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to start route',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Pause route (for breaks)
+     * 
+     * @param int $assignmentId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function pauseRoute($assignmentId)
+    {
+        try {
+            $collectorId = Auth::guard('collector')->id();
+
+            $assignment = RouteAssignment::where('id', $assignmentId)
+                ->where('collector_id', $collectorId)
+                ->first();
+
+            if (!$assignment) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Route assignment not found'
+                ], 404);
+            }
+
+            if ($assignment->status !== 'in-progress') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Route must be in progress before it can be paused'
+                ], 400);
+            }
+
+            $assignment->update([
+                'status' => 'paused',
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Route paused successfully',
+                'data' => [
+                    'id' => $assignment->id,
+                    'status' => $assignment->status,
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to pause route',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Resume paused route
+     * 
+     * @param int $assignmentId
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function resumeRoute($assignmentId)
+    {
+        try {
+            $collectorId = Auth::guard('collector')->id();
+
+            $assignment = RouteAssignment::where('id', $assignmentId)
+                ->where('collector_id', $collectorId)
+                ->first();
+
+            if (!$assignment) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Route assignment not found'
+                ], 404);
+            }
+
+            if ($assignment->status !== 'paused') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Route must be paused before it can be resumed'
+                ], 400);
+            }
+
+            $assignment->update([
+                'status' => 'in-progress',
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Route resumed successfully',
+                'data' => [
+                    'id' => $assignment->id,
+                    'status' => $assignment->status,
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to resume route',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -399,9 +740,6 @@ class CollectorRouteController extends Controller
                     'duration_minutes' => $duration,
                     'completed_stops' => $completedStops,
                     'total_stops' => $totalStops,
-                    'completion_percentage' => $totalStops > 0 
-                        ? round(($completedStops / $totalStops) * 100, 2) 
-                        : 0,
                 ]
             ], 200);
 
@@ -413,377 +751,9 @@ class CollectorRouteController extends Controller
             ], 500);
         }
     }
-    /**
-     * Get all assignments (not just today) with filters
-     * Useful for viewing past/future assignments
-     * 
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function getAllAssignments(Request $request)
-    {
-        try {
-            $collectorId = Auth::guard('collector')->id();
-
-            $query = RouteAssignment::with([
-                'route:id,route_name,barangay,total_stops',
-                'schedule:id,collection_day,frequency'
-            ])
-            ->where('collector_id', $collectorId);
-
-            // Filter by status
-            if ($request->has('status')) {
-                $query->where('status', $request->status);
-            }
-
-            // Filter by date range
-            if ($request->has('start_date')) {
-                $query->whereDate('assignment_date', '>=', $request->start_date);
-            }
-            if ($request->has('end_date')) {
-                $query->whereDate('assignment_date', '<=', $request->end_date);
-            }
-
-            // Filter by barangay
-            if ($request->has('barangay')) {
-                $query->whereHas('route', function ($q) use ($request) {
-                    $q->where('barangay', $request->barangay);
-                });
-            }
-
-            $assignments = $query->orderBy('assignment_date', 'desc')
-                ->paginate($request->input('per_page', 15));
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Assignments retrieved successfully',
-                'data' => $assignments
-            ], 200);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve assignments',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
 
     /**
-     * Get assignment summary statistics
-     * Useful for dashboard overview
-     * 
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function getAssignmentSummary()
-    {
-        try {
-            $collectorId = Auth::guard('collector')->id();
-            $today = Carbon::today();
-
-            $summary = [
-                'today' => [
-                    'total' => RouteAssignment::where('collector_id', $collectorId)
-                        ->whereDate('assignment_date', $today)
-                        ->count(),
-                    'pending' => RouteAssignment::where('collector_id', $collectorId)
-                        ->whereDate('assignment_date', $today)
-                        ->where('status', 'pending')
-                        ->count(),
-                    'in_progress' => RouteAssignment::where('collector_id', $collectorId)
-                        ->whereDate('assignment_date', $today)
-                        ->where('status', 'in-progress')
-                        ->count(),
-                    'completed' => RouteAssignment::where('collector_id', $collectorId)
-                        ->whereDate('assignment_date', $today)
-                        ->where('status', 'completed')
-                        ->count(),
-                ],
-                'this_week' => [
-                    'total' => RouteAssignment::where('collector_id', $collectorId)
-                        ->whereBetween('assignment_date', [
-                            Carbon::now()->startOfWeek(),
-                            Carbon::now()->endOfWeek()
-                        ])
-                        ->count(),
-                    'completed' => RouteAssignment::where('collector_id', $collectorId)
-                        ->whereBetween('assignment_date', [
-                            Carbon::now()->startOfWeek(),
-                            Carbon::now()->endOfWeek()
-                        ])
-                        ->where('status', 'completed')
-                        ->count(),
-                ],
-                'this_month' => [
-                    'total' => RouteAssignment::where('collector_id', $collectorId)
-                        ->whereMonth('assignment_date', Carbon::now()->month)
-                        ->whereYear('assignment_date', Carbon::now()->year)
-                        ->count(),
-                    'completed' => RouteAssignment::where('collector_id', $collectorId)
-                        ->whereMonth('assignment_date', Carbon::now()->month)
-                        ->whereYear('assignment_date', Carbon::now()->year)
-                        ->where('status', 'completed')
-                        ->count(),
-                ],
-                'upcoming' => RouteAssignment::where('collector_id', $collectorId)
-                    ->whereDate('assignment_date', '>', $today)
-                    ->where('status', 'pending')
-                    ->count(),
-            ];
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Assignment summary retrieved successfully',
-                'data' => $summary
-            ], 200);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve summary',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Pause/Resume route (for breaks)
-     * 
-     * @param int $assignmentId
-     * @param Request $request
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function pauseRoute($assignmentId, Request $request)
-    {
-        try {
-            $collectorId = Auth::guard('collector')->id();
-
-            $assignment = RouteAssignment::where('id', $assignmentId)
-                ->where('collector_id', $collectorId)
-                ->first();
-
-            if (!$assignment) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Route assignment not found'
-                ], 404);
-            }
-
-            if ($assignment->status !== 'in-progress') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Can only pause routes that are in progress'
-                ], 400);
-            }
-
-            $assignment->update([
-                'status' => 'paused',
-                'notes' => $request->input('reason', 'Paused by collector'),
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Route paused successfully',
-                'data' => [
-                    'id' => $assignment->id,
-                    'status' => $assignment->status,
-                ]
-            ], 200);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to pause route',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Resume paused route
-     * 
-     * @param int $assignmentId
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function resumeRoute($assignmentId)
-    {
-        try {
-            $collectorId = Auth::guard('collector')->id();
-
-            $assignment = RouteAssignment::where('id', $assignmentId)
-                ->where('collector_id', $collectorId)
-                ->first();
-
-            if (!$assignment) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Route assignment not found'
-                ], 404);
-            }
-
-            if ($assignment->status !== 'paused') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Can only resume paused routes'
-                ], 400);
-            }
-
-            $assignment->update([
-                'status' => 'in-progress',
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Route resumed successfully',
-                'data' => [
-                    'id' => $assignment->id,
-                    'status' => $assignment->status,
-                ]
-            ], 200);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to resume route',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Get upcoming assignments (next 7 days)
-     * 
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function getUpcomingAssignments()
-    {
-        try {
-            $collectorId = Auth::guard('collector')->id();
-            $startDate = Carbon::tomorrow();
-            $endDate = Carbon::now()->addDays(7);
-
-            $assignments = RouteAssignment::with([
-                'route:id,route_name,barangay,total_stops',
-                'schedule:id,collection_day,collection_time,frequency'
-            ])
-            ->where('collector_id', $collectorId)
-            ->whereBetween('assignment_date', [$startDate, $endDate])
-            ->where('status', 'pending')
-            ->orderBy('assignment_date', 'asc')
-            ->get()
-            ->map(function ($assignment) {
-                return [
-                    'id' => $assignment->id,
-                    'assignment_date' => $assignment->assignment_date->format('Y-m-d'),
-                    'day_of_week' => $assignment->assignment_date->format('l'),
-                    'days_until' => Carbon::now()->diffInDays($assignment->assignment_date),
-                    'route' => [
-                        'id' => $assignment->route->id,
-                        'name' => $assignment->route->route_name,
-                        'barangay' => $assignment->route->barangay,
-                        'total_stops' => $assignment->route->total_stops,
-                    ],
-                    'schedule' => $assignment->schedule ? [
-                        'collection_time' => $assignment->schedule->collection_time,
-                        'frequency' => $assignment->schedule->frequency,
-                    ] : null,
-                ];
-            });
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Upcoming assignments retrieved successfully',
-                'data' => $assignments
-            ], 200);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve upcoming assignments',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Get route navigation/directions
-     * Returns optimized stop sequence for navigation
-     * 
-     * @param int $assignmentId
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function getRouteNavigation($assignmentId)
-    {
-        try {
-            $collectorId = Auth::guard('collector')->id();
-
-            $assignment = RouteAssignment::with([
-                'route.stops' => function ($query) {
-                    $query->orderBy('stop_order', 'asc');
-                },
-                'qrCollections'
-            ])
-            ->where('id', $assignmentId)
-            ->where('collector_id', $collectorId)
-            ->first();
-
-            if (!$assignment) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Route assignment not found'
-                ], 404);
-            }
-
-            $completedBinIds = $assignment->qrCollections()
-                ->whereIn('collection_status', ['collected', 'completed'])
-                ->pluck('bin_id')
-                ->toArray();
-
-            $stops = $assignment->route->stops->map(function ($stop) use ($completedBinIds) {
-                return [
-                    'id' => $stop->id,
-                    'stop_order' => $stop->stop_order,
-                    'address' => $stop->stop_address,
-                    'latitude' => (float) $stop->latitude,
-                    'longitude' => (float) $stop->longitude,
-                    'estimated_time' => $stop->estimated_time,
-                    'is_completed' => in_array($stop->id, $completedBinIds),
-                    'notes' => $stop->notes,
-                ];
-            });
-
-            $nextStop = $stops->where('is_completed', false)->first();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Route navigation retrieved successfully',
-                'data' => [
-                    'route_name' => $assignment->route->route_name,
-                    'start_location' => $assignment->route->start_location,
-                    'end_location' => $assignment->route->end_location,
-                    'current_progress' => [
-                        'completed' => count($completedBinIds),
-                        'total' => $stops->count(),
-                        'percentage' => $stops->count() > 0 
-                            ? round((count($completedBinIds) / $stops->count()) * 100, 2) 
-                            : 0,
-                    ],
-                    'next_stop' => $nextStop,
-                    'all_stops' => $stops,
-                ]
-            ], 200);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve navigation',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Report route issue/problem
+     * Report issue during route (vehicle breakdown, road closure, etc.)
      * 
      * @param int $assignmentId
      * @param Request $request
@@ -793,8 +763,8 @@ class CollectorRouteController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'issue_type' => 'required|string|in:vehicle_breakdown,road_closure,weather,accident,other',
-                'description' => 'required|string|max:1000',
+                'issue_type' => 'required|string|in:vehicle_breakdown,road_closure,weather,other',
+                'description' => 'required|string|max:500',
                 'latitude' => 'nullable|numeric|between:-90,90',
                 'longitude' => 'nullable|numeric|between:-180,180',
             ]);
@@ -820,30 +790,24 @@ class CollectorRouteController extends Controller
                 ], 404);
             }
 
-            // Update assignment notes with issue
-            $issueReport = sprintf(
-                "[%s] %s: %s | Location: %s, %s",
+            // Update assignment notes with issue report
+            $issueNote = sprintf(
+                "[ISSUE REPORT - %s] %s: %s",
                 Carbon::now()->format('Y-m-d H:i:s'),
-                strtoupper(str_replace('_', ' ', $request->issue_type)),
-                $request->description,
-                $request->latitude ?? 'N/A',
-                $request->longitude ?? 'N/A'
+                $request->issue_type,
+                $request->description
             );
 
+            $existingNotes = $assignment->notes ?? '';
             $assignment->update([
-                'notes' => $assignment->notes 
-                    ? $assignment->notes . "\n\n" . $issueReport 
-                    : $issueReport,
+                'notes' => $existingNotes ? $existingNotes . "\n\n" . $issueNote : $issueNote,
             ]);
-
-            // Here you could also create a separate RouteIssue model/notification
-            // to alert administrators
 
             return response()->json([
                 'success' => true,
                 'message' => 'Issue reported successfully',
                 'data' => [
-                    'assignment_id' => $assignment->id,
+                    'id' => $assignment->id,
                     'issue_type' => $request->issue_type,
                     'reported_at' => Carbon::now()->format('Y-m-d H:i:s'),
                 ]
