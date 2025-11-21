@@ -7,9 +7,11 @@ use App\Models\Route;
 use App\Models\RouteAssignment;
 use App\Models\RouteStop;
 use App\Models\WasteBin;
+use App\Models\QrCollection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Validator;
 
@@ -47,7 +49,8 @@ class CollectorRouteController extends Controller
             })
             ->map(function ($assignment) {
                 // Get unique bin IDs that have been collected for this assignment
-                $collectedBinIds = $assignment->qrCollections()
+                // Use direct query to avoid N+1 issues
+                $collectedBinIds = QrCollection::where('assignment_id', $assignment->id)
                     ->whereIn('collection_status', ['collected', 'completed', 'manual', 'successful'])
                     ->pluck('bin_id')
                     ->filter()
@@ -92,7 +95,8 @@ class CollectorRouteController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
-            \Log::error('getTodayAssignments error: ' . $e->getMessage(), [
+            Log::error('getTodayAssignments error: ' . $e->getMessage(), [
+                'collector_id' => $collectorId ?? null,
                 'trace' => $e->getTraceAsString()
             ]);
             
@@ -246,7 +250,7 @@ class CollectorRouteController extends Controller
             ], 200);
 
         } catch (\Exception $e) {
-            \Log::error('getRouteDetails error: ' . $e->getMessage(), [
+            Log::error('getRouteDetails error: ' . $e->getMessage(), [
                 'assignment_id' => $assignmentId,
                 'trace' => $e->getTraceAsString()
             ]);
@@ -272,8 +276,15 @@ class CollectorRouteController extends Controller
         try {
             $collectorId = Auth::guard('collector')->id();
             
+            if (!$collectorId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized'
+                ], 401);
+            }
+            
             $query = RouteAssignment::with([
-                'route:id,route_name,barangay,start_location,end_location,total_stops',
+                'route:id,route_name,barangay,start_location,end_location,total_stops,estimated_duration',
                 'schedule:id,collection_day,collection_time,frequency'
             ])
             ->where('collector_id', $collectorId);
@@ -301,17 +312,75 @@ class CollectorRouteController extends Controller
             $assignments = $query->orderBy('assignment_date', 'desc')
                 ->paginate($perPage);
 
+            // Transform paginated data to match frontend expectations
+            $transformedData = $assignments->getCollection()
+                ->filter(function ($assignment) {
+                    return $assignment->route !== null;
+                })
+                ->map(function ($assignment) {
+                    // Get completed stops count
+                    $completedStops = QrCollection::where('assignment_id', $assignment->id)
+                        ->whereIn('collection_status', ['collected', 'completed', 'manual', 'successful'])
+                        ->distinct('bin_id')
+                        ->count('bin_id');
+                    
+                    return [
+                        'id' => $assignment->id,
+                        'assignment_date' => $assignment->assignment_date->format('Y-m-d'),
+                        'status' => $assignment->status,
+                        'start_time' => $assignment->start_time?->format('Y-m-d H:i:s'),
+                        'end_time' => $assignment->end_time?->format('Y-m-d H:i:s'),
+                        'notes' => $assignment->notes,
+                        'route' => [
+                            'id' => $assignment->route->id,
+                            'name' => $assignment->route->route_name,
+                            'route_name' => $assignment->route->route_name,
+                            'barangay' => $assignment->route->barangay,
+                            'start_location' => $assignment->route->start_location,
+                            'end_location' => $assignment->route->end_location,
+                            'total_stops' => $assignment->route->total_stops ?? 0,
+                            'estimated_duration' => $assignment->route->estimated_duration,
+                        ],
+                        'schedule' => $assignment->schedule ? [
+                            'collection_day' => $assignment->schedule->collection_day,
+                            'collection_time' => $assignment->schedule->collection_time,
+                            'frequency' => $assignment->schedule->frequency,
+                        ] : null,
+                        'completed_stops' => $completedStops,
+                        'total_stops' => $assignment->route->total_stops ?? 0,
+                    ];
+                })
+                ->values();
+
+            // Return paginated response - structure that works with normalizeResponse
+            // normalizeResponse extracts response.data.data or response.data
+            // So we put pagination info at the same level as data array
+            $responseData = [
+                'data' => $transformedData,
+                'current_page' => $assignments->currentPage(),
+                'last_page' => $assignments->lastPage(),
+                'per_page' => $assignments->perPage(),
+                'total' => $assignments->total(),
+                'from' => $assignments->firstItem(),
+                'to' => $assignments->lastItem(),
+            ];
+
             return response()->json([
                 'success' => true,
                 'message' => 'Assignments retrieved successfully',
-                'data' => $assignments
+                'data' => $responseData
             ], 200);
 
         } catch (\Exception $e) {
+            Log::error('getAllAssignments error: ' . $e->getMessage(), [
+                'collector_id' => $collectorId ?? null,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve assignments',
-                'error' => $e->getMessage()
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
             ], 500);
         }
     }

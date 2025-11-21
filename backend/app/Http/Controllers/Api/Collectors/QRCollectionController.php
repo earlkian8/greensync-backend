@@ -345,7 +345,7 @@ class QRCollectionController extends Controller
             ], 201);
 
         } catch (\Exception $e) {
-            \Log::error('manualCollectStop error: ' . $e->getMessage(), [
+            \Illuminate\Support\Facades\Log::error('manualCollectStop error: ' . $e->getMessage(), [
                 'request' => $request->all(),
                 'trace' => $e->getTraceAsString()
             ]);
