@@ -153,6 +153,19 @@ class QRCollectionController extends Controller
                 ], 403);
             }
 
+            // Check if bin is already collected for this assignment
+            $alreadyCollected = QrCollection::where('assignment_id', $assignment->id)
+                ->where('bin_id', $request->bin_id)
+                ->whereIn('collection_status', ['completed', 'collected', 'manual', 'successful'])
+                ->exists();
+
+            if ($alreadyCollected) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This bin has already been collected for this assignment'
+                ], 400);
+            }
+
             // Create collection record
             $collection = QrCollection::create([
                 'bin_id' => $request->bin_id,

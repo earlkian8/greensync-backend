@@ -516,7 +516,7 @@ const RouteDetailScreen = () => {
         wasteType: 'mixed',
       });
 
-      updateStopCompletion(selectedStop.id);
+      await fetchDetails(); // Reload route data to reflect backend changes
       setScanSuccess('Collection recorded successfully.');
       setTimeout(() => {
         setScannerVisible(false);
