@@ -401,75 +401,44 @@ class CollectionRequestController extends Controller
             'route_id' => 'required|exists:routes,id',
         ]);
 
-        // Verify the request ID matches (safety check)
-        $requestId = $request->route('collectionRequest');
-        if ($requestId && $requestId->id !== $collectionRequest->id) {
-            Log::error('Collection Request toRoute ID mismatch', [
-                'route_id' => $requestId?->id,
-                'collection_request_id' => $collectionRequest->id,
-            ]);
-            return back()->withErrors(['error' => 'Request ID mismatch. Please refresh and try again.']);
-        }
-
-        // Refresh the collection request to ensure we have the latest data
+        // Refresh to get latest data
         $collectionRequest->refresh();
         
-        // Load relationships to get fresh data
-        $collectionRequest->load(['resident', 'wasteBin']);
-        
-        if (!$collectionRequest->resident) {
+        // Get fresh resident data directly from database to avoid stale relationship data
+        $resident = Resident::find($collectionRequest->user_id);
+        if (!$resident) {
             return back()->withErrors(['error' => 'Collection request must have an associated resident']);
         }
 
-        // Check if latitude and longitude are available
+        // Get fresh bin data directly from database
+        $wasteBin = WasteBin::find($collectionRequest->bin_id);
+        if (!$wasteBin) {
+            return back()->withErrors(['error' => 'Collection request must have an associated waste bin']);
+        }
+
         if (!$collectionRequest->latitude || !$collectionRequest->longitude) {
             return back()->withErrors(['error' => 'Collection request must have latitude and longitude coordinates']);
         }
 
-        // Get and validate bin_id explicitly - use fresh data from database
-        $binId = $collectionRequest->bin_id;
-        if (!$binId) {
-            return back()->withErrors(['error' => 'Collection request must have an associated waste bin']);
-        }
-
-        // Verify the bin exists and get its name for logging
-        $wasteBin = WasteBin::find($binId);
-        if (!$wasteBin) {
-            return back()->withErrors(['error' => 'The waste bin associated with this request does not exist']);
-        }
-
-        // Log the operation for debugging
-        Log::info('Adding collection request to route', [
-            'collection_request_id' => $collectionRequest->id,
-            'bin_id' => $binId,
-            'bin_name' => $wasteBin->name,
-            'route_id' => $validated['route_id'],
-        ]);
-
         DB::beginTransaction();
         try {
-            // Get the route
             $route = Route::findOrFail($validated['route_id']);
+            $maxStopOrder = RouteStop::where('route_id', $route->id)->max('stop_order') ?? 0;
             
-            // Get the highest stop_order for this route
-            $maxStopOrder = RouteStop::where('route_id', $route->id)
-                ->max('stop_order') ?? 0;
-            
-            // Build the stop address from resident information
-            $stopAddress = trim(implode(', ', array_filter([
-                $collectionRequest->resident->house_no,
-                $collectionRequest->resident->street,
-                $collectionRequest->resident->barangay,
-                $collectionRequest->resident->city,
-                $collectionRequest->resident->province,
+            // Build stop address from fresh resident data - use full_address if available, otherwise build it
+            $stopAddress = $resident->full_address ?? trim(implode(', ', array_filter([
+                $resident->house_no,
+                $resident->street,
+                $resident->barangay,
+                $resident->city,
+                $resident->province,
             ])));
 
-            // Create the route stop with explicit bin_id - double check we're using the correct bin_id
             $routeStop = RouteStop::create([
                 'route_id' => $route->id,
-                'bin_id' => $binId, // Explicitly use the bin_id from collection request
+                'bin_id' => $collectionRequest->bin_id,
                 'stop_order' => $maxStopOrder + 1,
-                'stop_address' => $stopAddress ?: $collectionRequest->resident->barangay,
+                'stop_address' => $stopAddress ?: $resident->barangay,
                 'latitude' => $collectionRequest->latitude,
                 'longitude' => $collectionRequest->longitude,
                 'estimated_time' => $collectionRequest->preferred_time,
@@ -477,35 +446,8 @@ class CollectionRequestController extends Controller
                           ($collectionRequest->description ? ' - ' . $collectionRequest->description : ''),
             ]);
 
-            // Verify the bin_id was actually stored correctly
-            $routeStop->refresh();
-            if ($routeStop->bin_id != $binId) {
-                Log::error('Route stop bin_id mismatch', [
-                    'expected_bin_id' => $binId,
-                    'stored_bin_id' => $routeStop->bin_id,
-                    'collection_request_id' => $collectionRequest->id,
-                    'route_stop_id' => $routeStop->id,
-                ]);
-                throw new \Exception('Failed to store bin_id in route stop. Expected: ' . $binId . ', Got: ' . $routeStop->bin_id);
-            }
-
-            // Verify the bin name matches what we expect
-            $storedBin = WasteBin::find($routeStop->bin_id);
-            if ($storedBin && $storedBin->name !== $wasteBin->name) {
-                Log::warning('Route stop bin name mismatch', [
-                    'expected_bin_name' => $wasteBin->name,
-                    'stored_bin_name' => $storedBin->name,
-                    'collection_request_id' => $collectionRequest->id,
-                ]);
-            }
-
-            // Update route total_stops
             $route->increment('total_stops');
-
-            // Update collection request status to assigned
-            $collectionRequest->update([
-                'status' => 'assigned',
-            ]);
+            $collectionRequest->update(['status' => 'assigned']);
 
             DB::commit();
 
@@ -513,22 +455,13 @@ class CollectionRequestController extends Controller
                 'Collection Request',
                 'To Route',
                 'Added Collection Request ID: ' . $collectionRequest->id . 
-                ' (Bin: "' . $wasteBin->name . '" ID: ' . $binId . ') to Route: ' . $route->route_name . 
-                ' as Stop #' . $routeStop->stop_order . ' (Verified bin_id: ' . $routeStop->bin_id . ')'
+                ' (Bin: "' . $wasteBin->name . '") to Route: ' . $route->route_name . 
+                ' as Stop #' . $routeStop->stop_order
             );
 
             return back()->with('success', 'Collection request added to route successfully');
         } catch (\Exception $e) {
             DB::rollBack();
-            
-            Log::error('Failed to add collection request to route', [
-                'collection_request_id' => $collectionRequest->id,
-                'bin_id' => $binId ?? null,
-                'route_id' => $validated['route_id'] ?? null,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-            ]);
-            
             return back()->withErrors(['error' => 'Failed to add collection request to route: ' . $e->getMessage()]);
         }
     }
