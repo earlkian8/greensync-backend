@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import collectorRoutesService from '@/services/collectorRoutesService';
 
@@ -90,87 +90,106 @@ export default function History() {
   const getStatusStyle = (status) => {
     switch (status) {
       case 'completed':
-        return 'bg-green-100 text-green-800';
+        return [styles.bgGreen100, { color: '#166534' }];
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
+        return [styles.bgYellow100, { color: '#854D0E' }];
       case 'skipped':
-        return 'bg-red-100 text-red-800';
+        return [styles.bgRed100, { color: '#991B1B' }];
       default:
-        return 'bg-gray-100 text-gray-800';
+        return [styles.bgGray100, { color: '#1F2937' }];
     }
   };
 
   return (
-    <View className="flex-1 bg-gray-50">
-      <ScrollView className="flex-1">
+    <View style={[styles.flex1, styles.bgGray50]}>
+      <ScrollView style={styles.flex1}>
 
         {/* Search and Filter */}
-        <View className="bg-white p-4 border-b border-gray-200">
-          <View className="flex-row items-center bg-gray-100 rounded-lg px-3 py-2">
+        <View style={[styles.bgWhite, styles.p4, styles.borderB, styles.borderGray200]}>
+          <View style={[styles.flexRow, styles.itemsCenter, styles.bgGray100, styles.roundedLg, styles.px3, styles.py2]}>
             <Ionicons name="search-outline" size={20} color="#6B7280" />
             <TextInput
               placeholder="Search by waste type or QR code..."
               value={searchTerm}
               onChangeText={setSearchTerm}
-              className="flex-1 ml-2 text-base"
+              style={[styles.flex1, styles.ml2, styles.textBase]}
               placeholderTextColor="#9CA3AF"
             />
           </View>
 
-          <View className="flex-row items-center mt-4">
-            <View className="flex-row items-center mr-2">
+          <View style={[styles.flexRow, styles.itemsCenter, styles.mt4]}>
+            <View style={[styles.flexRow, styles.itemsCenter, styles.mr2]}>
               <Ionicons name="filter-outline" size={16} color="#6B7280" />
-              <Text className="text-sm text-gray-500 ml-1">Filter:</Text>
+              <Text style={[styles.textSm, styles.textGray500, styles.ml1]}>Filter:</Text>
             </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-1">
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.flex1}>
               <TouchableOpacity
-                className={`px-3 py-1 rounded-full mr-2 ${
-                  filterStatus === 'all' ? 'bg-green-100' : 'bg-gray-100'
-                }`}
+                style={[
+                  styles.px3,
+                  styles.py1,
+                  styles.roundedFull,
+                  styles.mr2,
+                  filterStatus === 'all' ? styles.bgGreen100 : styles.bgGray100
+                ]}
                 onPress={() => setFilterStatus('all')}
               >
-                <Text className={`text-sm ${
-                  filterStatus === 'all' ? 'text-green-700 font-medium' : 'text-gray-600'
-                }`}>
+                <Text style={[
+                  styles.textSm,
+                  filterStatus === 'all' ? [styles.textGreen700, styles.fontMedium] : styles.textGray600
+                ]}>
                   All
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                className={`px-3 py-1 rounded-full mr-2 ${
-                  filterStatus === 'completed' ? 'bg-green-100' : 'bg-gray-100'
-                }`}
+                style={[
+                  styles.px3,
+                  styles.py1,
+                  styles.roundedFull,
+                  styles.mr2,
+                  filterStatus === 'completed' ? styles.bgGreen100 : styles.bgGray100
+                ]}
                 onPress={() => setFilterStatus('completed')}
               >
-                <Text className={`text-sm ${
-                  filterStatus === 'completed' ? 'text-green-700 font-medium' : 'text-gray-600'
-                }`}>
+                <Text style={[
+                  styles.textSm,
+                  filterStatus === 'completed' ? [styles.textGreen700, styles.fontMedium] : styles.textGray600
+                ]}>
                   Completed
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                className={`px-3 py-1 rounded-full mr-2 ${
-                  filterStatus === 'pending' ? 'bg-yellow-100' : 'bg-gray-100'
-                }`}
+                style={[
+                  styles.px3,
+                  styles.py1,
+                  styles.roundedFull,
+                  styles.mr2,
+                  filterStatus === 'pending' ? styles.bgYellow100 : styles.bgGray100
+                ]}
                 onPress={() => setFilterStatus('pending')}
               >
-                <Text className={`text-sm ${
-                  filterStatus === 'pending' ? 'text-yellow-700 font-medium' : 'text-gray-600'
-                }`}>
+                <Text style={[
+                  styles.textSm,
+                  filterStatus === 'pending' ? [{ color: '#A16207' }, styles.fontMedium] : styles.textGray600
+                ]}>
                   Pending
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                className={`px-3 py-1 rounded-full ${
-                  filterStatus === 'skipped' ? 'bg-red-100' : 'bg-gray-100'
-                }`}
+                style={[
+                  styles.px3,
+                  styles.py1,
+                  styles.roundedFull,
+                  filterStatus === 'skipped' ? styles.bgRed100 : styles.bgGray100
+                ]}
                 onPress={() => setFilterStatus('skipped')}
               >
-                <Text className={`text-sm ${
-                  filterStatus === 'skipped' ? 'text-red-700 font-medium' : 'text-gray-600'
-                }`}>
+                <Text style={[
+                  styles.textSm,
+                  filterStatus === 'skipped' ? [{ color: '#B91C1C' }, styles.fontMedium] : styles.textGray600
+                ]}>
                   Skipped
                 </Text>
               </TouchableOpacity>
@@ -179,89 +198,88 @@ export default function History() {
         </View>
 
         {/* Collections List */}
-        <View className="p-4">
+        <View style={styles.p4}>
           {loading ? (
-            <View className="items-center justify-center py-12">
+            <View style={[styles.itemsCenter, styles.justifyCenter, styles.py12]}>
               <ActivityIndicator size="large" color="#16A34A" />
             </View>
           ) : error ? (
-            <View className="items-center py-12 bg-white rounded-lg border border-red-200">
+            <View style={[styles.itemsCenter, styles.py12, styles.bgWhite, styles.roundedLg, styles.border, styles.borderRed200]}>
               <Ionicons name="alert-circle-outline" size={48} color="#DC2626" />
-              <Text className="text-red-600 mt-3 text-base">{error}</Text>
+              <Text style={[styles.textRed600, styles.mt3, styles.textBase]}>{error}</Text>
               <TouchableOpacity 
-                className="mt-4 px-6 py-2 bg-red-600 rounded-lg active:bg-red-700"
+                style={[styles.mt4, styles.px6, styles.py2, styles.bgRed600, styles.roundedLg]}
                 onPress={fetchCollections}
+                activeOpacity={0.8}
               >
-                <Text className="text-white font-medium">Retry</Text>
+                <Text style={[styles.textWhite, styles.fontMedium]}>Retry</Text>
               </TouchableOpacity>
             </View>
           ) : collections.length === 0 ? (
-            <View className="items-center py-12 bg-white rounded-lg border border-gray-200">
+            <View style={[styles.itemsCenter, styles.py12, styles.bgWhite, styles.roundedLg, styles.border, styles.borderGray200]}>
               <Ionicons name="file-tray-outline" size={48} color="#9CA3AF" />
-              <Text className="text-gray-500 mt-3 text-base">No collection history found</Text>
+              <Text style={[styles.textGray500, styles.mt3, styles.textBase]}>No collection history found</Text>
             </View>
           ) : (
             <View>
               {collections.map((collection, index) => (
                 <View
                   key={collection.id}
-                  className={`bg-white border border-gray-200 rounded-lg p-4 ${
-                    index > 0 ? 'mt-3' : ''
-                  }`}
+                  style={[styles.bgWhite, styles.border, styles.borderGray200, styles.roundedLg, styles.p4, index > 0 && styles.mt3]}
                 >
-                  <View className="flex-row justify-between">
-                    <View className="flex-1">
-                      <View className="flex-row items-center">
-                        <View className="p-2 rounded-full bg-green-100">
+                  <View style={[styles.flexRow, styles.justifyBetween]}>
+                    <View style={styles.flex1}>
+                      <View style={[styles.flexRow, styles.itemsCenter]}>
+                        <View style={[styles.p2, styles.roundedFull, styles.bgGreen100]}>
                           <Ionicons name="trash-outline" size={18} color="#16A34A" />
                         </View>
-                        <View className="ml-3 flex-1">
-                          <Text className="font-semibold text-gray-900 text-base">
+                        <View style={[styles.ml3, styles.flex1]}>
+                          <Text style={[styles.fontSemibold, styles.textGray900, styles.textBase]}>
                             {collection.waste_type || 'Mixed Waste'}
                           </Text>
-                          <Text className="text-sm text-gray-600 mt-0.5">
+                          <Text style={[styles.textSm, styles.textGray600, { marginTop: 2 }]}>
                             QR: {collection.qr_code}
                           </Text>
                         </View>
                       </View>
 
-                      <View className="flex-row mt-3 gap-4">
-                        <View className="flex-row items-center">
+                      <View style={[styles.flexRow, styles.mt3, { gap: 16 }]}>
+                        <View style={[styles.flexRow, styles.itemsCenter]}>
                           <Ionicons name="calendar-outline" size={14} color="#9CA3AF" />
-                          <Text className="text-sm text-gray-500 ml-1">
+                          <Text style={[styles.textSm, styles.textGray500, styles.ml1]}>
                             {collection.collection_date || formatDate(collection.collection_timestamp)}
                           </Text>
                         </View>
-                        <View className="flex-row items-center">
+                        <View style={[styles.flexRow, styles.itemsCenter]}>
                           <Ionicons name="time-outline" size={14} color="#9CA3AF" />
-                          <Text className="text-sm text-gray-500 ml-1">
+                          <Text style={[styles.textSm, styles.textGray500, styles.ml1]}>
                             {collection.collection_time || formatTime(collection.collection_timestamp)}
                           </Text>
                         </View>
                       </View>
                     </View>
 
-                    <View className="items-end ml-2">
-                      <View className={`px-3 py-1 rounded-full ${getStatusStyle(collection.collection_status)}`}>
-                        <Text className="text-xs font-semibold uppercase">
+                    <View style={[styles.itemsEnd, styles.ml2]}>
+                      <View style={[styles.px3, styles.py1, styles.roundedFull, ...getStatusStyle(collection.collection_status)]}>
+                        <Text style={[styles.textXs, styles.fontSemibold, styles.uppercase]}>
                           {collection.collection_status}
                         </Text>
                       </View>
                       
-                      <Text className="text-sm text-gray-700 mt-2 font-medium">
+                      <Text style={[styles.textSm, styles.textGray700, styles.mt2, styles.fontMedium]}>
                         {collection.waste_weight} kg
                       </Text>
 
-                      <View className="mt-2">
+                      <View style={styles.mt2}>
                         {collection.is_verified ? (
-                          <View className="flex-row items-center">
+                          <View style={[styles.flexRow, styles.itemsCenter]}>
                             <Ionicons name="checkmark-circle" size={14} color="#16A34A" />
-                            <Text className="text-xs text-green-600 ml-1">Verified</Text>
+                            <Text style={[styles.textXs, styles.textGreen600, styles.ml1]}>Verified</Text>
                           </View>
                         ) : (
-                          <View className="flex-row items-center">
+                          <View style={[styles.flexRow, styles.itemsCenter]}>
                             <Ionicons name="time-outline" size={14} color="#6B7280" />
-                            <Text className="text-xs text-gray-500 ml-1">Pending</Text>
+                            <Text style={[styles.textXs, styles.textGray500, styles.ml1]}>Pending</Text>
                           </View>
                         )}
                       </View>
@@ -276,3 +294,147 @@ export default function History() {
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  flex1: {
+    flex: 1,
+  },
+  flexRow: {
+    flexDirection: 'row',
+  },
+  itemsCenter: {
+    alignItems: 'center',
+  },
+  itemsEnd: {
+    alignItems: 'flex-end',
+  },
+  justifyCenter: {
+    justifyContent: 'center',
+  },
+  px3: {
+    paddingHorizontal: 12,
+  },
+  px6: {
+    paddingHorizontal: 24,
+  },
+  py1: {
+    paddingVertical: 4,
+  },
+  py2: {
+    paddingVertical: 8,
+  },
+  py12: {
+    paddingVertical: 48,
+  },
+  p2: {
+    padding: 8,
+  },
+  p4: {
+    padding: 16,
+  },
+  mt1: {
+    marginTop: 4,
+  },
+  mt2: {
+    marginTop: 8,
+  },
+  mt3: {
+    marginTop: 12,
+  },
+  mt4: {
+    marginTop: 16,
+  },
+  ml1: {
+    marginLeft: 4,
+  },
+  ml2: {
+    marginLeft: 8,
+  },
+  ml3: {
+    marginLeft: 12,
+  },
+  mr2: {
+    marginRight: 8,
+  },
+  bgGray50: {
+    backgroundColor: '#F9FAFB',
+  },
+  bgGray100: {
+    backgroundColor: '#F3F4F6',
+  },
+  bgWhite: {
+    backgroundColor: '#FFFFFF',
+  },
+  bgGreen100: {
+    backgroundColor: '#DCFCE7',
+  },
+  bgYellow100: {
+    backgroundColor: '#FEF3C7',
+  },
+  bgRed100: {
+    backgroundColor: '#FEE2E2',
+  },
+  bgRed600: {
+    backgroundColor: '#DC2626',
+  },
+  textWhite: {
+    color: '#FFFFFF',
+  },
+  textGray500: {
+    color: '#6B7280',
+  },
+  textGray600: {
+    color: '#4B5563',
+  },
+  textGray700: {
+    color: '#374151',
+  },
+  textGray900: {
+    color: '#111827',
+  },
+  textGreen600: {
+    color: '#16A34A',
+  },
+  textGreen700: {
+    color: '#15803D',
+  },
+  textRed600: {
+    color: '#DC2626',
+  },
+  textSm: {
+    fontSize: 14,
+  },
+  textBase: {
+    fontSize: 16,
+  },
+  textXs: {
+    fontSize: 12,
+  },
+  fontMedium: {
+    fontWeight: '500',
+  },
+  fontSemibold: {
+    fontWeight: '600',
+  },
+  roundedLg: {
+    borderRadius: 8,
+  },
+  roundedFull: {
+    borderRadius: 9999,
+  },
+  border: {
+    borderWidth: 1,
+  },
+  borderGray200: {
+    borderColor: '#E5E7EB',
+  },
+  borderRed200: {
+    borderColor: '#FECACA',
+  },
+  borderB: {
+    borderBottomWidth: 1,
+  },
+  uppercase: {
+    textTransform: 'uppercase',
+  },
+});

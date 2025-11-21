@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, RefreshControl, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MapIcon, CalendarIcon, ChevronRightIcon, SearchIcon, AlertTriangleIcon } from 'lucide-react-native';
@@ -121,24 +121,24 @@ export default function RoutesPage() {
   const getStatusStyle = (status) => {
     switch (status) {
       case 'completed':
-        return 'bg-green-100';
+        return styles.bgGreen100;
       case 'in-progress':
       case 'in_progress':
-        return 'bg-blue-100';
+        return styles.bgBlue100;
       default:
-        return 'bg-yellow-100';
+        return styles.bgYellow100;
     }
   };
 
   const getStatusTextStyle = (status) => {
     switch (status) {
       case 'completed':
-        return 'text-green-800';
+        return { color: '#166534' };
       case 'in-progress':
       case 'in_progress':
-        return 'text-blue-800';
+        return { color: '#1E40AF' };
       default:
-        return 'text-yellow-800';
+        return { color: '#854D0E' };
     }
   };
 
@@ -148,14 +148,14 @@ export default function RoutesPage() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
+    <SafeAreaView style={[styles.flex1, styles.bgGray50]} edges={['top']}>
 
       {/* Search */}
-      <View className="bg-white p-4 shadow-sm">
-        <View className="flex-row items-center bg-gray-100 rounded-lg px-3 py-2">
+      <View style={[styles.bgWhite, styles.p4, styles.shadowSm]}>
+        <View style={[styles.flexRow, styles.itemsCenter, styles.bgGray100, styles.roundedLg, styles.px3, styles.py2]}>
           <SearchIcon size={18} color="#6B7280" />
           <TextInput
-            className="flex-1 ml-2 text-gray-900"
+            style={[styles.flex1, styles.ml2, styles.textGray900]}
             placeholder="Search routes..."
             placeholderTextColor="#9CA3AF"
             value={searchTerm}
@@ -166,33 +166,33 @@ export default function RoutesPage() {
 
       {/* Routes List */}
       <ScrollView 
-        className="flex-1 p-4"
+        style={[styles.flex1, styles.p4]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       >
         {loading ? (
-          <View className="flex justify-center items-center h-40">
+          <View style={[styles.justifyCenter, styles.itemsCenter, { height: 160 }]}>
             <ActivityIndicator size="large" color="#059669" />
           </View>
         ) : error ? (
-          <View className="bg-white rounded-lg shadow-sm p-6 border border-red-100">
-            <View className="flex-row items-center mb-3">
+          <View style={[styles.bgWhite, styles.roundedLg, styles.shadowSm, { padding: 24 }, styles.border, { borderColor: '#FEE2E2' }]}>
+            <View style={[styles.flexRow, styles.itemsCenter, styles.mb3]}>
               <AlertTriangleIcon size={20} color="#DC2626" />
-              <Text className="text-base font-medium text-red-700 ml-2">Unable to load routes</Text>
+              <Text style={[styles.textBase, styles.fontMedium, { color: '#B91C1C' }, styles.ml2]}>Unable to load routes</Text>
             </View>
-            <Text className="text-sm text-red-600">{error}</Text>
+            <Text style={[styles.textSm, styles.textRed600]}>{error}</Text>
             <TouchableOpacity
-              className="mt-4 px-4 py-2 bg-red-600 rounded-lg"
+              style={[styles.mt4, styles.px4, styles.py2, styles.bgRed600, styles.roundedLg]}
               onPress={loadAssignments}
             >
-              <Text className="text-white text-center font-semibold">Retry</Text>
+              <Text style={[styles.textWhite, styles.textCenter, styles.fontSemibold]}>Retry</Text>
             </TouchableOpacity>
           </View>
         ) : filteredAssignments.length === 0 ? (
-          <View className="bg-white rounded-lg shadow-sm py-8 border border-gray-200">
-            <Text className="text-center text-gray-500">No routes assigned</Text>
-            <Text className="text-center text-gray-400 text-sm mt-2">
+          <View style={[styles.bgWhite, styles.roundedLg, styles.shadowSm, { paddingVertical: 32 }, styles.border, styles.borderGray200]}>
+            <Text style={[styles.textCenter, styles.textGray500]}>No routes assigned</Text>
+            <Text style={[styles.textCenter, { color: '#9CA3AF' }, styles.textSm, styles.mt2]}>
               Try adjusting your search or check back later.
             </Text>
           </View>
@@ -201,31 +201,31 @@ export default function RoutesPage() {
             {filteredAssignments.map(assignment => (
               <TouchableOpacity
                 key={assignment.id}
-                className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm mb-4"
+                style={[styles.bgWhite, styles.border, styles.borderGray200, styles.roundedLg, styles.p4, styles.shadowSm, styles.mb4]}
                 onPress={() => handleRouteClick(assignment)}
                 activeOpacity={0.7}
               >
-                <View className="flex-row justify-between items-start">
-                  <View className="flex-1 pr-3">
-                    <Text className="font-medium text-gray-900">
+                <View style={[styles.flexRow, styles.justifyBetween, styles.itemsStart]}>
+                  <View style={[styles.flex1, styles.pr3]}>
+                    <Text style={[styles.fontMedium, styles.textGray900]}>
                       {assignment?.route?.route_name ?? assignment?.route?.name ?? 'Unnamed Route'}
                     </Text>
-                    <Text className="text-sm text-gray-600 mt-1">
+                    <Text style={[styles.textSm, styles.textGray600, styles.mt1]}>
                       {assignment?.route?.barangay ?? 'No barangay'} • {assignment?.route?.total_stops ?? 0} stops
                     </Text>
-                    <View className="flex-row items-center mt-2">
+                    <View style={[styles.flexRow, styles.itemsCenter, styles.mt2]}>
                       {!!assignment?.route?.estimated_duration && (
-                        <View className="flex-row items-center mr-4">
+                        <View style={[styles.flexRow, styles.itemsCenter, styles.mr4]}>
                           <MapIcon size={14} color="#059669" />
-                          <Text className="text-sm text-gray-500 ml-1">
+                          <Text style={[styles.textSm, styles.textGray500, styles.ml1]}>
                             {assignment.route.estimated_duration} mins
                           </Text>
                         </View>
                       )}
                       {!!assignment?.assignment_date && (
-                        <View className="flex-row items-center">
+                        <View style={[styles.flexRow, styles.itemsCenter]}>
                           <CalendarIcon size={14} color="#059669" />
-                          <Text className="text-sm text-gray-500 ml-1">
+                          <Text style={[styles.textSm, styles.textGray500, styles.ml1]}>
                             {formatDate(assignment.assignment_date)}
                           </Text>
                         </View>
@@ -236,9 +236,9 @@ export default function RoutesPage() {
                 </View>
 
                 {/* Status Badge */}
-                <View className="mt-3 flex-row justify-end">
-                  <View className={`px-2 py-1 rounded ${getStatusStyle(assignment.status)}`}>
-                    <Text className={`text-xs font-medium uppercase ${getStatusTextStyle(assignment.status)}`}>
+                <View style={[styles.mt3, styles.flexRow, styles.justifyEnd]}>
+                  <View style={[styles.px2, styles.py1, styles.rounded, getStatusStyle(assignment.status)]}>
+                    <Text style={[styles.textXs, styles.fontMedium, styles.uppercase, getStatusTextStyle(assignment.status)]}>
                       {renderStatusLabel(assignment.status)}
                     </Text>
                   </View>
@@ -246,7 +246,7 @@ export default function RoutesPage() {
               </TouchableOpacity>
             ))}
             {pagination?.total > filteredAssignments.length && (
-              <Text className="text-center text-xs text-gray-400 mt-2">
+              <Text style={[styles.textCenter, styles.textXs, { color: '#9CA3AF' }, styles.mt2]}>
                 Showing {filteredAssignments.length} of {pagination.total} assignments
               </Text>
             )}
@@ -256,3 +256,157 @@ export default function RoutesPage() {
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  flex1: {
+    flex: 1,
+  },
+  flexRow: {
+    flexDirection: 'row',
+  },
+  itemsCenter: {
+    alignItems: 'center',
+  },
+  itemsStart: {
+    alignItems: 'flex-start',
+  },
+  justifyCenter: {
+    justifyContent: 'center',
+  },
+  justifyBetween: {
+    justifyContent: 'space-between',
+  },
+  justifyEnd: {
+    justifyContent: 'flex-end',
+  },
+  px2: {
+    paddingHorizontal: 8,
+  },
+  px3: {
+    paddingHorizontal: 12,
+  },
+  px4: {
+    paddingHorizontal: 16,
+  },
+  py1: {
+    paddingVertical: 4,
+  },
+  py2: {
+    paddingVertical: 8,
+  },
+  p4: {
+    padding: 16,
+  },
+  p6: {
+    padding: 24,
+  },
+  mt1: {
+    marginTop: 4,
+  },
+  mt2: {
+    marginTop: 8,
+  },
+  mt3: {
+    marginTop: 12,
+  },
+  mt4: {
+    marginTop: 16,
+  },
+  mb3: {
+    marginBottom: 12,
+  },
+  mb4: {
+    marginBottom: 16,
+  },
+  ml1: {
+    marginLeft: 4,
+  },
+  ml2: {
+    marginLeft: 8,
+  },
+  mr2: {
+    marginRight: 8,
+  },
+  mr4: {
+    marginRight: 16,
+  },
+  pr3: {
+    paddingRight: 12,
+  },
+  bgGray50: {
+    backgroundColor: '#F9FAFB',
+  },
+  bgGray100: {
+    backgroundColor: '#F3F4F6',
+  },
+  bgWhite: {
+    backgroundColor: '#FFFFFF',
+  },
+  bgGreen100: {
+    backgroundColor: '#DCFCE7',
+  },
+  bgBlue100: {
+    backgroundColor: '#DBEAFE',
+  },
+  bgYellow100: {
+    backgroundColor: '#FEF3C7',
+  },
+  bgRed600: {
+    backgroundColor: '#DC2626',
+  },
+  textGray500: {
+    color: '#6B7280',
+  },
+  textGray600: {
+    color: '#4B5563',
+  },
+  textGray900: {
+    color: '#111827',
+  },
+  textRed600: {
+    color: '#DC2626',
+  },
+  textWhite: {
+    color: '#FFFFFF',
+  },
+  textSm: {
+    fontSize: 14,
+  },
+  textBase: {
+    fontSize: 16,
+  },
+  textXs: {
+    fontSize: 12,
+  },
+  fontMedium: {
+    fontWeight: '500',
+  },
+  fontSemibold: {
+    fontWeight: '600',
+  },
+  rounded: {
+    borderRadius: 4,
+  },
+  roundedLg: {
+    borderRadius: 8,
+  },
+  border: {
+    borderWidth: 1,
+  },
+  borderGray200: {
+    borderColor: '#E5E7EB',
+  },
+  shadowSm: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  textCenter: {
+    textAlign: 'center',
+  },
+  uppercase: {
+    textTransform: 'uppercase',
+  },
+});

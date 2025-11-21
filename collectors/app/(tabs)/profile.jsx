@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthContext } from '../_layout';
 
@@ -47,65 +47,66 @@ export default function Profile() {
 
   if (!user) {
     return (
-      <View className="flex-1 justify-center items-center bg-gray-50">
+      <View style={[styles.flex1, styles.justifyCenter, styles.itemsCenter, styles.bgGray50]}>
         <ActivityIndicator size="large" color="#16A34A" />
       </View>
     );
   }
 
   return (
-    <ScrollView className="flex-1 bg-gray-50">
+    <ScrollView style={[styles.flex1, styles.bgGray50]}>
       {/* Profile Info */}
-      <View className="p-4">
-        <View className="bg-white rounded-lg p-6 border border-gray-200">
-          <View className="items-center">
+      <View style={styles.p4}>
+        <View style={[styles.bgWhite, styles.roundedLg, { padding: 24 }, styles.border, styles.borderGray200]}>
+          <View style={styles.itemsCenter}>
             {user.profile_image ? (
               <Image
                 source={{ uri: user.profile_image }}
-                className="h-24 w-24 rounded-full border-4 border-green-100"
+                style={[styles.h24, styles.w24, styles.roundedFull, { borderWidth: 4, borderColor: '#DCFCE7' }]}
               />
             ) : (
-              <View className="h-24 w-24 rounded-full bg-green-100 items-center justify-center border-4 border-green-50">
-                <Text className="text-3xl font-bold text-green-600">
+              <View style={[styles.h24, styles.w24, styles.roundedFull, styles.bgGreen100, styles.itemsCenter, styles.justifyCenter, { borderWidth: 4, borderColor: '#F0FDF4' }]}>
+                <Text style={[styles.text3xl, styles.fontBold, styles.textGreen600]}>
                   {user.name?.charAt(0) || 'C'}
                 </Text>
               </View>
             )}
 
-            <Text className="mt-4 text-xl font-bold text-gray-900">
+            <Text style={[styles.mt4, { fontSize: 20 }, styles.fontBold, styles.textGray900]}>
               {user.name || 'Collector'}
             </Text>
-            <Text className="text-gray-600 mt-1">{user.email || 'No email provided'}</Text>
+            <Text style={[styles.textGray600, styles.mt1]}>{user.email || 'No email provided'}</Text>
 
-            <View className="flex-row items-center mt-2">
+            <View style={[styles.flexRow, styles.itemsCenter, styles.mt2]}>
               <Ionicons name="card-outline" size={16} color="#16A34A" />
-              <Text className="text-sm text-gray-600 ml-1">
+              <Text style={[styles.textSm, styles.textGray600, styles.ml1]}>
                 Employee ID: {user.employee_id || 'N/A'}
               </Text>
             </View>
 
             <TouchableOpacity
-              className="w-full mt-6 border border-gray-300 rounded-lg py-3 flex-row items-center justify-center active:bg-gray-50"
+              style={[styles.wFull, styles.mt6, styles.border, styles.borderGray300, styles.roundedLg, { paddingVertical: 12 }, styles.flexRow, styles.itemsCenter, styles.justifyCenter]}
               onPress={handleEditProfile}
+              activeOpacity={0.8}
             >
               <Ionicons name="create-outline" size={18} color="#374151" />
-              <Text className="text-gray-700 font-medium ml-2">Edit Profile</Text>
+              <Text style={[styles.textGray700, styles.fontMedium, styles.ml2]}>Edit Profile</Text>
             </TouchableOpacity>
           </View>
 
-          <View className="mt-8 pt-6 border-t border-gray-200">
-            <Text className="font-semibold text-gray-800 mb-4 text-base">
+          <View style={[styles.mt8, { paddingTop: 24 }, styles.borderT, styles.borderGray200]}>
+            <Text style={[styles.fontSemibold, styles.textGray800, styles.mb4, styles.textBase]}>
               Collector Information
             </Text>
 
-            <View className="space-y-4">
+            <View>
               {/* License Number */}
-              <View className="flex-row items-center justify-between py-3">
-                <View className="flex-row items-center flex-1">
+              <View style={[styles.flexRow, styles.itemsCenter, styles.justifyBetween, { paddingVertical: 12 }]}>
+                <View style={[styles.flexRow, styles.itemsCenter, styles.flex1]}>
                   <Ionicons name="document-text-outline" size={18} color="#6B7280" />
-                  <View className="ml-3 flex-1">
-                    <Text className="text-sm text-gray-500">License Number</Text>
-                    <Text className="font-medium text-gray-900">
+                  <View style={[styles.ml3, styles.flex1]}>
+                    <Text style={[styles.textSm, styles.textGray500]}>License Number</Text>
+                    <Text style={[styles.fontMedium, styles.textGray900]}>
                       {user.license_number || 'Not provided'}
                     </Text>
                   </View>
@@ -113,16 +114,16 @@ export default function Profile() {
               </View>
 
               {/* Vehicle */}
-              <View className="flex-row items-center justify-between py-3">
-                <View className="flex-row items-center flex-1">
+              <View style={[styles.flexRow, styles.itemsCenter, styles.justifyBetween, { paddingVertical: 12 }]}>
+                <View style={[styles.flexRow, styles.itemsCenter, styles.flex1]}>
                   <Ionicons name="car-outline" size={18} color="#6B7280" />
-                  <View className="ml-3 flex-1">
-                    <Text className="text-sm text-gray-500">Vehicle</Text>
-                    <Text className="font-medium text-gray-900">
+                  <View style={[styles.ml3, styles.flex1]}>
+                    <Text style={[styles.textSm, styles.textGray500]}>Vehicle</Text>
+                    <Text style={[styles.fontMedium, styles.textGray900]}>
                       {user.vehicle_type || 'Not assigned'}
                     </Text>
                     {user.vehicle_plate_number && (
-                      <Text className="text-xs text-gray-500 mt-0.5">
+                      <Text style={[styles.textXs, styles.textGray500, { marginTop: 2 }]}>
                         Plate: {user.vehicle_plate_number}
                       </Text>
                     )}
@@ -131,21 +132,21 @@ export default function Profile() {
               </View>
 
               {/* Verification Status */}
-              <View className="flex-row items-center justify-between py-3">
-                <View className="flex-row items-center flex-1">
+              <View style={[styles.flexRow, styles.itemsCenter, styles.justifyBetween, { paddingVertical: 12 }]}>
+                <View style={[styles.flexRow, styles.itemsCenter, styles.flex1]}>
                   <Ionicons name="shield-checkmark-outline" size={18} color="#6B7280" />
-                  <View className="ml-3 flex-1">
-                    <Text className="text-sm text-gray-500">Verification Status</Text>
-                    <View className="flex-row items-center mt-1">
+                  <View style={[styles.ml3, styles.flex1]}>
+                    <Text style={[styles.textSm, styles.textGray500]}>Verification Status</Text>
+                    <View style={[styles.flexRow, styles.itemsCenter, styles.mt1]}>
                       {user.is_verified ? (
                         <>
-                          <View className="w-2 h-2 bg-green-500 rounded-full mr-2" />
-                          <Text className="text-green-600 font-medium">Verified</Text>
+                          <View style={[{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#22C55E' }, styles.mr2]} />
+                          <Text style={[styles.textGreen600, styles.fontMedium]}>Verified</Text>
                         </>
                       ) : (
                         <>
-                          <View className="w-2 h-2 bg-yellow-500 rounded-full mr-2" />
-                          <Text className="text-yellow-600 font-medium">Pending</Text>
+                          <View style={[{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#EAB308' }, styles.mr2]} />
+                          <Text style={[{ color: '#D97706' }, styles.fontMedium]}>Pending</Text>
                         </>
                       )}
                     </View>
@@ -155,13 +156,14 @@ export default function Profile() {
             </View>
           </View>
 
-          <View className="mt-8 pt-4">
+          <View style={[styles.mt8, { paddingTop: 16 }]}>
             <TouchableOpacity
-              className="w-full border border-red-300 rounded-lg py-3 flex-row items-center justify-center active:bg-red-50"
+              style={[styles.wFull, styles.border, { borderColor: '#FCA5A5' }, styles.roundedLg, { paddingVertical: 12 }, styles.flexRow, styles.itemsCenter, styles.justifyCenter]}
               onPress={handleLogout}
+              activeOpacity={0.8}
             >
               <Ionicons name="log-out-outline" size={18} color="#DC2626" />
-              <Text className="text-red-600 font-medium ml-2">Log Out</Text>
+              <Text style={[styles.textRed600, styles.fontMedium, styles.ml2]}>Log Out</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -169,3 +171,132 @@ export default function Profile() {
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  flex1: {
+    flex: 1,
+  },
+  flexRow: {
+    flexDirection: 'row',
+  },
+  itemsCenter: {
+    alignItems: 'center',
+  },
+  justifyCenter: {
+    justifyContent: 'center',
+  },
+  justifyBetween: {
+    justifyContent: 'space-between',
+  },
+  p4: {
+    padding: 16,
+  },
+  mt1: {
+    marginTop: 4,
+  },
+  mt2: {
+    marginTop: 8,
+  },
+  mt4: {
+    marginTop: 16,
+  },
+  mt6: {
+    marginTop: 24,
+  },
+  mt8: {
+    marginTop: 32,
+  },
+  mb4: {
+    marginBottom: 16,
+  },
+  ml1: {
+    marginLeft: 4,
+  },
+  ml2: {
+    marginLeft: 8,
+  },
+  ml3: {
+    marginLeft: 12,
+  },
+  mr2: {
+    marginRight: 8,
+  },
+  bgGray50: {
+    backgroundColor: '#F9FAFB',
+  },
+  bgWhite: {
+    backgroundColor: '#FFFFFF',
+  },
+  bgGreen100: {
+    backgroundColor: '#DCFCE7',
+  },
+  textGray500: {
+    color: '#6B7280',
+  },
+  textGray600: {
+    color: '#4B5563',
+  },
+  textGray700: {
+    color: '#374151',
+  },
+  textGray800: {
+    color: '#1F2937',
+  },
+  textGray900: {
+    color: '#111827',
+  },
+  textGreen600: {
+    color: '#16A34A',
+  },
+  textRed600: {
+    color: '#DC2626',
+  },
+  textSm: {
+    fontSize: 14,
+  },
+  textXs: {
+    fontSize: 12,
+  },
+  textBase: {
+    fontSize: 16,
+  },
+  text3xl: {
+    fontSize: 30,
+  },
+  fontMedium: {
+    fontWeight: '500',
+  },
+  fontSemibold: {
+    fontWeight: '600',
+  },
+  fontBold: {
+    fontWeight: '700',
+  },
+  roundedLg: {
+    borderRadius: 8,
+  },
+  roundedFull: {
+    borderRadius: 9999,
+  },
+  border: {
+    borderWidth: 1,
+  },
+  borderGray200: {
+    borderColor: '#E5E7EB',
+  },
+  borderGray300: {
+    borderColor: '#D1D5DB',
+  },
+  borderT: {
+    borderTopWidth: 1,
+  },
+  h24: {
+    height: 96,
+  },
+  w24: {
+    width: 96,
+  },
+  wFull: {
+    width: '100%',
+  },
+});

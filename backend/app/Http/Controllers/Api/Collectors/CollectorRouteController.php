@@ -54,7 +54,9 @@ class CollectorRouteController extends Controller
                         'frequency' => $assignment->schedule->frequency,
                     ] : null,
                     // Calculate progress
-                    'completed_stops' => $assignment->qrCollections()->where('status', 'completed')->count(),
+                    'completed_stops' => $assignment->qrCollections()
+                        ->whereIn('collection_status', ['collected', 'completed', 'manual', 'successful'])
+                        ->count(),
                     'total_stops' => $assignment->route->total_stops,
                 ];
             });
@@ -124,7 +126,7 @@ class CollectorRouteController extends Controller
             $collectionAddresses = [];
             foreach ($successfulCollections as $collection) {
                 if ($collection->wasteBin && $collection->wasteBin->resident) {
-                    $address = $collection->wasteBin->resident->address;
+                    $address = $collection->wasteBin->resident->address ?? $collection->wasteBin->resident->full_address ?? null;
                     if ($address) {
                         $collectionAddresses[] = strtolower(trim($address));
                     }
@@ -170,9 +172,9 @@ class CollectorRouteController extends Controller
                     'bin_id' => $bin?->id,
                     'qr_code' => $bin?->qr_code,
                     'bin_type' => $bin?->bin_type,
-                    'bin_owner_name' => $resident?->name,
-                    'bin_owner_contact' => $resident?->phone_number,
-                    'bin_owner_address' => $resident?->full_address,
+                    'bin_owner_name' => $resident?->name ?? null,
+                    'bin_owner_contact' => $resident?->phone_number ?? null,
+                    'bin_owner_address' => $resident?->full_address ?? null,
                     'last_collected_at' => $completionMeta?->collection_timestamp?->format('Y-m-d H:i:s') 
                         ?? $bin?->last_collected?->format('Y-m-d H:i:s'),
                 ];
@@ -382,7 +384,7 @@ class CollectorRouteController extends Controller
 
             // Optional: Validate if all stops are completed
             $completedStops = $assignment->qrCollections()
-                ->where('status', 'completed')
+                ->whereIn('collection_status', ['collected', 'completed', 'manual', 'successful'])
                 ->count();
             
             $totalStops = $assignment->route->total_stops;

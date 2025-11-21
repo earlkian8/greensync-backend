@@ -200,14 +200,14 @@ export default function ResidentManagement() {
                             </div>
 
                             {/* Add Resident Button */}
-                            {/* <div className="w-full sm:w-auto">
+                            <div className="w-full sm:w-auto">
                                 <Button 
                                     className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white" 
                                     onClick={() => setShowAddModal(true)}
                                 >
                                     Add Resident
                                 </Button>
-                            </div> */}
+                            </div>
                         </div>
                     </div>
 

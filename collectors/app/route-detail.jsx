@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, Modal, Pressable, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, Modal, Pressable, Alert, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -69,6 +69,273 @@ const VIEW_MODES = {
   MAP: 'map',
 };
 
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  flex1: {
+    flex: 1,
+  },
+  flexRow: {
+    flexDirection: 'row',
+  },
+  itemsCenter: {
+    alignItems: 'center',
+  },
+  justifyCenter: {
+    justifyContent: 'center',
+  },
+  justifyBetween: {
+    justifyContent: 'space-between',
+  },
+  px6: {
+    paddingHorizontal: 24,
+  },
+  px4: {
+    paddingHorizontal: 16,
+  },
+  px3: {
+    paddingHorizontal: 12,
+  },
+  px2: {
+    paddingHorizontal: 8,
+  },
+  py3: {
+    paddingVertical: 12,
+  },
+  py2: {
+    paddingVertical: 8,
+  },
+  py1: {
+    paddingVertical: 4,
+  },
+  p4: {
+    padding: 16,
+  },
+  p6: {
+    padding: 24,
+  },
+  mt4: {
+    marginTop: 16,
+  },
+  mt3: {
+    marginTop: 12,
+  },
+  mt2: {
+    marginTop: 8,
+  },
+  mt1: {
+    marginTop: 4,
+  },
+  mb3: {
+    marginBottom: 12,
+  },
+  mb2: {
+    marginBottom: 8,
+  },
+  mb4: {
+    marginBottom: 16,
+  },
+  ml1: {
+    marginLeft: 4,
+  },
+  ml2: {
+    marginLeft: 8,
+  },
+  ml3: {
+    marginLeft: 12,
+  },
+  mr3: {
+    marginRight: 12,
+  },
+  pr2: {
+    paddingRight: 8,
+  },
+  pr3: {
+    paddingRight: 12,
+  },
+  pr4: {
+    paddingRight: 16,
+  },
+  bgGray50: {
+    backgroundColor: '#F9FAFB',
+  },
+  bgWhite: {
+    backgroundColor: '#FFFFFF',
+  },
+  bgGray100: {
+    backgroundColor: '#F3F4F6',
+  },
+  bgGray200: {
+    backgroundColor: '#E5E7EB',
+  },
+  bgGreen50: {
+    backgroundColor: '#F0FDF4',
+  },
+  bgGreen100: {
+    backgroundColor: '#DCFCE7',
+  },
+  bgGreen500: {
+    backgroundColor: '#22C55E',
+  },
+  bgGreen600: {
+    backgroundColor: '#16A34A',
+  },
+  bgYellow100: {
+    backgroundColor: '#FEF3C7',
+  },
+  bgRed600: {
+    backgroundColor: '#DC2626',
+  },
+  bgEmerald600: {
+    backgroundColor: '#059669',
+  },
+  bgBlack: {
+    backgroundColor: '#000000',
+  },
+  textRed600: {
+    color: '#DC2626',
+  },
+  textWhite: {
+    color: '#FFFFFF',
+  },
+  textGray500: {
+    color: '#6B7280',
+  },
+  textGray600: {
+    color: '#4B5563',
+  },
+  textGray700: {
+    color: '#374151',
+  },
+  textGray800: {
+    color: '#1F2937',
+  },
+  textGray900: {
+    color: '#111827',
+  },
+  textGreen600: {
+    color: '#16A34A',
+  },
+  textGreen700: {
+    color: '#15803D',
+  },
+  textGreen800: {
+    color: '#166534',
+  },
+  textYellow800: {
+    color: '#854D0E',
+  },
+  textAmber600: {
+    color: '#D97706',
+  },
+  textEmerald700: {
+    color: '#047857',
+  },
+  textBase: {
+    fontSize: 16,
+  },
+  textSm: {
+    fontSize: 14,
+  },
+  textXs: {
+    fontSize: 12,
+  },
+  textLg: {
+    fontSize: 18,
+  },
+  fontSemibold: {
+    fontWeight: '600',
+  },
+  fontMedium: {
+    fontWeight: '500',
+  },
+  roundedLg: {
+    borderRadius: 8,
+  },
+  roundedXl: {
+    borderRadius: 12,
+  },
+  rounded2xl: {
+    borderRadius: 16,
+  },
+  roundedFull: {
+    borderRadius: 9999,
+  },
+  border: {
+    borderWidth: 1,
+  },
+  borderGray100: {
+    borderColor: '#F3F4F6',
+  },
+  borderGray200: {
+    borderColor: '#E5E7EB',
+  },
+  borderRed200: {
+    borderColor: '#FECACA',
+  },
+  borderT: {
+    borderTopWidth: 1,
+  },
+  borderB: {
+    borderBottomWidth: 1,
+  },
+  shadowSm: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  shadow: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  w10: {
+    width: 40,
+  },
+  h10: {
+    height: 40,
+  },
+  h3: {
+    height: 12,
+  },
+  h6: {
+    height: 24,
+  },
+  wFull: {
+    width: '100%',
+  },
+  hFull: {
+    height: '100%',
+  },
+  overflowHidden: {
+    overflow: 'hidden',
+  },
+  uppercase: {
+    textTransform: 'uppercase',
+  },
+  italic: {
+    fontStyle: 'italic',
+  },
+  gap2: {
+    gap: 8,
+  },
+  gap4: {
+    gap: 16,
+  },
+  textCenter: {
+    textAlign: 'center',
+  },
+  itemsStart: {
+    alignItems: 'flex-start',
+  },
+});
+
 const RouteDetailScreen = () => {
   const router = useRouter();
   const { assignmentId } = useLocalSearchParams();
@@ -76,17 +343,17 @@ const RouteDetailScreen = () => {
   // Early return if no assignmentId to prevent any map-related code from running
   if (!assignmentId) {
     return (
-      <SafeAreaView className="flex-1 bg-gray-50">
-        <View className="flex-1 items-center justify-center px-6">
+      <SafeAreaView style={[styles.flex1, styles.bgGray50]}>
+        <View style={[styles.flex1, styles.itemsCenter, styles.justifyCenter, styles.px6]}>
           <AlertTriangleIcon size={40} color="#DC2626" />
-          <Text className="text-red-600 font-semibold text-base mt-3">
+          <Text style={[styles.textRed600, styles.fontSemibold, styles.textBase, styles.mt3]}>
             No assignment ID provided
           </Text>
           <TouchableOpacity
-            className="mt-4 px-6 py-3 bg-red-600 rounded-lg"
+            style={[styles.mt4, styles.px6, styles.py3, styles.bgRed600, styles.roundedLg]}
             onPress={() => router.back()}
           >
-            <Text className="text-white font-semibold">Go Back</Text>
+            <Text style={[styles.textWhite, styles.fontSemibold]}>Go Back</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -331,13 +598,19 @@ const RouteDetailScreen = () => {
   }, [detailStop]);
 
   const renderToggle = () => (
-    <View className="flex-row bg-gray-100 rounded-full p-1 mt-4">
+    <View style={[styles.flexRow, styles.bgGray100, styles.roundedFull, { padding: 4 }, styles.mt4]}>
       {[VIEW_MODES.LIST, VIEW_MODES.MAP].map((mode) => (
         <TouchableOpacity
           key={mode}
-          className={`flex-1 py-2 rounded-full flex-row justify-center items-center ${
-            activeView === mode ? 'bg-white shadow' : ''
-          }`}
+          style={[
+            styles.flex1,
+            styles.py2,
+            styles.roundedFull,
+            styles.flexRow,
+            styles.justifyCenter,
+            styles.itemsCenter,
+            activeView === mode && [styles.bgWhite, styles.shadow]
+          ]}
           onPress={() => setActiveView(mode)}
         >
           {mode === VIEW_MODES.LIST ? (
@@ -346,9 +619,12 @@ const RouteDetailScreen = () => {
             <MapIcon size={16} color={activeView === mode ? '#16A34A' : '#6B7280'} />
           )}
           <Text
-            className={`ml-1 text-sm font-medium ${
-              activeView === mode ? 'text-green-600' : 'text-gray-500'
-            }`}
+            style={[
+              styles.ml1,
+              styles.textSm,
+              styles.fontMedium,
+              activeView === mode ? styles.textGreen600 : styles.textGray500
+            ]}
           >
             {mode === VIEW_MODES.LIST ? 'List' : 'Map'}
           </Text>
@@ -361,10 +637,10 @@ const RouteDetailScreen = () => {
     if (!RouteMapViewComponent) {
       const mapHeight = Math.min(height * 0.55, 500);
       return (
-        <View className="mt-4 rounded-2xl overflow-hidden border border-gray-200 bg-gray-100" style={{ height: mapHeight }}>
-          <View className="flex-1 items-center justify-center p-6">
+        <View style={[styles.mt4, styles.rounded2xl, styles.overflowHidden, styles.border, styles.borderGray200, styles.bgGray100, { height: mapHeight }]}>
+          <View style={[styles.flex1, styles.itemsCenter, styles.justifyCenter, styles.p6]}>
             <ActivityIndicator size="large" color="#16A34A" />
-            <Text className="text-gray-500 text-center mt-4">
+            <Text style={[styles.textGray500, styles.textCenter, styles.mt4]}>
               Loading map...
             </Text>
           </View>
@@ -386,48 +662,59 @@ const RouteDetailScreen = () => {
         />
 
         {selectedStop ? (
-          <View className="bg-white p-4 border-t border-gray-200 mt-4 rounded-lg">
-            <View className="flex-row items-start justify-between mb-2">
-              <View className="flex-1">
-                <Text className="text-sm text-gray-500">Selected Stop</Text>
-                <Text className="text-base font-semibold text-gray-900 mt-1">
+          <View style={[styles.bgWhite, styles.p4, styles.borderT, styles.borderGray200, styles.mt4, styles.roundedLg]}>
+            <View style={[styles.flexRow, styles.itemsStart, styles.justifyBetween, styles.mb2]}>
+              <View style={styles.flex1}>
+                <Text style={[styles.textSm, styles.textGray500]}>Selected Stop</Text>
+                <Text style={[styles.textBase, styles.fontSemibold, styles.textGray900, styles.mt1]}>
                   Stop #{selectedStop.stop_order}
                 </Text>
-                <Text className="text-sm text-gray-600 mt-1">
+                <Text style={[styles.textSm, styles.textGray600, styles.mt1]}>
                   {selectedStop.address}
                 </Text>
                 {selectedStop.notes ? (
-                  <Text className="text-xs text-gray-500 mt-1 italic">
+                  <Text style={[styles.textXs, styles.textGray500, styles.mt1, styles.italic]}>
                     {selectedStop.notes}
                   </Text>
                 ) : null}
               </View>
               <View
-                className={`px-3 py-1 rounded-full ${
-                  selectedStop.is_completed ? 'bg-green-100' : 'bg-yellow-100'
-                }`}
+                style={[
+                  styles.px3,
+                  styles.py1,
+                  styles.roundedFull,
+                  selectedStop.is_completed ? styles.bgGreen100 : styles.bgYellow100
+                ]}
               >
                 <Text
-                  className={`text-xs font-semibold ${
-                    selectedStop.is_completed ? 'text-green-800' : 'text-yellow-800'
-                  }`}
+                  style={[
+                    styles.textXs,
+                    styles.fontSemibold,
+                    selectedStop.is_completed ? { color: '#166534' } : { color: '#854D0E' }
+                  ]}
                 >
                   {selectedStop.is_completed ? 'Completed' : 'Pending'}
                 </Text>
               </View>
             </View>
-            <View className="flex-row gap-2 mt-3">
+            <View style={[styles.flexRow, styles.gap2, styles.mt3]}>
               <TouchableOpacity
-                className="flex-1 border border-gray-200 rounded-lg py-2.5 flex-row items-center justify-center"
+                style={[styles.flex1, styles.border, styles.borderGray200, styles.roundedLg, { paddingVertical: 10 }, styles.flexRow, styles.itemsCenter, styles.justifyCenter]}
                 onPress={() => setSelectedStop(null)}
               >
                 <RefreshCwIcon size={16} color="#6B7280" />
-                <Text className="ml-1 text-gray-600 font-medium">Clear</Text>
+                <Text style={[styles.ml1, styles.textGray600, styles.fontMedium]}>Clear</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                className={`flex-1 rounded-lg py-2.5 flex-row items-center justify-center ${
-                  selectedStop.is_completed ? 'bg-gray-200' : 'bg-green-600'
-                }`}
+                style={[
+                  styles.flex1,
+                  styles.roundedLg,
+                  { paddingVertical: 10 },
+                  styles.flexRow,
+                  styles.itemsCenter,
+                  styles.justifyCenter,
+                  selectedStop.is_completed ? styles.bgGray200 : styles.bgGreen600
+                ]}
                 disabled={selectedStop.is_completed}
                 onPress={() => handleOpenScanner(selectedStop)}
               >
@@ -436,9 +723,11 @@ const RouteDetailScreen = () => {
                   color={selectedStop.is_completed ? '#6B7280' : '#ffffff'}
                 />
                 <Text
-                  className={`ml-1 font-semibold ${
-                    selectedStop.is_completed ? 'text-gray-600' : 'text-white'
-                  }`}
+                  style={[
+                    styles.ml1,
+                    styles.fontSemibold,
+                    selectedStop.is_completed ? styles.textGray600 : styles.textWhite
+                  ]}
                 >
                   {selectedStop.is_completed ? 'Completed' : 'Scan QR'}
                 </Text>
@@ -457,34 +746,39 @@ const RouteDetailScreen = () => {
     return (
       <View
         key={stop.id}
-        className="bg-white border border-gray-200 rounded-xl p-4 mb-3 shadow-sm"
+        style={[styles.bgWhite, styles.border, styles.borderGray200, styles.roundedXl, styles.p4, styles.mb3, styles.shadowSm]}
       >
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={() => openStopDetail(stop)}
         >
-          <View className="flex-row justify-between items-start">
-            <View className="flex-1 pr-2">
-              <Text className="text-sm text-gray-500">Stop #{stop.stop_order}</Text>
-              <Text className="text-base font-semibold text-gray-900 mt-1">{stop.address}</Text>
+          <View style={[styles.flexRow, styles.justifyBetween, styles.itemsStart]}>
+            <View style={[styles.flex1, styles.pr2]}>
+              <Text style={[styles.textSm, styles.textGray500]}>Stop #{stop.stop_order}</Text>
+              <Text style={[styles.textBase, styles.fontSemibold, styles.textGray900, styles.mt1]}>{stop.address}</Text>
               {stop.bin_owner_name ? (
-                <Text className="text-xs text-emerald-700 mt-1">
+                <Text style={[styles.textXs, { color: '#047857' }, styles.mt1]}>
                   Owner: {stop.bin_owner_name}
                 </Text>
               ) : null}
               {stop.notes ? (
-                <Text className="text-xs text-gray-500 mt-1">{stop.notes}</Text>
+                <Text style={[styles.textXs, styles.textGray500, styles.mt1]}>{stop.notes}</Text>
               ) : null}
             </View>
             <View
-              className={`px-2 py-1 rounded-full ${
-                stop.is_completed ? 'bg-green-100' : 'bg-yellow-100'
-              }`}
+              style={[
+                styles.px2,
+                styles.py1,
+                styles.roundedFull,
+                stop.is_completed ? styles.bgGreen100 : styles.bgYellow100
+              ]}
             >
               <Text
-                className={`text-xs font-semibold ${
-                  stop.is_completed ? 'text-green-800' : 'text-yellow-800'
-                }`}
+                style={[
+                  styles.textXs,
+                  styles.fontSemibold,
+                  stop.is_completed ? { color: '#166534' } : { color: '#854D0E' }
+                ]}
               >
                 {stop.is_completed ? 'Collected' : 'Pending'}
               </Text>
@@ -492,27 +786,41 @@ const RouteDetailScreen = () => {
           </View>
         </TouchableOpacity>
 
-        <View className="flex-row mt-4 gap-2">
+        <View style={[styles.flexRow, styles.mt4, styles.gap2]}>
           <TouchableOpacity
-            className={`flex-1 rounded-lg py-2 flex-row items-center justify-center ${
-              stop.is_completed ? 'bg-gray-200' : 'bg-green-600'
-            }`}
+            style={[
+              styles.flex1,
+              styles.roundedLg,
+              styles.py2,
+              styles.flexRow,
+              styles.itemsCenter,
+              styles.justifyCenter,
+              stop.is_completed ? styles.bgGray200 : styles.bgGreen600
+            ]}
             disabled={stop.is_completed}
             onPress={() => handleOpenScanner(stop)}
           >
             <CameraIcon size={16} color={stop.is_completed ? '#6B7280' : '#ffffff'} />
             <Text
-              className={`ml-1 font-semibold ${
-                stop.is_completed ? 'text-gray-600' : 'text-white'
-              }`}
+              style={[
+                styles.ml1,
+                styles.fontSemibold,
+                stop.is_completed ? styles.textGray600 : styles.textWhite
+              ]}
             >
               {stop.is_completed ? 'Collected' : 'Scan QR'}
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            className={`flex-1 rounded-lg py-2 flex-row items-center justify-center ${
-              manualDisabled ? 'bg-gray-200' : 'bg-emerald-600'
-            }`}
+            style={[
+              styles.flex1,
+              styles.roundedLg,
+              styles.py2,
+              styles.flexRow,
+              styles.itemsCenter,
+              styles.justifyCenter,
+              manualDisabled ? styles.bgGray200 : styles.bgEmerald600
+            ]}
             disabled={manualDisabled}
             onPress={() => handleMarkAsCollected(stop)}
           >
@@ -522,16 +830,18 @@ const RouteDetailScreen = () => {
               <CheckCircleIcon size={16} color={manualDisabled ? '#6B7280' : '#ffffff'} />
             )}
             <Text
-              className={`ml-1 font-semibold ${
-                manualDisabled ? 'text-gray-600' : 'text-white'
-              }`}
+              style={[
+                styles.ml1,
+                styles.fontSemibold,
+                manualDisabled ? styles.textGray600 : styles.textWhite
+              ]}
             >
               {stop.is_completed ? 'Collected' : 'Mark as Collected'}
             </Text>
           </TouchableOpacity>
         </View>
         {!stop.bin_id && !stop.is_completed ? (
-          <Text className="text-xs text-amber-600 mt-2">
+          <Text style={[styles.textXs, styles.textAmber600, styles.mt2]}>
             Link this stop to a bin to enable manual collection.
           </Text>
         ) : null}
@@ -542,7 +852,7 @@ const RouteDetailScreen = () => {
   const renderContent = () => {
     if (loading) {
       return (
-        <View className="flex-1 items-center justify-center">
+        <View style={[styles.flex1, styles.itemsCenter, styles.justifyCenter]}>
           <ActivityIndicator size="large" color="#16A34A" />
         </View>
       );
@@ -550,39 +860,38 @@ const RouteDetailScreen = () => {
 
     if (error) {
       return (
-        <View className="flex-1 items-center justify-center px-6">
+        <View style={[styles.flex1, styles.itemsCenter, styles.justifyCenter, styles.px6]}>
           <AlertTriangleIcon size={40} color="#DC2626" />
-          <Text className="text-red-600 font-semibold text-base mt-3">{error}</Text>
+          <Text style={[styles.textRed600, styles.fontSemibold, styles.textBase, styles.mt3]}>{error}</Text>
           <TouchableOpacity
-            className="mt-4 px-6 py-3 bg-red-600 rounded-lg"
+            style={[styles.mt4, styles.px6, styles.py3, styles.bgRed600, styles.roundedLg]}
             onPress={fetchDetails}
           >
-            <Text className="text-white font-semibold">Retry</Text>
+            <Text style={[styles.textWhite, styles.fontSemibold]}>Retry</Text>
           </TouchableOpacity>
         </View>
       );
     }
 
     return (
-      <ScrollView className="flex-1">
-        <View className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
-          <Text className="text-lg font-semibold text-gray-900">
+      <ScrollView style={styles.flex1}>
+        <View style={[styles.bgWhite, styles.rounded2xl, styles.p4, styles.shadowSm, styles.border, { borderColor: '#F3F4F6' }]}>
+          <Text style={[styles.textLg, styles.fontSemibold, styles.textGray900]}>
             {assignmentData?.route?.name}
           </Text>
-          <Text className="text-sm text-gray-500 mt-1">
+          <Text style={[styles.textSm, styles.textGray500, styles.mt1]}>
             {assignmentData?.route?.barangay} • {assignmentData?.route?.total_stops} stops
           </Text>
-          <View className="mt-4">
-            <View className="flex-row justify-between">
-              <Text className="text-sm text-gray-500">Progress</Text>
-              <Text className="text-sm font-semibold text-gray-900">
+          <View style={styles.mt4}>
+            <View style={[styles.flexRow, styles.justifyBetween]}>
+              <Text style={[styles.textSm, styles.textGray500]}>Progress</Text>
+              <Text style={[styles.textSm, styles.fontSemibold, styles.textGray900]}>
                 {progress.completed}/{progress.total} ({progress.percentage}%)
               </Text>
             </View>
-            <View className="w-full h-3 bg-gray-100 rounded-full mt-2 overflow-hidden">
+            <View style={[styles.wFull, styles.h3, styles.bgGray100, styles.roundedFull, styles.mt2, styles.overflowHidden]}>
               <View
-                className="h-full bg-green-500 rounded-full"
-                style={{ width: `${progress.percentage}%` }}
+                style={[styles.hFull, styles.bgGreen500, styles.roundedFull, { width: `${progress.percentage}%` }]}
               />
             </View>
           </View>
@@ -591,28 +900,28 @@ const RouteDetailScreen = () => {
         {renderToggle()}
 
         {activeView === VIEW_MODES.LIST ? (
-          <View className="mt-4">{stops.map(renderStopCard)}</View>
+          <View style={styles.mt4}>{stops.map(renderStopCard)}</View>
         ) : (
           renderMap()
         )}
 
-        <View className="h-6" />
+        <View style={styles.h6} />
       </ScrollView>
     );
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
-      <View className="flex-row items-center px-4 py-3 bg-white border-b border-gray-100">
+    <SafeAreaView style={[styles.flex1, styles.bgGray50]}>
+      <View style={[styles.flexRow, styles.itemsCenter, styles.px4, { paddingVertical: 12 }, styles.bgWhite, styles.borderB, { borderColor: '#F3F4F6' }]}>
         <TouchableOpacity
-          className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center mr-3"
+          style={[styles.w10, styles.h10, styles.roundedFull, styles.bgGray100, styles.itemsCenter, styles.justifyCenter, styles.mr3]}
           onPress={() => router.back()}
         >
           <ArrowLeftIcon size={20} color="#111827" />
         </TouchableOpacity>
         <View>
-          <Text className="text-xs text-gray-500 uppercase">Route Details</Text>
-          <Text className="text-base font-semibold text-gray-900">
+          <Text style={[styles.textXs, styles.textGray500, styles.uppercase]}>Route Details</Text>
+          <Text style={[styles.textBase, styles.fontSemibold, styles.textGray900]}>
             Assignment #{assignmentId}
           </Text>
         </View>
@@ -621,67 +930,65 @@ const RouteDetailScreen = () => {
       {renderContent()}
 
       <Modal visible={detailModalVisible} animationType="slide" onRequestClose={closeStopDetail}>
-        <SafeAreaView className="flex-1 bg-gray-50">
-          <View className="flex-row items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
-            <View className="flex-1 pr-4">
-              <Text className="text-xs text-gray-500 uppercase">Stop Details</Text>
-              <Text className="text-base font-semibold text-gray-900" numberOfLines={1}>
+        <SafeAreaView style={[styles.flex1, styles.bgGray50]}>
+          <View style={[styles.flexRow, styles.itemsCenter, styles.justifyBetween, styles.px4, { paddingVertical: 12 }, styles.bgWhite, styles.borderB, styles.borderGray200]}>
+            <View style={[styles.flex1, styles.pr4]}>
+              <Text style={[styles.textXs, styles.textGray500, styles.uppercase]}>Stop Details</Text>
+              <Text style={[styles.textBase, styles.fontSemibold, styles.textGray900]} numberOfLines={1}>
                 {detailStop ? `Stop #${detailStop.stop_order}` : ''}
               </Text>
             </View>
             <Pressable onPress={closeStopDetail}>
-              <Text className="text-green-600 font-semibold">Close</Text>
+              <Text style={[styles.textGreen600, styles.fontSemibold]}>Close</Text>
             </Pressable>
           </View>
 
           {detailStop ? (
-            <ScrollView className="flex-1 px-4 py-4">
-              <View className="bg-white rounded-xl p-4 border border-gray-100 mb-4">
-                <Text className="text-sm text-gray-500">Address</Text>
-                <Text className="text-base font-semibold text-gray-900 mt-1">
+            <ScrollView style={[styles.flex1, styles.px4, { paddingVertical: 16 }]}>
+              <View style={[styles.bgWhite, styles.roundedXl, styles.p4, styles.border, { borderColor: '#F3F4F6' }, styles.mb4]}>
+                <Text style={[styles.textSm, styles.textGray500]}>Address</Text>
+                <Text style={[styles.textBase, styles.fontSemibold, styles.textGray900, styles.mt1]}>
                   {detailStop.address ?? 'No address provided'}
                 </Text>
 
-                <Text className="text-sm text-gray-500 mt-4">Bin Owner</Text>
-                <Text className="text-base font-semibold text-gray-900 mt-1">
+                <Text style={[styles.textSm, styles.textGray500, styles.mt4]}>Bin Owner</Text>
+                <Text style={[styles.textBase, styles.fontSemibold, styles.textGray900, styles.mt1]}>
                   {detailStop.bin_owner_name ??
                     detailStop.resident_name ??
                     detailStop.resident_full_name ??
                     'Not specified'}
                 </Text>
                 {detailStop.bin_owner_contact ? (
-                  <Text className="text-sm text-gray-600 mt-1">
+                  <Text style={[styles.textSm, styles.textGray600, styles.mt1]}>
                     Contact: {detailStop.bin_owner_contact}
                   </Text>
                 ) : null}
                 {detailStop.bin_owner_address ? (
-                  <Text className="text-sm text-gray-600 mt-1">
+                  <Text style={[styles.textSm, styles.textGray600, styles.mt1]}>
                     {detailStop.bin_owner_address}
                   </Text>
                 ) : null}
 
                 {detailStop.notes ? (
                   <>
-                    <Text className="text-sm text-gray-500 mt-4">Notes</Text>
-                    <Text className="text-sm text-gray-800 mt-1">
+                    <Text style={[styles.textSm, styles.textGray500, styles.mt4]}>Notes</Text>
+                    <Text style={[styles.textSm, { color: '#1F2937' }, styles.mt1]}>
                       {detailStop.notes}
                     </Text>
                   </>
                 ) : null}
 
-                <View className="mt-4 border-t border-gray-100 pt-3">
-                  <Text className="text-sm text-gray-500">Bin Information</Text>
-                  <Text className="text-sm text-gray-900 mt-1">
+                <View style={[styles.mt4, styles.borderT, { borderColor: '#F3F4F6', paddingTop: 12 }]}>
+                  <Text style={[styles.textSm, styles.textGray500]}>Bin Information</Text>
+                  <Text style={[styles.textSm, styles.textGray900, styles.mt1]}>
                     Type: {detailStop.bin_type ?? 'Not specified'}
                   </Text>
                   {detailStop.last_collected_at ? (
-                    <Text className="text-xs text-gray-500 mt-1">
+                    <Text style={[styles.textXs, styles.textGray500, styles.mt1]}>
                       Last collected: {detailStop.last_collected_at}
                     </Text>
                   ) : null}
-                  <Text className={`text-xs font-semibold mt-2 ${
-                    detailStop.is_completed ? 'text-green-600' : 'text-amber-600'
-                  }`}>
+                  <Text style={[styles.textXs, styles.fontSemibold, styles.mt2, detailStop.is_completed ? styles.textGreen600 : styles.textAmber600]}>
                     Status: {detailStop.is_completed ? 'Collected' : 'Pending'}
                   </Text>
                 </View>
@@ -702,34 +1009,34 @@ const RouteDetailScreen = () => {
                   );
                 })()
               ) : (
-                <View className="mt-2 rounded-2xl overflow-hidden border border-gray-200 bg-gray-100" style={{ height: Math.min(height * 0.55, 500) }}>
-                  <View className="flex-1 items-center justify-center p-6">
+                <View style={[styles.mt2, styles.rounded2xl, styles.overflowHidden, styles.border, styles.borderGray200, styles.bgGray100, { height: Math.min(height * 0.55, 500) }]}>
+                  <View style={[styles.flex1, styles.itemsCenter, styles.justifyCenter, styles.p6]}>
                     <ActivityIndicator size="large" color="#16A34A" />
-                    <Text className="text-gray-500 text-center mt-4">
+                    <Text style={[styles.textGray500, styles.textCenter, styles.mt4]}>
                       Loading map...
                     </Text>
                   </View>
                 </View>
               )}
 
-              <View className="h-10" />
+              <View style={{ height: 40 }} />
             </ScrollView>
           ) : null}
         </SafeAreaView>
       </Modal>
 
       <Modal visible={scannerVisible} animationType="slide" onRequestClose={closeScanner}>
-        <SafeAreaView className="flex-1 bg-black">
-          <View className="flex-row items-center justify-between px-4 py-3">
-            <Text className="text-white font-semibold text-lg">Scan QR Code</Text>
+        <SafeAreaView style={[styles.flex1, styles.bgBlack]}>
+          <View style={[styles.flexRow, styles.itemsCenter, styles.justifyBetween, styles.px4, { paddingVertical: 12 }]}>
+            <Text style={[styles.textWhite, styles.fontSemibold, { fontSize: 18 }]}>Scan QR Code</Text>
             <Pressable onPress={closeScanner}>
-              <Text className="text-gray-200 text-sm">Close</Text>
+              <Text style={[{ color: '#E5E7EB' }, styles.textSm]}>Close</Text>
             </Pressable>
           </View>
 
-          <View className="flex-1 items-center justify-center">
+          <View style={[styles.flex1, styles.itemsCenter, styles.justifyCenter]}>
             {!cameraPermission?.granted ? (
-              <Text className="text-white px-6 text-center">
+              <Text style={[styles.textWhite, styles.px6, styles.textCenter]}>
                 Camera permission is required to scan QR codes.
               </Text>
             ) : (
@@ -741,21 +1048,21 @@ const RouteDetailScreen = () => {
               />
             )}
 
-            <View className="mt-6 px-4 w-full">
+            <View style={[{ marginTop: 24 }, styles.px4, styles.wFull]}>
               {scanProcessing ? (
-                <View className="flex-row items-center justify-center gap-2">
+                <View style={[styles.flexRow, styles.itemsCenter, styles.justifyCenter, styles.gap2]}>
                   <ActivityIndicator color="#ffffff" />
-                  <Text className="text-white text-sm">Processing scan...</Text>
+                  <Text style={[styles.textWhite, styles.textSm]}>Processing scan...</Text>
                 </View>
               ) : null}
               {scanSuccess ? (
-                <Text className="text-green-400 text-center mt-3">{scanSuccess}</Text>
+                <Text style={[{ color: '#4ADE80' }, styles.textCenter, styles.mt3]}>{scanSuccess}</Text>
               ) : null}
               {scanError ? (
-                <Text className="text-red-400 text-center mt-3">{scanError}</Text>
+                <Text style={[{ color: '#F87171' }, styles.textCenter, styles.mt3]}>{scanError}</Text>
               ) : null}
               {selectedStop ? (
-                <Text className="text-gray-200 text-center mt-4 text-sm">
+                <Text style={[{ color: '#E5E7EB' }, styles.textCenter, styles.mt4, styles.textSm]}>
                   Stop #{selectedStop.stop_order} • {selectedStop.address}
                 </Text>
               ) : null}

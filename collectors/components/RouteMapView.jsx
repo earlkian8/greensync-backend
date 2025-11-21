@@ -1,5 +1,5 @@
 import React, { useRef, useEffect } from 'react';
-import { View, Text, ActivityIndicator, Dimensions, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, ActivityIndicator, Dimensions, TouchableOpacity, Platform, StyleSheet } from 'react-native';
 import { MapIcon, NavigationIcon } from 'lucide-react-native';
 
 const { height } = Dimensions.get('window');
@@ -114,10 +114,10 @@ const RouteMapView = ({
 
   if (loading) {
     return (
-      <View className="mt-4 rounded-2xl overflow-hidden border border-gray-200 bg-gray-100" style={{ height: Math.min(height * 0.55, 500) }}>
-        <View className="flex-1 items-center justify-center p-6">
+      <View style={[styles.mapContainer, { height: Math.min(height * 0.55, 500) }]}>
+        <View style={[styles.flex1, styles.itemsCenter, styles.justifyCenter, styles.p6]}>
           <ActivityIndicator size="large" color="#16A34A" />
-          <Text className="text-gray-500 text-center mt-4">
+          <Text style={[styles.textGray500, styles.textCenter, styles.mt4]}>
             Loading map...
           </Text>
         </View>
@@ -127,14 +127,14 @@ const RouteMapView = ({
 
   if (error || !mapComponents) {
     return (
-      <View className="mt-4 rounded-2xl overflow-hidden border border-gray-200 bg-gray-100" style={{ height: Math.min(height * 0.55, 500) }}>
-        <View className="flex-1 items-center justify-center p-6">
+      <View style={[styles.mapContainer, { height: Math.min(height * 0.55, 500) }]}>
+        <View style={[styles.flex1, styles.itemsCenter, styles.justifyCenter, styles.p6]}>
           <MapIcon size={48} color="#9CA3AF" />
-          <Text className="text-gray-500 text-center mt-4">
+          <Text style={[styles.textGray500, styles.textCenter, styles.mt4]}>
             {error || 'Map unavailable'}
           </Text>
           {fallbackMessage ? (
-            <Text className="text-xs text-gray-500 text-center mt-2 px-4">
+            <Text style={[styles.textXs, styles.textGray500, styles.textCenter, styles.mt2, styles.px4]}>
               {fallbackMessage}
             </Text>
           ) : null}
@@ -145,10 +145,10 @@ const RouteMapView = ({
 
   if (validStops.length === 0) {
     return (
-      <View className="mt-4 rounded-2xl overflow-hidden border border-gray-200 bg-gray-100" style={{ height: Math.min(height * 0.55, 500) }}>
-        <View className="flex-1 items-center justify-center p-6">
+      <View style={[styles.mapContainer, { height: Math.min(height * 0.55, 500) }]}>
+        <View style={[styles.flex1, styles.itemsCenter, styles.justifyCenter, styles.p6]}>
           <MapIcon size={48} color="#9CA3AF" />
-          <Text className="text-gray-500 text-center mt-4">
+          <Text style={[styles.textGray500, styles.textCenter, styles.mt4]}>
             No stops with valid coordinates available
           </Text>
         </View>
@@ -160,7 +160,7 @@ const RouteMapView = ({
   const mapProvider = Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT;
 
   return (
-    <View className="mt-4 rounded-2xl overflow-hidden border border-gray-200">
+    <View style={[styles.mt4, styles.rounded2xl, styles.overflowHidden, styles.border, styles.borderGray200]}>
       <MapView
         ref={mapRef}
         style={{ width: '100%', height: Math.min(height * 0.55, 500) }}
@@ -243,9 +243,9 @@ const RouteMapView = ({
       </MapView>
 
       {/* Map controls */}
-      <View className="absolute top-4 right-4 flex-col gap-2">
+      <View style={[styles.absolute, { top: 16, right: 16 }, styles.flexCol, styles.gap2]}>
         <TouchableOpacity
-          className="bg-white rounded-full p-3 shadow-lg"
+          style={[styles.bgWhite, styles.roundedFull, { padding: 12 }, styles.shadowLg]}
           onPress={onFitToStops}
         >
           <NavigationIcon size={20} color="#16A34A" />
@@ -254,6 +254,87 @@ const RouteMapView = ({
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  flex1: {
+    flex: 1,
+  },
+  flexRow: {
+    flexDirection: 'row',
+  },
+  flexCol: {
+    flexDirection: 'column',
+  },
+  itemsCenter: {
+    alignItems: 'center',
+  },
+  justifyCenter: {
+    justifyContent: 'center',
+  },
+  mt2: {
+    marginTop: 8,
+  },
+  mt4: {
+    marginTop: 16,
+  },
+  px4: {
+    paddingHorizontal: 16,
+  },
+  p6: {
+    padding: 24,
+  },
+  gap2: {
+    gap: 8,
+  },
+  rounded2xl: {
+    borderRadius: 16,
+  },
+  roundedFull: {
+    borderRadius: 9999,
+  },
+  overflowHidden: {
+    overflow: 'hidden',
+  },
+  border: {
+    borderWidth: 1,
+  },
+  borderGray200: {
+    borderColor: '#E5E7EB',
+  },
+  bgGray100: {
+    backgroundColor: '#F3F4F6',
+  },
+  bgWhite: {
+    backgroundColor: '#FFFFFF',
+  },
+  textCenter: {
+    textAlign: 'center',
+  },
+  textGray500: {
+    color: '#6B7280',
+  },
+  textXs: {
+    fontSize: 12,
+  },
+  absolute: {
+    position: 'absolute',
+  },
+  shadowLg: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  mapContainer: {
+    marginTop: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F3F4F6',
+  },
+});
 
 export default RouteMapView;
 

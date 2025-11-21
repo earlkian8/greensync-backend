@@ -69,9 +69,6 @@ class QRCollectionController extends Controller
             $alreadyCollected = QrCollection::where('bin_id', $wasteBin->id)
                 ->where('assignment_id', $request->assignment_id)
                 ->whereIn('collection_status', ['completed', 'collected', 'manual', 'successful'])
-            $alreadyCollected = QrCollection::where('bin_id', $wasteBin->id)
-                ->where('assignment_id', $request->assignment_id)
-                ->whereIn('collection_status', ['completed', 'collected', 'manual', 'successful'])
                 ->exists();
 
             if ($alreadyCollected) {
