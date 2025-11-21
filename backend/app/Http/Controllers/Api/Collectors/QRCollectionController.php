@@ -293,6 +293,9 @@ class QRCollectionController extends Controller
                 'is_verified' => false,
             ]);
 
+            // Update the stop's completion status
+            $stop->update(['is_completed' => true]);
+
             WasteBin::where('id', $bin->id)
                 ->update(['last_collected' => Carbon::now()]);
 

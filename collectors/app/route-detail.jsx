@@ -473,7 +473,7 @@ const RouteDetailScreen = () => {
         longitude: parseFloat(stop.longitude) || undefined,
         wasteType: 'mixed',
       });
-      updateStopCompletion(stop.id);
+      await fetchDetails(); // Reload route data to reflect backend changes
       if (detailStop?.id === stop.id) {
         setDetailStop((prev) =>
           prev ? { ...prev, is_completed: true, last_collected_at: new Date().toISOString() } : prev

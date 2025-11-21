@@ -207,37 +207,9 @@ const RouteMapView = ({
               title={`Stop #${stop.stop_order}`}
               description={stop.address}
               onPress={() => onStopSelect?.(stop)}
-              anchor={{ x: 0.5, y: 0.5 }}
+              pinColor={markerColor}
               tracksViewChanges={false}
-            >
-              <View
-                style={{
-                  backgroundColor: markerColor,
-                  width: 44,
-                  height: 44,
-                  borderRadius: 22,
-                  borderWidth: 3,
-                  borderColor: '#FFFFFF',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 3 },
-                  shadowOpacity: 0.4,
-                  shadowRadius: 5,
-                  elevation: 8,
-                }}
-              >
-                <Text
-                  style={{
-                    color: '#FFFFFF',
-                    fontSize: 14,
-                    fontWeight: 'bold',
-                  }}
-                >
-                  {stop.stop_order}
-                </Text>
-              </View>
-            </Marker>
+            />
           );
         })}
       </MapView>
