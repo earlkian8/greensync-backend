@@ -262,18 +262,29 @@ const ShowCollectionRequest = ({ setShowViewModal, request }) => {
                 label="Waste Bin" 
                 value={
                   request.waste_bin ? 
-                  `${request.waste_bin.bin_identifier} - ${request.waste_bin.bin_type}` : 
+                  `${request.waste_bin.name || request.waste_bin.qr_code || 'N/A'}${request.waste_bin.bin_type ? ` - ${request.waste_bin.bin_type}` : ''}` : 
                   '---'
                 } 
               />
               {request.waste_bin && (
-                <div className="flex items-start gap-3 py-2 pl-8">
-                  <MapPin className="h-4 w-4 text-zinc-500 mt-0.5" />
-                  <div className="flex-1">
-                    <p className="text-xs text-zinc-500">Bin Location</p>
-                    <p className="text-sm text-zinc-800">{request.waste_bin.location || '---'}</p>
+                <>
+                  <div className="flex items-start gap-3 py-2 pl-8">
+                    <Package className="h-4 w-4 text-zinc-500 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-xs text-zinc-500">QR Code</p>
+                      <p className="text-sm text-zinc-800">{request.waste_bin.qr_code || '---'}</p>
+                    </div>
                   </div>
-                </div>
+                  {request.waste_bin.bin_type && (
+                    <div className="flex items-start gap-3 py-2 pl-8">
+                      <Trash2 className="h-4 w-4 text-zinc-500 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="text-xs text-zinc-500">Bin Type</p>
+                        <p className="text-sm text-zinc-800">{request.waste_bin.bin_type}</p>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
               
               <Separator className="my-3" />

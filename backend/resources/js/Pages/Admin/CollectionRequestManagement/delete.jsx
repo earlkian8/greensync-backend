@@ -124,9 +124,9 @@ const DeleteCollectionRequest = ({ setShowDeleteModal, request }) => {
           <div className="flex justify-between items-start">
             <span className="text-sm font-medium text-zinc-700">Waste Bin:</span>
             <span className="text-sm text-zinc-900 text-right">
-              {request.waste_bin?.bin_identifier}
+              {request.waste_bin?.name || request.waste_bin?.qr_code || '---'}
               <br />
-              <span className="text-xs text-zinc-600">{request.waste_bin?.location}</span>
+              <span className="text-xs text-zinc-600">{request.waste_bin?.qr_code || '---'}</span>
             </span>
           </div>
           

@@ -36,9 +36,9 @@ class CollectionRequestController extends Controller
 
         $query = CollectionRequest::with([
             'resident:id,name,email,phone_number,barangay',
-            'wasteBin:id,name,qr_code,bin_type',
+            'wasteBin:id,name,qr_code,bin_type,status',
             'collector:id,name,phone_number,employee_id'
-        ]);
+        ])->select('collection_requests.*');
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -332,6 +332,9 @@ class CollectionRequestController extends Controller
             'route_id' => 'required|exists:routes,id',
         ]);
 
+        // Refresh the collection request to ensure we have the latest data
+        $collectionRequest->refresh();
+        
         // Load the resident to get address information
         $collectionRequest->load('resident');
         
@@ -344,9 +347,16 @@ class CollectionRequestController extends Controller
             return back()->withErrors(['error' => 'Collection request must have latitude and longitude coordinates']);
         }
 
-        // Check if bin_id is available
-        if (!$collectionRequest->bin_id) {
+        // Get and validate bin_id explicitly
+        $binId = $collectionRequest->bin_id;
+        if (!$binId) {
             return back()->withErrors(['error' => 'Collection request must have an associated waste bin']);
+        }
+
+        // Verify the bin exists
+        $wasteBin = WasteBin::find($binId);
+        if (!$wasteBin) {
+            return back()->withErrors(['error' => 'The waste bin associated with this request does not exist']);
         }
 
         DB::beginTransaction();
@@ -367,10 +377,10 @@ class CollectionRequestController extends Controller
                 $collectionRequest->resident->province,
             ])));
 
-            // Create the route stop
+            // Create the route stop with explicit bin_id
             $routeStop = RouteStop::create([
                 'route_id' => $route->id,
-                'bin_id' => $collectionRequest->bin_id,
+                'bin_id' => $binId, // Explicitly use the bin_id from collection request
                 'stop_order' => $maxStopOrder + 1,
                 'stop_address' => $stopAddress ?: $collectionRequest->resident->barangay,
                 'latitude' => $collectionRequest->latitude,
@@ -379,6 +389,12 @@ class CollectionRequestController extends Controller
                 'notes' => 'Collection Request: ' . $collectionRequest->request_type . 
                           ($collectionRequest->description ? ' - ' . $collectionRequest->description : ''),
             ]);
+
+            // Verify the bin_id was actually stored
+            $routeStop->refresh();
+            if ($routeStop->bin_id !== $binId) {
+                throw new \Exception('Failed to store bin_id in route stop');
+            }
 
             // Update route total_stops
             $route->increment('total_stops');
@@ -393,7 +409,7 @@ class CollectionRequestController extends Controller
             $this->adminActivityLogs(
                 'Collection Request',
                 'To Route',
-                'Added Collection Request ID: ' . $collectionRequest->id . ' to Route: ' . $route->route_name . ' as Stop #' . $routeStop->stop_order
+                'Added Collection Request ID: ' . $collectionRequest->id . ' (Bin ID: ' . $binId . ') to Route: ' . $route->route_name . ' as Stop #' . $routeStop->stop_order . ' with bin_id: ' . $routeStop->bin_id
             );
 
             return back()->with('success', 'Collection request added to route successfully');
