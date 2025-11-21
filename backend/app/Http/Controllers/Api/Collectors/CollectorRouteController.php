@@ -119,57 +119,33 @@ class CollectorRouteController extends Controller
                 ->whereIn('collection_status', ['successful', 'collected', 'completed', 'manual'])
                 ->get();
 
-            // Get collection bin IDs and addresses for matching
+            // Get collection bin IDs
             $collectionBinIds = $successfulCollections->pluck('bin_id')->filter()->unique()->values()->all();
-            
-            // Try to match stops with collections by address
-            // First, get addresses from collections if available
-            $collectionAddresses = [];
-            foreach ($successfulCollections as $collection) {
-                if ($collection->wasteBin && $collection->wasteBin->resident) {
-                    $address = $collection->wasteBin->resident->address ?? $collection->wasteBin->resident->full_address ?? null;
-                    if ($address) {
-                        $collectionAddresses[] = strtolower(trim($address));
-                    }
-                }
-            }
 
             // Map stops and determine completion
-            // Ensure stops collection exists and is not null
             $routeStops = $assignment->route->stops ?? collect([]);
-            
-            $collectionsByBin = $successfulCollections->keyBy('bin_id');
 
-            $stops = $routeStops->map(function ($stop) use ($collectionAddresses, $collectionBinIds, $collectionsByBin) {
-                $stopAddress = strtolower(trim($stop->stop_address));
-                // Match by address (case-insensitive, trimmed)
-                $isCompleted = false;
-                $completionMeta = null;
-
-                // Use stop's bin_id directly (from route_stops table)
+            $stops = $routeStops->map(function ($stop) use ($collectionBinIds, $successfulCollections) {
+                // Get bin from the stop's bin_id (direct relationship)
                 $stopBinId = $stop->bin_id;
-
-                if ($stopBinId && in_array($stopBinId, $collectionBinIds)) {
-                    $isCompleted = true;
-                    $completionMeta = $collectionsByBin->get($stopBinId);
-                } elseif (!empty($collectionAddresses) && in_array($stopAddress, $collectionAddresses)) {
-                    $isCompleted = true;
-                }
-
-                // Get bin from relationship, or from completion meta if available
+                
+                // Check if this stop's bin has been collected
+                $isCompleted = $stopBinId && in_array($stopBinId, $collectionBinIds);
+                
+                // Get bin and resident info
                 $bin = $stop->bin;
                 $resident = $bin?->resident;
-
-                if (!$bin && $completionMeta && $completionMeta->wasteBin) {
-                    $bin = $completionMeta->wasteBin;
-                    $resident = $bin->resident;
-                }
-
-                // If we have bin_id but no bin relationship loaded, try to load it
+                
+                // If no bin relationship loaded, try to load it
                 if ($stopBinId && !$bin) {
                     $bin = WasteBin::with('resident')->find($stopBinId);
                     $resident = $bin?->resident;
                 }
+                
+                // Get collection record for this bin if it exists
+                $collection = $isCompleted 
+                    ? $successfulCollections->firstWhere('bin_id', $stopBinId)
+                    : null;
                 
                 return [
                     'id' => $stop->id,
@@ -180,13 +156,13 @@ class CollectorRouteController extends Controller
                     'estimated_time' => $stop->estimated_time,
                     'notes' => $stop->notes,
                     'is_completed' => $isCompleted,
-                    'bin_id' => $stopBinId, // Use the bin_id directly from route_stops table
+                    'bin_id' => $stopBinId,
                     'qr_code' => $bin?->qr_code,
                     'bin_type' => $bin?->bin_type,
-                    'bin_owner_name' => $resident?->name ?? null,
-                    'bin_owner_contact' => $resident?->phone_number ?? null,
-                    'bin_owner_address' => $resident?->full_address ?? null,
-                    'last_collected_at' => $completionMeta?->collection_timestamp?->format('Y-m-d H:i:s') 
+                    'bin_owner_name' => $resident ? ($resident->first_name . ' ' . $resident->last_name) : null,
+                    'bin_owner_contact' => $resident?->phone_number ?? $resident?->contact_number ?? null,
+                    'bin_owner_address' => $resident?->address ?? $resident?->full_address ?? null,
+                    'last_collected_at' => $collection?->collection_timestamp?->format('Y-m-d H:i:s') 
                         ?? $bin?->last_collected?->format('Y-m-d H:i:s'),
                 ];
             });
