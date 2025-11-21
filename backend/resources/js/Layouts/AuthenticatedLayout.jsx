@@ -129,9 +129,9 @@ export default function AuthenticatedLayout({ breadcrumbs = [], children }) {
     // },
     {
       title: 'Reporting',
-      url: '#',
+      url: route('admin.reporting.index'),
       icon: BarChart2,
-      routeName: 'reporting.*',
+      routeName: 'admin.reporting.*',
       type: 'single'
     },
     {

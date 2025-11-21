@@ -11,6 +11,8 @@ use App\Http\Controllers\v1\Admin\RouteController;
 use App\Http\Controllers\v1\Admin\RouteAssignmentController;
 use App\Http\Controllers\v1\Admin\CollectionRequestController;
 use App\Http\Controllers\v1\Admin\NotificationController;
+use App\Http\Controllers\v1\Admin\DashboardController;
+use App\Http\Controllers\v1\Admin\ReportingController;
 use App\Http\Controllers\ActivityLogsController;
 
 Route::middleware('auth')->group(function () {
@@ -18,6 +20,22 @@ Route::middleware('auth')->group(function () {
 
     // Admin
     Route::prefix('admin')->name('admin.')->middleware(['auth', 'verified'])->group(function(){
+    
+        // Dashboard
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+        Route::get('/dashboard/data', [DashboardController::class, 'getData'])->name('dashboard.data');
+
+        // Reporting Module
+        Route::prefix('reporting')->name('reporting.')->group(function(){
+            Route::get('/', [ReportingController::class, 'index'])->name('index');
+            Route::get('/collection-report', [ReportingController::class, 'collectionReport'])->name('collection-report');
+            Route::get('/collector-performance-report', [ReportingController::class, 'collectorPerformanceReport'])->name('collector-performance-report');
+            Route::get('/route-performance-report', [ReportingController::class, 'routePerformanceReport'])->name('route-performance-report');
+            Route::get('/waste-type-analysis-report', [ReportingController::class, 'wasteTypeAnalysisReport'])->name('waste-type-analysis-report');
+            Route::get('/resident-participation-report', [ReportingController::class, 'residentParticipationReport'])->name('resident-participation-report');
+            Route::get('/collection-request-report', [ReportingController::class, 'collectionRequestReport'])->name('collection-request-report');
+            Route::get('/executive-summary-report', [ReportingController::class, 'executiveSummaryReport'])->name('executive-summary-report');
+        });
     
         // Resident Management
         Route::prefix('resident-management')->name('resident-management.')->group(function(){
