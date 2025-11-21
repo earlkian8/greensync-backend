@@ -4,8 +4,9 @@ namespace App\Http\Controllers\Api\Collectors;
 
 use App\Http\Controllers\Controller;
 use App\Models\QrCollection;
-use App\Models\WasteBin;
 use App\Models\RouteAssignment;
+use App\Models\RouteStop;
+use App\Models\WasteBin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -50,9 +51,11 @@ class QRCollectionController extends Controller
                 ], 403);
             }
 
-            // Find waste bin by QR code
+            $qrCode = strtolower(trim($request->qr_code));
+
+            // Find waste bin by QR code (case-insensitive)
             $wasteBin = WasteBin::with('resident')
-                ->where('qr_code', $request->qr_code)
+                ->whereRaw('LOWER(qr_code) = ?', [$qrCode])
                 ->first();
 
             if (!$wasteBin) {
@@ -65,7 +68,10 @@ class QRCollectionController extends Controller
             // Check if bin is already collected today
             $alreadyCollected = QrCollection::where('bin_id', $wasteBin->id)
                 ->where('assignment_id', $request->assignment_id)
-                ->whereIn('collection_status', ['completed', 'collected'])
+                ->whereIn('collection_status', ['completed', 'collected', 'manual', 'successful'])
+            $alreadyCollected = QrCollection::where('bin_id', $wasteBin->id)
+                ->where('assignment_id', $request->assignment_id)
+                ->whereIn('collection_status', ['completed', 'collected', 'manual', 'successful'])
                 ->exists();
 
             if ($alreadyCollected) {
@@ -184,6 +190,115 @@ class QRCollectionController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to record collection',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Manually mark a stop as collected (fallback when QR scan fails)
+     * 
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function manualCollectStop(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'assignment_id' => 'required|exists:route_assignments,id',
+                'stop_id' => 'required|exists:route_stops,id',
+                'latitude' => 'nullable|numeric|between:-90,90',
+                'longitude' => 'nullable|numeric|between:-180,180',
+                'waste_weight' => 'nullable|numeric|min:0',
+                'waste_type' => 'nullable|string|in:biodegradable,non-biodegradable,recyclable,hazardous,mixed',
+                'notes' => 'nullable|string|max:500',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $collectorId = Auth::guard('collector')->id();
+
+            $assignment = RouteAssignment::where('id', $request->assignment_id)
+                ->where('collector_id', $collectorId)
+                ->first();
+
+            if (!$assignment) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid route assignment'
+                ], 403);
+            }
+
+            $stop = RouteStop::with('bin.resident')
+                ->where('id', $request->stop_id)
+                ->where('route_id', $assignment->route_id)
+                ->first();
+
+            if (!$stop) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Stop not found for this assignment'
+                ], 404);
+            }
+
+            if (!$stop->bin) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This stop is not linked to a registered bin'
+                ], 422);
+            }
+
+            $bin = $stop->bin;
+
+            $alreadyCollected = QrCollection::where('assignment_id', $assignment->id)
+                ->where('bin_id', $bin->id)
+                ->whereIn('collection_status', ['completed', 'collected', 'manual', 'successful'])
+                ->exists();
+
+            if ($alreadyCollected) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This stop has already been marked as collected for this assignment'
+                ], 400);
+            }
+
+            $collection = QrCollection::create([
+                'bin_id' => $bin->id,
+                'collector_id' => $collectorId,
+                'assignment_id' => $assignment->id,
+                'qr_code' => $bin->qr_code,
+                'collection_timestamp' => Carbon::now(),
+                'latitude' => $request->latitude,
+                'longitude' => $request->longitude,
+                'waste_weight' => $request->waste_weight,
+                'waste_type' => $request->waste_type ?? 'mixed',
+                'collection_status' => 'manual',
+                'notes' => $request->notes,
+                'is_verified' => false,
+            ]);
+
+            WasteBin::where('id', $bin->id)
+                ->update(['last_collected' => Carbon::now()]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Stop marked as collected successfully',
+                'data' => [
+                    'collection_id' => $collection->id,
+                    'collection_timestamp' => $collection->collection_timestamp->format('Y-m-d H:i:s'),
+                    'collection_status' => $collection->collection_status,
+                ]
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to mark stop as collected',
                 'error' => $e->getMessage()
             ], 500);
         }

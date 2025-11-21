@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\WasteBin;
 
 class RouteStop extends Model
 {
@@ -11,6 +12,7 @@ class RouteStop extends Model
 
     protected $fillable = [
         'route_id',
+        'bin_id',
         'stop_order',
         'stop_address',
         'latitude',
@@ -34,5 +36,10 @@ class RouteStop extends Model
     public function route()
     {
         return $this->belongsTo(Route::class, 'route_id');
+    }
+
+    public function bin()
+    {
+        return $this->belongsTo(WasteBin::class, 'bin_id');
     }
 }

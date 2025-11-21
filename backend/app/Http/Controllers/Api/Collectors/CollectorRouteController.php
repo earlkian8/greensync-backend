@@ -87,7 +87,8 @@ class CollectorRouteController extends Controller
 
             $assignment = RouteAssignment::with([
                 'route.stops' => function ($query) {
-                    $query->orderBy('stop_order', 'asc');
+                    $query->with(['bin.resident'])
+                        ->orderBy('stop_order', 'asc');
                 },
                 'schedule',
                 'qrCollections.wasteBin.resident'
@@ -112,11 +113,11 @@ class CollectorRouteController extends Controller
 
             // Get successful collections for this assignment
             $successfulCollections = $assignment->qrCollections()
-                ->where('collection_status', 'successful')
+                ->whereIn('collection_status', ['successful', 'collected', 'completed', 'manual'])
                 ->get();
 
             // Get collection bin IDs and addresses for matching
-            $collectionBinIds = $successfulCollections->pluck('bin_id')->toArray();
+            $collectionBinIds = $successfulCollections->pluck('bin_id')->filter()->unique()->values()->all();
             
             // Try to match stops with collections by address
             // First, get addresses from collections if available
@@ -134,10 +135,23 @@ class CollectorRouteController extends Controller
             // Ensure stops collection exists and is not null
             $routeStops = $assignment->route->stops ?? collect([]);
             
-            $stops = $routeStops->map(function ($stop) use ($collectionAddresses) {
+            $collectionsByBin = $successfulCollections->keyBy('bin_id');
+
+            $stops = $routeStops->map(function ($stop) use ($collectionAddresses, $collectionBinIds, $collectionsByBin) {
                 $stopAddress = strtolower(trim($stop->stop_address));
                 // Match by address (case-insensitive, trimmed)
-                $isCompleted = !empty($collectionAddresses) && in_array($stopAddress, $collectionAddresses);
+                $isCompleted = false;
+                $completionMeta = null;
+
+                if ($stop->bin_id && in_array($stop->bin_id, $collectionBinIds)) {
+                    $isCompleted = true;
+                    $completionMeta = $collectionsByBin->get($stop->bin_id);
+                } elseif (!empty($collectionAddresses) && in_array($stopAddress, $collectionAddresses)) {
+                    $isCompleted = true;
+                }
+
+                $bin = $stop->bin;
+                $resident = $bin?->resident;
                 
                 return [
                     'id' => $stop->id,
@@ -148,6 +162,14 @@ class CollectorRouteController extends Controller
                     'estimated_time' => $stop->estimated_time,
                     'notes' => $stop->notes,
                     'is_completed' => $isCompleted,
+                    'bin_id' => $bin?->id,
+                    'qr_code' => $bin?->qr_code,
+                    'bin_type' => $bin?->bin_type,
+                    'bin_owner_name' => $resident?->name,
+                    'bin_owner_contact' => $resident?->phone_number,
+                    'bin_owner_address' => $resident?->full_address,
+                    'last_collected_at' => $completionMeta?->collection_timestamp?->format('Y-m-d H:i:s') 
+                        ?? $bin?->last_collected?->format('Y-m-d H:i:s'),
                 ];
             });
 

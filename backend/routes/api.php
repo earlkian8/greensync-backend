@@ -188,6 +188,9 @@ Route::prefix('v1')->group(function () {
                 // Upload collection photo evidence
                 Route::post('/upload-photo', [QRCollectionController::class, 'uploadPhoto']);
                 
+                // Manual collection fallback
+                Route::post('/manual', [QRCollectionController::class, 'manualCollectStop']);
+                
                 // Skip collection with reason
                 Route::post('/skip', [QRCollectionController::class, 'skipCollection']);
                 

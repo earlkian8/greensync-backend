@@ -1,10 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, Modal, Pressable } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, Modal, Pressable, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import collectorRoutesService from '@/services/collectorRoutesService';
-import { ArrowLeftIcon, CameraIcon, MapIcon, MapPinnedIcon, RefreshCwIcon, ListIcon, AlertTriangleIcon } from 'lucide-react-native';
+import { ArrowLeftIcon, CameraIcon, MapIcon, MapPinnedIcon, RefreshCwIcon, ListIcon, AlertTriangleIcon, CheckCircleIcon } from 'lucide-react-native';
 
 // Don't import map component at module level - only import when needed
 // This prevents any map-related code from being evaluated until map view is active
@@ -106,6 +106,9 @@ const RouteDetailScreen = () => {
   const [activeView, setActiveView] = useState(VIEW_MODES.LIST);
   const [RouteMapViewComponent, setRouteMapViewComponent] = useState(null);
   const [isNavigationReady, setIsNavigationReady] = useState(false);
+  const [detailStop, setDetailStop] = useState(null);
+  const [detailModalVisible, setDetailModalVisible] = useState(false);
+  const [stopActionLoading, setStopActionLoading] = useState(null);
 
   const fetchDetails = useCallback(async () => {
     if (!assignmentId) return;
@@ -137,14 +140,15 @@ const RouteDetailScreen = () => {
   }, []);
 
   useEffect(() => {
-    if (activeView === VIEW_MODES.MAP && !RouteMapViewComponent && isNavigationReady) {
+    const needsMap = activeView === VIEW_MODES.MAP || detailModalVisible;
+    if (needsMap && !RouteMapViewComponent && isNavigationReady) {
       if (assignmentId) {
         import('@/components/RouteMapView')
           .then((module) => setRouteMapViewComponent(() => module.default))
           .catch((err) => console.error('Failed to load RouteMapView:', err));
       }
     }
-  }, [activeView, RouteMapViewComponent, assignmentId, isNavigationReady]);
+  }, [activeView, detailModalVisible, RouteMapViewComponent, assignmentId, isNavigationReady]);
 
   const handleOpenScanner = async (stop) => {
     setScanError(null);
@@ -164,6 +168,43 @@ const RouteDetailScreen = () => {
     setStops((prev) =>
       prev.map((stop) => (stop.id === stopId ? { ...stop, is_completed: true } : stop))
     );
+  };
+
+  const handleMarkAsCollected = async (stop) => {
+    if (stop.is_completed) return;
+    if (!stop.bin_id) {
+      Alert.alert(
+        'Missing bin information',
+        'This stop is not linked to a specific bin yet.'
+      );
+      return;
+    }
+
+    setStopActionLoading(stop.id);
+    try {
+      await collectorRoutesService.manualCollectStop({
+        assignmentId,
+        stopId: stop.id,
+        latitude: parseFloat(stop.latitude) || undefined,
+        longitude: parseFloat(stop.longitude) || undefined,
+        wasteType: 'mixed',
+      });
+      updateStopCompletion(stop.id);
+      if (detailStop?.id === stop.id) {
+        setDetailStop((prev) =>
+          prev ? { ...prev, is_completed: true, last_collected_at: new Date().toISOString() } : prev
+        );
+      }
+    } catch (err) {
+      console.error('Manual mark collected failed', err);
+      const message =
+        err?.response?.data?.message ??
+        err?.message ??
+        'Unable to mark stop as collected.';
+      Alert.alert('Mark as Collected', message);
+    } finally {
+      setStopActionLoading(null);
+    }
   };
 
   const handleBarcodeScanned = async ({ data: qrCode }) => {
@@ -217,6 +258,15 @@ const RouteDetailScreen = () => {
     setScanSuccess(null);
   };
 
+  const openStopDetail = (stop) => {
+    setDetailStop(stop);
+    setDetailModalVisible(true);
+  };
+
+  const closeStopDetail = () => {
+    setDetailModalVisible(false);
+  };
+
   const progress = useMemo(() => {
     const total = stops.length;
     const completed = stops.filter((stop) => stop.is_completed).length;
@@ -244,6 +294,24 @@ const RouteDetailScreen = () => {
   const fitToStops = useCallback(() => {
     // handled within RouteMapView via ref
   }, []);
+
+  const detailRegion = useMemo(() => {
+    if (!detailStop) return null;
+    return calculateRegionFromStops([detailStop]);
+  }, [detailStop]);
+
+  const detailCoordinates = useMemo(() => {
+    if (!detailStop) return [];
+    if (detailStop.latitude && detailStop.longitude && 
+      !isNaN(parseFloat(detailStop.latitude)) && 
+      !isNaN(parseFloat(detailStop.longitude))) {
+      return [{
+        latitude: parseFloat(detailStop.latitude),
+        longitude: parseFloat(detailStop.longitude),
+      }];
+    }
+    return [];
+  }, [detailStop]);
 
   const renderToggle = () => (
     <View className="flex-row bg-gray-100 rounded-full p-1 mt-4">
@@ -365,64 +433,94 @@ const RouteDetailScreen = () => {
     );
   };
 
-  const renderStopCard = (stop) => (
-    <View
-      key={stop.id}
-      className="bg-white border border-gray-200 rounded-xl p-4 mb-3 shadow-sm"
-    >
-      <View className="flex-row justify-between items-start">
-        <View className="flex-1 pr-2">
-          <Text className="text-sm text-gray-500">Stop #{stop.stop_order}</Text>
-          <Text className="text-base font-semibold text-gray-900 mt-1">{stop.address}</Text>
-          {stop.notes ? (
-            <Text className="text-xs text-gray-500 mt-1">{stop.notes}</Text>
-          ) : null}
-        </View>
-        <View
-          className={`px-2 py-1 rounded-full ${
-            stop.is_completed ? 'bg-green-100' : 'bg-yellow-100'
-          }`}
-        >
-          <Text
-            className={`text-xs font-semibold ${
-              stop.is_completed ? 'text-green-800' : 'text-yellow-800'
-            }`}
-          >
-            {stop.is_completed ? 'Collected' : 'Pending'}
-          </Text>
-        </View>
-      </View>
+  const renderStopCard = (stop) => {
+    const canManualCollect = !!stop.bin_id && !stop.is_completed;
+    const manualDisabled = !canManualCollect || stopActionLoading === stop.id;
 
-      <View className="flex-row mt-4 gap-2">
+    return (
+      <View
+        key={stop.id}
+        className="bg-white border border-gray-200 rounded-xl p-4 mb-3 shadow-sm"
+      >
         <TouchableOpacity
-          className="flex-1 border border-gray-200 rounded-lg py-2 flex-row items-center justify-center"
-          onPress={() => {
-            setSelectedStop(stop);
-            setActiveView(VIEW_MODES.MAP);
-          }}
+          activeOpacity={0.8}
+          onPress={() => openStopDetail(stop)}
         >
-          <MapPinnedIcon size={16} color="#16A34A" />
-          <Text className="ml-1 font-medium text-green-700">View on Map</Text>
+          <View className="flex-row justify-between items-start">
+            <View className="flex-1 pr-2">
+              <Text className="text-sm text-gray-500">Stop #{stop.stop_order}</Text>
+              <Text className="text-base font-semibold text-gray-900 mt-1">{stop.address}</Text>
+              {stop.bin_owner_name ? (
+                <Text className="text-xs text-emerald-700 mt-1">
+                  Owner: {stop.bin_owner_name}
+                </Text>
+              ) : null}
+              {stop.notes ? (
+                <Text className="text-xs text-gray-500 mt-1">{stop.notes}</Text>
+              ) : null}
+            </View>
+            <View
+              className={`px-2 py-1 rounded-full ${
+                stop.is_completed ? 'bg-green-100' : 'bg-yellow-100'
+              }`}
+            >
+              <Text
+                className={`text-xs font-semibold ${
+                  stop.is_completed ? 'text-green-800' : 'text-yellow-800'
+                }`}
+              >
+                {stop.is_completed ? 'Collected' : 'Pending'}
+              </Text>
+            </View>
+          </View>
         </TouchableOpacity>
-        <TouchableOpacity
-          className={`flex-1 rounded-lg py-2 flex-row items-center justify-center ${
-            stop.is_completed ? 'bg-gray-200' : 'bg-green-600'
-          }`}
-          disabled={stop.is_completed}
-          onPress={() => handleOpenScanner(stop)}
-        >
-          <CameraIcon size={16} color={stop.is_completed ? '#6B7280' : '#ffffff'} />
-          <Text
-            className={`ml-1 font-semibold ${
-              stop.is_completed ? 'text-gray-600' : 'text-white'
+
+        <View className="flex-row mt-4 gap-2">
+          <TouchableOpacity
+            className={`flex-1 rounded-lg py-2 flex-row items-center justify-center ${
+              stop.is_completed ? 'bg-gray-200' : 'bg-green-600'
             }`}
+            disabled={stop.is_completed}
+            onPress={() => handleOpenScanner(stop)}
           >
-            {stop.is_completed ? 'Completed' : 'Scan QR'}
+            <CameraIcon size={16} color={stop.is_completed ? '#6B7280' : '#ffffff'} />
+            <Text
+              className={`ml-1 font-semibold ${
+                stop.is_completed ? 'text-gray-600' : 'text-white'
+              }`}
+            >
+              {stop.is_completed ? 'Collected' : 'Scan QR'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            className={`flex-1 rounded-lg py-2 flex-row items-center justify-center ${
+              manualDisabled ? 'bg-gray-200' : 'bg-emerald-600'
+            }`}
+            disabled={manualDisabled}
+            onPress={() => handleMarkAsCollected(stop)}
+          >
+            {stopActionLoading === stop.id ? (
+              <ActivityIndicator size="small" color={manualDisabled ? '#6B7280' : '#ffffff'} />
+            ) : (
+              <CheckCircleIcon size={16} color={manualDisabled ? '#6B7280' : '#ffffff'} />
+            )}
+            <Text
+              className={`ml-1 font-semibold ${
+                manualDisabled ? 'text-gray-600' : 'text-white'
+              }`}
+            >
+              {stop.is_completed ? 'Collected' : 'Mark as Collected'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        {!stop.bin_id && !stop.is_completed ? (
+          <Text className="text-xs text-amber-600 mt-2">
+            Link this stop to a bin to enable manual collection.
           </Text>
-        </TouchableOpacity>
+        ) : null}
       </View>
-    </View>
-  );
+    );
+  };
 
   const renderContent = () => {
     if (loading) {
@@ -504,6 +602,104 @@ const RouteDetailScreen = () => {
       </View>
 
       {renderContent()}
+
+      <Modal visible={detailModalVisible} animationType="slide" onRequestClose={closeStopDetail}>
+        <SafeAreaView className="flex-1 bg-gray-50">
+          <View className="flex-row items-center justify-between px-4 py-3 bg-white border-b border-gray-200">
+            <View className="flex-1 pr-4">
+              <Text className="text-xs text-gray-500 uppercase">Stop Details</Text>
+              <Text className="text-base font-semibold text-gray-900" numberOfLines={1}>
+                {detailStop ? `Stop #${detailStop.stop_order}` : ''}
+              </Text>
+            </View>
+            <Pressable onPress={closeStopDetail}>
+              <Text className="text-green-600 font-semibold">Close</Text>
+            </Pressable>
+          </View>
+
+          {detailStop ? (
+            <ScrollView className="flex-1 px-4 py-4">
+              <View className="bg-white rounded-xl p-4 border border-gray-100 mb-4">
+                <Text className="text-sm text-gray-500">Address</Text>
+                <Text className="text-base font-semibold text-gray-900 mt-1">
+                  {detailStop.address ?? 'No address provided'}
+                </Text>
+
+                <Text className="text-sm text-gray-500 mt-4">Bin Owner</Text>
+                <Text className="text-base font-semibold text-gray-900 mt-1">
+                  {detailStop.bin_owner_name ??
+                    detailStop.resident_name ??
+                    detailStop.resident_full_name ??
+                    'Not specified'}
+                </Text>
+                {detailStop.bin_owner_contact ? (
+                  <Text className="text-sm text-gray-600 mt-1">
+                    Contact: {detailStop.bin_owner_contact}
+                  </Text>
+                ) : null}
+                {detailStop.bin_owner_address ? (
+                  <Text className="text-sm text-gray-600 mt-1">
+                    {detailStop.bin_owner_address}
+                  </Text>
+                ) : null}
+
+                {detailStop.notes ? (
+                  <>
+                    <Text className="text-sm text-gray-500 mt-4">Notes</Text>
+                    <Text className="text-sm text-gray-800 mt-1">
+                      {detailStop.notes}
+                    </Text>
+                  </>
+                ) : null}
+
+                <View className="mt-4 border-t border-gray-100 pt-3">
+                  <Text className="text-sm text-gray-500">Bin Information</Text>
+                  <Text className="text-sm text-gray-900 mt-1">
+                    Type: {detailStop.bin_type ?? 'Not specified'}
+                  </Text>
+                  {detailStop.last_collected_at ? (
+                    <Text className="text-xs text-gray-500 mt-1">
+                      Last collected: {detailStop.last_collected_at}
+                    </Text>
+                  ) : null}
+                  <Text className={`text-xs font-semibold mt-2 ${
+                    detailStop.is_completed ? 'text-green-600' : 'text-amber-600'
+                  }`}>
+                    Status: {detailStop.is_completed ? 'Collected' : 'Pending'}
+                  </Text>
+                </View>
+              </View>
+
+              {RouteMapViewComponent ? (
+                (() => {
+                  const DetailMap = RouteMapViewComponent;
+                  return (
+                    <DetailMap
+                      stops={[detailStop]}
+                      selectedStop={detailStop}
+                      onStopSelect={() => {}}
+                      mapRegion={detailRegion ?? mapRegion}
+                      routeCoordinates={detailCoordinates}
+                      onFitToStops={() => {}}
+                    />
+                  );
+                })()
+              ) : (
+                <View className="mt-2 rounded-2xl overflow-hidden border border-gray-200 bg-gray-100" style={{ height: Math.min(height * 0.55, 500) }}>
+                  <View className="flex-1 items-center justify-center p-6">
+                    <ActivityIndicator size="large" color="#16A34A" />
+                    <Text className="text-gray-500 text-center mt-4">
+                      Loading map...
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              <View className="h-10" />
+            </ScrollView>
+          ) : null}
+        </SafeAreaView>
+      </Modal>
 
       <Modal visible={scannerVisible} animationType="slide" onRequestClose={closeScanner}>
         <SafeAreaView className="flex-1 bg-black">

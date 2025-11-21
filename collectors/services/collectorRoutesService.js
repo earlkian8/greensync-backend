@@ -74,6 +74,27 @@ const collectorRoutesService = {
     });
     return normalizeResponse(response);
   },
+
+  async manualCollectStop({
+    assignmentId,
+    stopId,
+    latitude,
+    longitude,
+    wasteWeight,
+    wasteType = 'mixed',
+    notes,
+  }) {
+    const response = await api.post('v1/collector/collections/manual', {
+      assignment_id: assignmentId,
+      stop_id: stopId,
+      latitude,
+      longitude,
+      waste_weight: wasteWeight,
+      waste_type: wasteType,
+      notes,
+    });
+    return normalizeResponse(response);
+  },
 };
 
 export default collectorRoutesService;
