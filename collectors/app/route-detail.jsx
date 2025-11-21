@@ -1,19 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, Modal, Pressable } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import MapView, { Marker, Polyline, PROVIDER_GOOGLE, PROVIDER_DEFAULT } from 'react-native-maps';
-import { Platform } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import collectorRoutesService from '@/services/collectorRoutesService';
-import { ArrowLeftIcon, CameraIcon, MapIcon, MapPinnedIcon, RefreshCwIcon, ListIcon, AlertTriangleIcon, NavigationIcon } from 'lucide-react-native';
+import { ArrowLeftIcon, CameraIcon, MapIcon, MapPinnedIcon, RefreshCwIcon, ListIcon, AlertTriangleIcon } from 'lucide-react-native';
+
+// Don't import map component at module level - only import when needed
+// This prevents any map-related code from being evaluated until map view is active
 
 const { width, height } = Dimensions.get('window');
-
-const VIEW_MODES = {
-  LIST: 'list',
-  MAP: 'map',
-};
 
 const calculateRegionFromStops = (stops) => {
   if (!stops?.length) {
@@ -25,7 +21,6 @@ const calculateRegionFromStops = (stops) => {
     };
   }
 
-  // Filter stops with valid coordinates
   const validStops = stops.filter(
     (stop) => stop.latitude && stop.longitude && 
     !isNaN(parseFloat(stop.latitude)) && 
@@ -50,7 +45,6 @@ const calculateRegionFromStops = (stops) => {
     };
   }
 
-  // Calculate bounding box
   const latitudes = validStops.map((stop) => parseFloat(stop.latitude));
   const longitudes = validStops.map((stop) => parseFloat(stop.longitude));
 
@@ -59,22 +53,46 @@ const calculateRegionFromStops = (stops) => {
   const minLng = Math.min(...longitudes);
   const maxLng = Math.max(...longitudes);
 
-  const latDelta = (maxLat - minLat) * 1.5; // Add padding
+  const latDelta = (maxLat - minLat) * 1.5;
   const lngDelta = (maxLng - minLng) * 1.5;
 
   return {
     latitude: (minLat + maxLat) / 2,
     longitude: (minLng + maxLng) / 2,
-    latitudeDelta: Math.max(latDelta, 0.01), // Minimum delta
+    latitudeDelta: Math.max(latDelta, 0.01),
     longitudeDelta: Math.max(lngDelta, 0.01),
   };
+};
+
+const VIEW_MODES = {
+  LIST: 'list',
+  MAP: 'map',
 };
 
 const RouteDetailScreen = () => {
   const router = useRouter();
   const { assignmentId } = useLocalSearchParams();
+  
+  // Early return if no assignmentId to prevent any map-related code from running
+  if (!assignmentId) {
+    return (
+      <SafeAreaView className="flex-1 bg-gray-50">
+        <View className="flex-1 items-center justify-center px-6">
+          <AlertTriangleIcon size={40} color="#DC2626" />
+          <Text className="text-red-600 font-semibold text-base mt-3">
+            No assignment ID provided
+          </Text>
+          <TouchableOpacity
+            className="mt-4 px-6 py-3 bg-red-600 rounded-lg"
+            onPress={() => router.back()}
+          >
+            <Text className="text-white font-semibold">Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
-  const [activeView, setActiveView] = useState(VIEW_MODES.LIST);
   const [assignmentData, setAssignmentData] = useState(null);
   const [stops, setStops] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -85,7 +103,9 @@ const RouteDetailScreen = () => {
   const [scanProcessing, setScanProcessing] = useState(false);
   const [scanError, setScanError] = useState(null);
   const [scanSuccess, setScanSuccess] = useState(null);
-  const mapRef = useRef(null);
+  const [activeView, setActiveView] = useState(VIEW_MODES.LIST);
+  const [RouteMapViewComponent, setRouteMapViewComponent] = useState(null);
+  const [isNavigationReady, setIsNavigationReady] = useState(false);
 
   const fetchDetails = useCallback(async () => {
     if (!assignmentId) return;
@@ -107,6 +127,24 @@ const RouteDetailScreen = () => {
   useEffect(() => {
     fetchDetails();
   }, [fetchDetails]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsNavigationReady(true);
+    }, 120);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (activeView === VIEW_MODES.MAP && !RouteMapViewComponent && isNavigationReady) {
+      if (assignmentId) {
+        import('@/components/RouteMapView')
+          .then((module) => setRouteMapViewComponent(() => module.default))
+          .catch((err) => console.error('Failed to load RouteMapView:', err));
+      }
+    }
+  }, [activeView, RouteMapViewComponent, assignmentId, isNavigationReady]);
 
   const handleOpenScanner = async (stop) => {
     setScanError(null);
@@ -189,10 +227,8 @@ const RouteDetailScreen = () => {
     };
   }, [stops]);
 
-  // Calculate map region from stops
   const mapRegion = useMemo(() => calculateRegionFromStops(stops), [stops]);
 
-  // Get valid coordinates for polyline
   const routeCoordinates = useMemo(() => {
     return stops
       .filter((stop) => stop.latitude && stop.longitude && 
@@ -205,45 +241,9 @@ const RouteDetailScreen = () => {
       }));
   }, [stops]);
 
-  // Fit map to show all stops
   const fitToStops = useCallback(() => {
-    if (mapRef.current && routeCoordinates.length > 0) {
-      mapRef.current.fitToCoordinates(routeCoordinates, {
-        edgePadding: {
-          top: 50,
-          right: 50,
-          bottom: 50,
-          left: 50,
-        },
-        animated: true,
-      });
-    }
-  }, [routeCoordinates]);
-
-  // Focus on selected stop
-  const focusOnStop = useCallback((stop) => {
-    if (mapRef.current && stop?.latitude && stop?.longitude) {
-      const coordinate = {
-        latitude: parseFloat(stop.latitude),
-        longitude: parseFloat(stop.longitude),
-      };
-      mapRef.current.animateToRegion(
-        {
-          ...coordinate,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        },
-        500
-      );
-    }
+    // handled within RouteMapView via ref
   }, []);
-
-  // Focus on selected stop when it changes
-  useEffect(() => {
-    if (selectedStop && activeView === VIEW_MODES.MAP) {
-      focusOnStop(selectedStop);
-    }
-  }, [selectedStop, activeView, focusOnStop]);
 
   const renderToggle = () => (
     <View className="flex-row bg-gray-100 rounded-full p-1 mt-4">
@@ -271,6 +271,99 @@ const RouteDetailScreen = () => {
       ))}
     </View>
   );
+
+  const renderMap = () => {
+    if (!RouteMapViewComponent) {
+      const mapHeight = Math.min(height * 0.55, 500);
+      return (
+        <View className="mt-4 rounded-2xl overflow-hidden border border-gray-200 bg-gray-100" style={{ height: mapHeight }}>
+          <View className="flex-1 items-center justify-center p-6">
+            <ActivityIndicator size="large" color="#16A34A" />
+            <Text className="text-gray-500 text-center mt-4">
+              Loading map...
+            </Text>
+          </View>
+        </View>
+      );
+    }
+
+    const RouteMapView = RouteMapViewComponent;
+
+    return (
+      <>
+        <RouteMapView
+          stops={stops}
+          selectedStop={selectedStop}
+          onStopSelect={setSelectedStop}
+          mapRegion={mapRegion}
+          routeCoordinates={routeCoordinates}
+          onFitToStops={fitToStops}
+        />
+
+        {selectedStop ? (
+          <View className="bg-white p-4 border-t border-gray-200 mt-4 rounded-lg">
+            <View className="flex-row items-start justify-between mb-2">
+              <View className="flex-1">
+                <Text className="text-sm text-gray-500">Selected Stop</Text>
+                <Text className="text-base font-semibold text-gray-900 mt-1">
+                  Stop #{selectedStop.stop_order}
+                </Text>
+                <Text className="text-sm text-gray-600 mt-1">
+                  {selectedStop.address}
+                </Text>
+                {selectedStop.notes ? (
+                  <Text className="text-xs text-gray-500 mt-1 italic">
+                    {selectedStop.notes}
+                  </Text>
+                ) : null}
+              </View>
+              <View
+                className={`px-3 py-1 rounded-full ${
+                  selectedStop.is_completed ? 'bg-green-100' : 'bg-yellow-100'
+                }`}
+              >
+                <Text
+                  className={`text-xs font-semibold ${
+                    selectedStop.is_completed ? 'text-green-800' : 'text-yellow-800'
+                  }`}
+                >
+                  {selectedStop.is_completed ? 'Completed' : 'Pending'}
+                </Text>
+              </View>
+            </View>
+            <View className="flex-row gap-2 mt-3">
+              <TouchableOpacity
+                className="flex-1 border border-gray-200 rounded-lg py-2.5 flex-row items-center justify-center"
+                onPress={() => setSelectedStop(null)}
+              >
+                <RefreshCwIcon size={16} color="#6B7280" />
+                <Text className="ml-1 text-gray-600 font-medium">Clear</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className={`flex-1 rounded-lg py-2.5 flex-row items-center justify-center ${
+                  selectedStop.is_completed ? 'bg-gray-200' : 'bg-green-600'
+                }`}
+                disabled={selectedStop.is_completed}
+                onPress={() => handleOpenScanner(selectedStop)}
+              >
+                <CameraIcon
+                  size={16}
+                  color={selectedStop.is_completed ? '#6B7280' : '#ffffff'}
+                />
+                <Text
+                  className={`ml-1 font-semibold ${
+                    selectedStop.is_completed ? 'text-gray-600' : 'text-white'
+                  }`}
+                >
+                  {selectedStop.is_completed ? 'Completed' : 'Scan QR'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : null}
+      </>
+    );
+  };
 
   const renderStopCard = (stop) => (
     <View
@@ -330,197 +423,6 @@ const RouteDetailScreen = () => {
       </View>
     </View>
   );
-
-  const renderMap = () => {
-    const validStops = stops.filter(
-      (stop) => stop.latitude && stop.longitude && 
-      !isNaN(parseFloat(stop.latitude)) && 
-      !isNaN(parseFloat(stop.longitude))
-    );
-
-    // Use Google Maps on Android, default on iOS
-    const mapProvider = Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT;
-
-    if (validStops.length === 0) {
-      return (
-        <View className="mt-4 rounded-2xl overflow-hidden border border-gray-200 bg-gray-100" style={{ height: Math.min(height * 0.55, 500) }}>
-          <View className="flex-1 items-center justify-center p-6">
-            <MapIcon size={48} color="#9CA3AF" />
-            <Text className="text-gray-500 text-center mt-4">
-              No stops with valid coordinates available
-            </Text>
-          </View>
-        </View>
-      );
-    }
-
-    return (
-      <View className="mt-4 rounded-2xl overflow-hidden border border-gray-200">
-        <MapView
-          ref={mapRef}
-          style={{ width: '100%', height: Math.min(height * 0.55, 500) }}
-          provider={mapProvider}
-          initialRegion={mapRegion}
-          showsUserLocation={true}
-          showsMyLocationButton={false}
-          mapType="standard"
-          onMapReady={fitToStops}
-          loadingEnabled={true}
-          loadingIndicatorColor="#16A34A"
-          toolbarEnabled={false}
-        >
-          {/* Route polyline connecting all stops in order */}
-          {routeCoordinates.length > 1 && (
-            <Polyline
-              coordinates={routeCoordinates}
-              strokeColor="#16A34A"
-              strokeWidth={5}
-              lineCap="round"
-              lineJoin="round"
-              miterLimit={10}
-            />
-          )}
-
-          {/* Markers for each stop */}
-          {validStops.map((stop, index) => {
-            const isSelected = selectedStop?.id === stop.id;
-            const coordinate = {
-              latitude: parseFloat(stop.latitude),
-              longitude: parseFloat(stop.longitude),
-            };
-
-            // Determine marker color
-            let markerColor = '#FACC15'; // Yellow for pending
-            if (stop.is_completed) {
-              markerColor = '#22C55E'; // Green for completed
-            } else if (isSelected) {
-              markerColor = '#3B82F6'; // Blue for selected
-            }
-
-            return (
-              <Marker
-                key={`stop-${stop.id}-${index}`}
-                coordinate={coordinate}
-                title={`Stop #${stop.stop_order}`}
-                description={stop.address}
-                onPress={() => setSelectedStop(stop)}
-                anchor={{ x: 0.5, y: 0.5 }}
-                tracksViewChanges={false}
-              >
-                {/* Custom marker view with stop number */}
-                <View
-                  style={{
-                    backgroundColor: markerColor,
-                    width: 44,
-                    height: 44,
-                    borderRadius: 22,
-                    borderWidth: 3,
-                    borderColor: '#FFFFFF',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 3 },
-                    shadowOpacity: 0.4,
-                    shadowRadius: 5,
-                    elevation: 8,
-                  }}
-                >
-                  <Text
-                    style={{
-                      color: '#FFFFFF',
-                      fontSize: 14,
-                      fontWeight: 'bold',
-                    }}
-                  >
-                    {stop.stop_order}
-                  </Text>
-                </View>
-              </Marker>
-            );
-          })}
-        </MapView>
-
-        {/* Map controls */}
-        <View className="absolute top-4 right-4 flex-col gap-2">
-          <TouchableOpacity
-            className="bg-white rounded-full p-3 shadow-lg"
-            onPress={fitToStops}
-          >
-            <NavigationIcon size={20} color="#16A34A" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Selected stop info panel */}
-        {selectedStop ? (
-          <View className="bg-white p-4 border-t border-gray-200">
-            <View className="flex-row items-start justify-between mb-2">
-              <View className="flex-1">
-                <Text className="text-sm text-gray-500">Selected Stop</Text>
-                <Text className="text-base font-semibold text-gray-900 mt-1">
-                  Stop #{selectedStop.stop_order}
-                </Text>
-                <Text className="text-sm text-gray-600 mt-1">
-                  {selectedStop.address}
-                </Text>
-                {selectedStop.notes ? (
-                  <Text className="text-xs text-gray-500 mt-1 italic">
-                    {selectedStop.notes}
-                  </Text>
-                ) : null}
-              </View>
-              <View
-                className={`px-3 py-1 rounded-full ${
-                  selectedStop.is_completed ? 'bg-green-100' : 'bg-yellow-100'
-                }`}
-              >
-                <Text
-                  className={`text-xs font-semibold ${
-                    selectedStop.is_completed ? 'text-green-800' : 'text-yellow-800'
-                  }`}
-                >
-                  {selectedStop.is_completed ? 'Completed' : 'Pending'}
-                </Text>
-              </View>
-            </View>
-            <View className="flex-row gap-2 mt-3">
-              <TouchableOpacity
-                className="flex-1 border border-gray-200 rounded-lg py-2.5 flex-row items-center justify-center"
-                onPress={() => setSelectedStop(null)}
-              >
-                <RefreshCwIcon size={16} color="#6B7280" />
-                <Text className="ml-1 text-gray-600 font-medium">Clear</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                className={`flex-1 rounded-lg py-2.5 flex-row items-center justify-center ${
-                  selectedStop.is_completed ? 'bg-gray-200' : 'bg-green-600'
-                }`}
-                disabled={selectedStop.is_completed}
-                onPress={() => handleOpenScanner(selectedStop)}
-              >
-                <CameraIcon
-                  size={16}
-                  color={selectedStop.is_completed ? '#6B7280' : '#ffffff'}
-                />
-                <Text
-                  className={`ml-1 font-semibold ${
-                    selectedStop.is_completed ? 'text-gray-600' : 'text-white'
-                  }`}
-                >
-                  {selectedStop.is_completed ? 'Completed' : 'Scan QR'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        ) : (
-          <View className="bg-white p-3 border-t border-gray-200">
-            <Text className="text-xs text-gray-500 text-center">
-              Tap on a marker to view stop details • {validStops.length} stops on map
-            </Text>
-          </View>
-        )}
-      </View>
-    );
-  };
 
   const renderContent = () => {
     if (loading) {

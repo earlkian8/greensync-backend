@@ -1,13 +1,12 @@
-import { Slot, useRouter, useSegments } from "expo-router";
+import { Stack, useRouter, useSegments, useNavigationContainerRef } from "expo-router";
 import './../style/globals.css';
 import { useEffect, createContext, useState, useRef } from 'react';
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { View, ActivityIndicator } from "react-native";
+import { View, ActivityIndicator, InteractionManager } from "react-native";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { KeyboardAvoidingView, Platform } from 'react-native';
 import { api } from '@/config/api';
 
-import { Stack } from "expo-router";
 import { LogBox } from "react-native";
 
 LogBox.ignoreAllLogs(true); // 👈 hides all logs
@@ -30,8 +29,10 @@ export default function RootLayout() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isNavigationReady, setIsNavigationReady] = useState(false);
   const segments = useSegments();
   const router = useRouter();
+  const navigationRef = useNavigationContainerRef();
   
   // Prevent multiple simultaneous logout calls
   const isLoggingOut = useRef(false);
@@ -63,18 +64,20 @@ export default function RootLayout() {
 
   // Handle route protection
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || !isNavigationReady) return;
 
-    const inAuthGroup = segments[0] === 'auth';
+    const navigationTimer = setTimeout(() => {
+      const inAuthGroup = segments[0] === 'auth';
 
-    if (!isAuthenticated && !inAuthGroup) {
-      // User is not authenticated and trying to access protected routes
-      router.replace('/auth/login');
-    } else if (isAuthenticated && inAuthGroup) {
-      // User is authenticated and on auth pages, redirect to home
-      router.replace('/home');
-    }
-  }, [isAuthenticated, segments, isLoading]);
+      if (!isAuthenticated && !inAuthGroup) {
+        router.replace('/auth/login');
+      } else if (isAuthenticated && inAuthGroup) {
+        router.replace('/home');
+      }
+    }, 120);
+
+    return () => clearTimeout(navigationTimer);
+  }, [isAuthenticated, segments, isLoading, isNavigationReady]);
 
   const checkAuthStatus = async () => {
     try {
@@ -98,6 +101,17 @@ export default function RootLayout() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const safeNavigateToLogin = () => {
+    InteractionManager.runAfterInteractions(() => {
+      setTimeout(() => {
+        if (router && typeof router.replace === 'function') {
+          router.replace('/auth/login');
+        }
+        isLoggingOut.current = false;
+      }, 150);
+    });
   };
 
   const logout = async () => {
@@ -142,13 +156,7 @@ export default function RootLayout() {
       setUser(null);
       
       console.log('Logout complete, navigating to login...');
-      
-      // Small delay to ensure state updates before navigation
-      setTimeout(() => {
-        router.replace('/auth/login');
-        isLoggingOut.current = false;
-      }, 100);
-      
+      safeNavigateToLogin();
     } catch (error) {
       console.error("Error during logout:", error);
       
@@ -158,10 +166,7 @@ export default function RootLayout() {
       setIsAuthenticated(false);
       setUser(null);
       
-      setTimeout(() => {
-        router.replace('/auth/login');
-        isLoggingOut.current = false;
-      }, 100);
+      safeNavigateToLogin();
     }
   };
 
@@ -187,7 +192,15 @@ export default function RootLayout() {
       <SafeAreaProvider>
         {/* <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}> */}
-          <Slot/>
+          <Stack
+            ref={navigationRef}
+            screenOptions={{ headerShown: false }}
+            onReady={() => setIsNavigationReady(true)}
+          >
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="auth/login" options={{ headerShown: false }} />
+            <Stack.Screen name="auth/register" options={{ headerShown: false }} />
+          </Stack>
         {/* </KeyboardAvoidingView> */}
       </SafeAreaProvider>
     </AuthContext.Provider>

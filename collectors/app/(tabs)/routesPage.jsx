@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { MapIcon, CalendarIcon, ChevronRightIcon, SearchIcon, AlertTriangleIcon } from 'lucide-react-native';
-import { api } from '@/config/api';
+import collectorRoutesService from '@/services/collectorRoutesService';
 
 export default function RoutesPage() {
   const router = useRouter();
@@ -24,25 +25,46 @@ export default function RoutesPage() {
     }
 
     try {
-      const response = await api.get('v1/collector/routes/all', {
-        params: {
-          per_page: 50,
-        },
+      const response = await collectorRoutesService.getAllAssignments({
+        per_page: 50,
       });
 
-      const payload = response?.data?.data;
-      const items = payload?.data ?? [];
+      // Handle paginated response structure
+      let items = [];
+      let paginationData = {
+        currentPage: 1,
+        lastPage: 1,
+        total: 0,
+      };
+
+      if (response) {
+        if (Array.isArray(response)) {
+          items = response;
+          paginationData.total = response.length;
+        } else if (response.data && Array.isArray(response.data)) {
+          items = response.data;
+          paginationData = {
+            currentPage: response.current_page ?? 1,
+            lastPage: response.last_page ?? 1,
+            total: response.total ?? items.length,
+          };
+        } else if (response.data?.data && Array.isArray(response.data.data)) {
+          items = response.data.data;
+          paginationData = {
+            currentPage: response.data.current_page ?? 1,
+            lastPage: response.data.last_page ?? 1,
+            total: response.data.total ?? items.length,
+          };
+        }
+      }
 
       setAssignments(items);
-      setPagination({
-        currentPage: payload?.current_page ?? 1,
-        lastPage: payload?.last_page ?? 1,
-        total: payload?.total ?? items.length,
-      });
+      setPagination(paginationData);
     } catch (err) {
       console.error('Error fetching routes:', err);
       const message = err?.response?.data?.message ?? 'Unable to load assigned routes. Please try again.';
       setError(message);
+      setAssignments([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -60,7 +82,8 @@ export default function RoutesPage() {
 
   const filteredAssignments = assignments.filter(
     assignment => {
-      const routeName = assignment?.route?.route_name ?? '';
+      if (!assignment) return false;
+      const routeName = assignment?.route?.route_name ?? assignment?.route?.name ?? '';
       const barangay = assignment?.route?.barangay ?? '';
       return (
         routeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -70,13 +93,22 @@ export default function RoutesPage() {
   );
 
   const handleRouteClick = (assignment) => {
-    router.push({
-      pathname: '/route-detail',
-      params: {
-        assignmentId: assignment?.id,
-        routeId: assignment?.route?.id,
-      },
-    });
+    if (!assignment?.id) {
+      console.warn('Cannot navigate: assignment ID is missing');
+      return;
+    }
+    
+    try {
+      router.push({
+        pathname: '/route-detail',
+        params: {
+          assignmentId: String(assignment.id),
+          routeId: assignment?.route?.id ? String(assignment.route.id) : undefined,
+        },
+      });
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
   };
 
   const formatDate = (dateString) => {
@@ -116,7 +148,7 @@ export default function RoutesPage() {
   };
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
 
       {/* Search */}
       <View className="bg-white p-4 shadow-sm">
@@ -176,7 +208,7 @@ export default function RoutesPage() {
                 <View className="flex-row justify-between items-start">
                   <View className="flex-1 pr-3">
                     <Text className="font-medium text-gray-900">
-                      {assignment?.route?.route_name ?? 'Unnamed Route'}
+                      {assignment?.route?.route_name ?? assignment?.route?.name ?? 'Unnamed Route'}
                     </Text>
                     <Text className="text-sm text-gray-600 mt-1">
                       {assignment?.route?.barangay ?? 'No barangay'} • {assignment?.route?.total_stops ?? 0} stops
@@ -221,6 +253,6 @@ export default function RoutesPage() {
           </View>
         )}
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };

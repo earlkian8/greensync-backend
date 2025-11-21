@@ -3,86 +3,66 @@ import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator } fr
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthContext } from '../_layout';
-
-// Mock Data
-const mockRoutes = [
-  {
-    id: 1,
-    route_name: "Downtown Route A",
-    barangay: "Barangay San Miguel",
-    total_stops: 15,
-    estimated_duration: 120,
-    status: "active",
-  },
-  {
-    id: 2,
-    route_name: "Residential Route B",
-    barangay: "Barangay Santa Cruz",
-    total_stops: 20,
-    estimated_duration: 150,
-    status: "active",
-  },
-  {
-    id: 3,
-    route_name: "Market District Route",
-    barangay: "Barangay Centro",
-    total_stops: 12,
-    estimated_duration: 90,
-    status: "active",
-  },
-];
-
-const mockRouteAssignments = [
-  {
-    id: 1,
-    route_id: 1,
-    collector_id: 1,
-    assignment_date: new Date().toISOString().split('T')[0], // Today
-    status: "pending",
-  },
-  {
-    id: 2,
-    route_id: 2,
-    collector_id: 1,
-    assignment_date: new Date().toISOString().split('T')[0], // Today
-    status: "pending",
-  },
-];
+import collectorRoutesService from '@/services/collectorRoutesService';
 
 export default function Home() {
   const { user } = useContext(AuthContext);
   const router = useRouter();
   const [todayAssignments, setTodayAssignments] = useState([]);
+  const [collectionStats, setCollectionStats] = useState({
+    today: 0,
+    weekly: 0,
+  });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchHomeData = async () => {
+    try {
+      setError(null);
+      setLoading(true);
+      
+      // Fetch today's assignments and performance stats in parallel
+      const [assignmentsResponse, performanceResponse] = await Promise.all([
+        collectorRoutesService.getTodayAssignments(),
+        collectorRoutesService.getPerformanceSummary(),
+      ]);
+      
+      // Transform assignments to match the expected format
+      const assignments = Array.isArray(assignmentsResponse) 
+        ? assignmentsResponse.map(assignment => ({
+            id: assignment.id,
+            route_id: assignment.route?.id,
+            assignment_date: assignment.assignment_date,
+            status: assignment.status,
+            route: {
+              id: assignment.route?.id,
+              route_name: assignment.route?.name || assignment.route?.route_name,
+              barangay: assignment.route?.barangay,
+              total_stops: assignment.route?.total_stops,
+              estimated_duration: assignment.route?.estimated_duration,
+            },
+          }))
+        : [];
+      
+      setTodayAssignments(assignments);
+      
+      // Extract stats from performance summary
+      if (performanceResponse?.recent_activity) {
+        setCollectionStats({
+          today: performanceResponse.recent_activity.today || 0,
+          weekly: performanceResponse.recent_activity.this_week || 0,
+        });
+      }
+    } catch (err) {
+      console.error('Error fetching home data:', err);
+      setError(err?.response?.data?.message || 'Failed to load home data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchAssignments = async () => {
-      try {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        const today = new Date().toISOString().split('T')[0];
-        
-        const assignments = mockRouteAssignments.filter(
-          assignment => assignment.assignment_date === today
-        );
-        
-        const assignmentsWithRouteDetails = assignments.map(assignment => {
-          const route = mockRoutes.find(route => route.id === assignment.route_id);
-          return {
-            ...assignment,
-            route
-          };
-        });
-        
-        setTodayAssignments(assignmentsWithRouteDetails);
-      } catch (error) {
-        console.error('Error fetching assignments:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAssignments();
+    fetchHomeData();
   }, []);
 
   const startCollection = (routeId) => {
@@ -146,6 +126,20 @@ export default function Home() {
             <View className="items-center justify-center py-12">
               <ActivityIndicator size="large" color="#16A34A" />
             </View>
+          ) : error ? (
+            <View className="items-center py-8">
+              <Ionicons name="alert-circle-outline" size={48} color="#DC2626" />
+              <Text className="text-red-600 mt-3 text-base">{error}</Text>
+              <TouchableOpacity 
+                className="mt-4 px-6 py-2 bg-red-600 rounded-lg active:bg-red-700"
+                onPress={() => {
+                  setLoading(true);
+                  fetchHomeData();
+                }}
+              >
+                <Text className="text-white font-medium">Retry</Text>
+              </TouchableOpacity>
+            </View>
           ) : todayAssignments.length === 0 ? (
             <View className="items-center py-8">
               <Ionicons name="calendar-outline" size={48} color="#9CA3AF" />
@@ -167,17 +161,19 @@ export default function Home() {
                   <View className="flex-row justify-between items-start mb-3">
                     <View className="flex-1 pr-2">
                       <Text className="font-semibold text-gray-900 text-base">
-                        {assignment.route?.route_name}
+                        {assignment.route?.route_name || assignment.route?.name}
                       </Text>
                       <Text className="text-sm text-gray-600 mt-1">
                         {assignment.route?.barangay} • {assignment.route?.total_stops} stops
                       </Text>
-                      <View className="flex-row items-center mt-2">
-                        <Ionicons name="time-outline" size={14} color="#6B7280" />
-                        <Text className="text-sm text-gray-500 ml-1">
-                          Est. {assignment.route?.estimated_duration} mins
-                        </Text>
-                      </View>
+                      {assignment.route?.estimated_duration && (
+                        <View className="flex-row items-center mt-2">
+                          <Ionicons name="time-outline" size={14} color="#6B7280" />
+                          <Text className="text-sm text-gray-500 ml-1">
+                            Est. {assignment.route.estimated_duration} mins
+                          </Text>
+                        </View>
+                      )}
                     </View>
                     <View className="bg-yellow-100 px-3 py-1 rounded-full">
                       <Text className="text-xs font-semibold text-yellow-800 uppercase">
@@ -189,7 +185,7 @@ export default function Home() {
                   <View className="flex-row gap-2">
                     <TouchableOpacity 
                       className="flex-1 bg-green-600 rounded-lg py-3 flex-row items-center justify-center active:bg-green-700"
-                      onPress={() => startCollection(assignment.route_id)}
+                      onPress={() => startCollection(assignment.route_id || assignment.route?.id)}
                     >
                       <Ionicons name="play-circle-outline" size={18} color="#ffffff" />
                       <Text className="text-white font-semibold ml-2">Start Collection</Text>
@@ -202,7 +198,7 @@ export default function Home() {
                           pathname: '/route-detail',
                           params: {
                             assignmentId: assignment.id,
-                            routeId: assignment.route_id,
+                            routeId: assignment.route_id || assignment.route?.id,
                           },
                         })
                       }
@@ -228,12 +224,12 @@ export default function Home() {
           <View className="flex-row gap-3">
             <View className="flex-1 bg-green-50 rounded-lg p-4 items-center border border-green-100">
               <Text className="text-sm text-gray-600 mb-1">Today's Collections</Text>
-              <Text className="text-3xl font-bold text-green-600">12</Text>
+              <Text className="text-3xl font-bold text-green-600">{collectionStats.today}</Text>
             </View>
             
             <View className="flex-1 bg-blue-50 rounded-lg p-4 items-center border border-blue-100">
               <Text className="text-sm text-gray-600 mb-1">Weekly Total</Text>
-              <Text className="text-3xl font-bold text-blue-600">48</Text>
+              <Text className="text-3xl font-bold text-blue-600">{collectionStats.weekly}</Text>
             </View>
           </View>
         </View>
