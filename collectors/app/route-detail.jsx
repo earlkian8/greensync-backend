@@ -150,6 +150,23 @@ const RouteDetailScreen = () => {
     }
   }, [activeView, detailModalVisible, RouteMapViewComponent, assignmentId, isNavigationReady]);
 
+  useEffect(() => {
+    if (activeView !== VIEW_MODES.MAP) return;
+    if (selectedStop) return;
+    const stopWithCoords = stops.find(
+      (stop) =>
+        stop.latitude &&
+        stop.longitude &&
+        !isNaN(parseFloat(stop.latitude)) &&
+        !isNaN(parseFloat(stop.longitude))
+    );
+    if (stopWithCoords) {
+      setSelectedStop(stopWithCoords);
+    } else if (stops.length > 0) {
+      setSelectedStop(stops[0]);
+    }
+  }, [activeView, stops, selectedStop]);
+
   const handleOpenScanner = async (stop) => {
     setScanError(null);
     setScanSuccess(null);

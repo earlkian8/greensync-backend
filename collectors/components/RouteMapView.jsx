@@ -16,6 +16,7 @@ const RouteMapView = ({
   const [mapComponents, setMapComponents] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
+  const [fallbackMessage, setFallbackMessage] = React.useState(null);
   const mapRef = useRef(null);
 
   useEffect(() => {
@@ -38,7 +39,21 @@ const RouteMapView = ({
       } catch (err) {
         console.error('Failed to load map:', err);
         if (mounted) {
-          setError(err.message);
+          const isDevClientIssue =
+            err?.message?.includes('Native component for "AIRMap" does not exist') ||
+            err?.message?.includes('Expo Go') ||
+            err?.message?.includes('AIRGoogleMap');
+
+          setError(
+            isDevClientIssue
+              ? 'Map is unavailable in Expo Go builds.'
+              : err.message
+          );
+          if (isDevClientIssue) {
+            setFallbackMessage(
+              'To view maps on a device, install the Greensync dev build or run the app in a simulator/emulator created with "expo run".'
+            );
+          }
         }
       } finally {
         if (mounted) {
@@ -118,6 +133,11 @@ const RouteMapView = ({
           <Text className="text-gray-500 text-center mt-4">
             {error || 'Map unavailable'}
           </Text>
+          {fallbackMessage ? (
+            <Text className="text-xs text-gray-500 text-center mt-2 px-4">
+              {fallbackMessage}
+            </Text>
+          ) : null}
         </View>
       </View>
     );

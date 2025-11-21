@@ -152,6 +152,11 @@ class CollectorRouteController extends Controller
 
                 $bin = $stop->bin;
                 $resident = $bin?->resident;
+
+                if (!$bin && $completionMeta && $completionMeta->wasteBin) {
+                    $bin = $completionMeta->wasteBin;
+                    $resident = $bin->resident;
+                }
                 
                 return [
                     'id' => $stop->id,
