@@ -344,6 +344,11 @@ class CollectionRequestController extends Controller
             return back()->withErrors(['error' => 'Collection request must have latitude and longitude coordinates']);
         }
 
+        // Check if bin_id is available
+        if (!$collectionRequest->bin_id) {
+            return back()->withErrors(['error' => 'Collection request must have an associated waste bin']);
+        }
+
         DB::beginTransaction();
         try {
             // Get the route
@@ -365,6 +370,7 @@ class CollectionRequestController extends Controller
             // Create the route stop
             $routeStop = RouteStop::create([
                 'route_id' => $route->id,
+                'bin_id' => $collectionRequest->bin_id,
                 'stop_order' => $maxStopOrder + 1,
                 'stop_address' => $stopAddress ?: $collectionRequest->resident->barangay,
                 'latitude' => $collectionRequest->latitude,
