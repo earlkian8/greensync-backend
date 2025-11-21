@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Collectors;
 use App\Http\Controllers\Controller;
 use App\Models\Route;
 use App\Models\RouteAssignment;
+use App\Models\WasteBin;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -145,19 +146,29 @@ class CollectorRouteController extends Controller
                 $isCompleted = false;
                 $completionMeta = null;
 
-                if ($stop->bin_id && in_array($stop->bin_id, $collectionBinIds)) {
+                // Use stop's bin_id directly (from route_stops table)
+                $stopBinId = $stop->bin_id;
+
+                if ($stopBinId && in_array($stopBinId, $collectionBinIds)) {
                     $isCompleted = true;
-                    $completionMeta = $collectionsByBin->get($stop->bin_id);
+                    $completionMeta = $collectionsByBin->get($stopBinId);
                 } elseif (!empty($collectionAddresses) && in_array($stopAddress, $collectionAddresses)) {
                     $isCompleted = true;
                 }
 
+                // Get bin from relationship, or from completion meta if available
                 $bin = $stop->bin;
                 $resident = $bin?->resident;
 
                 if (!$bin && $completionMeta && $completionMeta->wasteBin) {
                     $bin = $completionMeta->wasteBin;
                     $resident = $bin->resident;
+                }
+
+                // If we have bin_id but no bin relationship loaded, try to load it
+                if ($stopBinId && !$bin) {
+                    $bin = WasteBin::with('resident')->find($stopBinId);
+                    $resident = $bin?->resident;
                 }
                 
                 return [
@@ -169,7 +180,7 @@ class CollectorRouteController extends Controller
                     'estimated_time' => $stop->estimated_time,
                     'notes' => $stop->notes,
                     'is_completed' => $isCompleted,
-                    'bin_id' => $bin?->id,
+                    'bin_id' => $stopBinId, // Use the bin_id directly from route_stops table
                     'qr_code' => $bin?->qr_code,
                     'bin_type' => $bin?->bin_type,
                     'bin_owner_name' => $resident?->name ?? null,

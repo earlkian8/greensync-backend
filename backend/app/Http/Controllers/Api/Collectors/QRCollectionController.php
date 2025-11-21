@@ -244,14 +244,27 @@ class QRCollectionController extends Controller
                 ], 404);
             }
 
-            if (!$stop->bin) {
+            // Check if stop has bin_id, if not, check relationship
+            $binId = $stop->bin_id;
+            if (!$binId && !$stop->bin) {
                 return response()->json([
                     'success' => false,
                     'message' => 'This stop is not linked to a registered bin'
                 ], 422);
             }
 
+            // Get bin from relationship or load it if we have bin_id
             $bin = $stop->bin;
+            if (!$bin && $binId) {
+                $bin = WasteBin::with('resident')->find($binId);
+            }
+
+            if (!$bin) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'The waste bin linked to this stop does not exist'
+                ], 422);
+            }
 
             $alreadyCollected = QrCollection::where('assignment_id', $assignment->id)
                 ->where('bin_id', $bin->id)
