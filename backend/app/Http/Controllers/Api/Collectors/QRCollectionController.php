@@ -110,7 +110,7 @@ class QRCollectionController extends Controller
                 'latitude' => 'required|numeric|between:-90,90',
                 'longitude' => 'required|numeric|between:-180,180',
                 'waste_weight' => 'nullable|numeric|min:0',
-                'waste_type' => 'nullable|string|in:biodegradable,non-biodegradable,recyclable,hazardous,mixed',
+                'waste_type' => 'nullable|string|in:biodegradable,non-biodegradable,recyclable,special,all,mixed,hazardous',
                 'notes' => 'nullable|string|max:500',
             ]);
 
@@ -138,6 +138,12 @@ class QRCollectionController extends Controller
                 ], 400);
             }
 
+            // Map 'mixed' and 'hazardous' to database-compatible values
+            $wasteType = $request->waste_type ?? 'mixed';
+            if ($wasteType === 'mixed' || $wasteType === 'hazardous') {
+                $wasteType = 'all'; // Map to 'all' which represents mixed waste in database
+            }
+
             $collection = QrCollection::create([
                 'bin_id' => $request->bin_id,
                 'collector_id' => $collectorId,
@@ -147,7 +153,7 @@ class QRCollectionController extends Controller
                 'latitude' => $request->latitude,
                 'longitude' => $request->longitude,
                 'waste_weight' => $request->waste_weight,
-                'waste_type' => $request->waste_type ?? 'mixed',
+                'waste_type' => $wasteType,
                 'collection_status' => 'collected',
                 'notes' => $request->notes,
                 'is_verified' => false,
@@ -195,7 +201,7 @@ class QRCollectionController extends Controller
                 'latitude' => 'nullable|numeric|between:-90,90',
                 'longitude' => 'nullable|numeric|between:-180,180',
                 'waste_weight' => 'nullable|numeric|min:0',
-                'waste_type' => 'nullable|string|in:biodegradable,non-biodegradable,recyclable,hazardous,mixed',
+                'waste_type' => 'nullable|string|in:biodegradable,non-biodegradable,recyclable,special,all,mixed,hazardous',
                 'notes' => 'nullable|string|max:500',
             ]);
 
@@ -214,9 +220,18 @@ class QRCollectionController extends Controller
                 ->where('collector_id', $collectorId)
                 ->firstOrFail();
 
+            if (!$assignment->route) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Route not found for this assignment'
+                ], 404);
+            }
+
+            $routeId = $assignment->route_id ?? $assignment->route->id;
+
             $stop = RouteStop::with('bin.resident')
                 ->where('id', $request->stop_id)
-                ->where('route_id', $assignment->route_id)
+                ->where('route_id', $routeId)
                 ->firstOrFail();
 
             if (!$stop->bin_id) {
@@ -245,6 +260,12 @@ class QRCollectionController extends Controller
                 ], 400);
             }
 
+            // Map 'mixed' and 'hazardous' to database-compatible values
+            $wasteType = $request->waste_type ?? 'mixed';
+            if ($wasteType === 'mixed' || $wasteType === 'hazardous') {
+                $wasteType = 'all'; // Map to 'all' which represents mixed waste in database
+            }
+
             $collection = QrCollection::create([
                 'bin_id' => $bin->id,
                 'collector_id' => $collectorId,
@@ -254,7 +275,7 @@ class QRCollectionController extends Controller
                 'latitude' => $request->latitude,
                 'longitude' => $request->longitude,
                 'waste_weight' => $request->waste_weight,
-                'waste_type' => $request->waste_type ?? 'mixed',
+                'waste_type' => $wasteType,
                 'collection_status' => 'manual',
                 'notes' => $request->notes,
                 'is_verified' => false,
@@ -275,13 +296,21 @@ class QRCollectionController extends Controller
             ], 201);
 
         } catch (ModelNotFoundException $e) {
+            Log::warning('manualCollectStop - Model not found', [
+                'request' => $request->all(),
+                'error' => $e->getMessage()
+            ]);
             return response()->json([
                 'success' => false,
-                'message' => 'Stop or assignment not found'
+                'message' => 'Stop or assignment not found',
+                'error' => config('app.debug') ? $e->getMessage() : 'Resource not found'
             ], 404);
         } catch (\Exception $e) {
             Log::error('manualCollectStop error: ' . $e->getMessage(), [
                 'request' => $request->all(),
+                'collector_id' => Auth::guard('collector')->id(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
                 'trace' => $e->getTraceAsString()
             ]);
 
