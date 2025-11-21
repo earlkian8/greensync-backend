@@ -23,5 +23,12 @@ class DatabaseSeeder extends Seeder
             'password' => Hash::make('password')
         ]);
         // Artisan::call('philippines:run');
+
+        // Seed residents, collectors, and collection schedules
+        $this->call([
+            ResidentSeeder::class,
+            CollectorSeeder::class,
+            CollectionScheduleSeeder::class,
+        ]);
     }
 }

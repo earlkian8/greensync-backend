@@ -19,10 +19,21 @@ return new class extends Migration
             DB::statement("ALTER TABLE qr_collections MODIFY COLUMN collection_status ENUM('successful', 'collected', 'manual', 'completed', 'skipped', 'failed') DEFAULT 'successful'");
         } elseif ($driver === 'pgsql') {
             // For PostgreSQL
-            // First, add new enum values to the existing type
-            DB::statement("ALTER TYPE collection_status_enum ADD VALUE IF NOT EXISTS 'collected'");
-            DB::statement("ALTER TYPE collection_status_enum ADD VALUE IF NOT EXISTS 'manual'");
-            DB::statement("ALTER TYPE collection_status_enum ADD VALUE IF NOT EXISTS 'completed'");
+            // Laravel's enum() creates a CHECK constraint, not an enum type
+            // We need to drop the old constraint and create a new one with all allowed values
+            
+            // Drop the existing check constraint if it exists
+            DB::statement("
+                ALTER TABLE qr_collections 
+                DROP CONSTRAINT IF EXISTS qr_collections_collection_status_check
+            ");
+            
+            // Create new check constraint with all allowed values
+            DB::statement("
+                ALTER TABLE qr_collections 
+                ADD CONSTRAINT qr_collections_collection_status_check 
+                CHECK (collection_status IN ('successful', 'collected', 'manual', 'completed', 'skipped', 'failed'))
+            ");
         } elseif ($driver === 'sqlite') {
             // SQLite doesn't support ENUM, so we need to recreate the table
             // This is a simplified approach - in production, you might want to handle this differently
@@ -44,10 +55,17 @@ return new class extends Migration
             // Revert to original enum values
             DB::statement("ALTER TABLE qr_collections MODIFY COLUMN collection_status ENUM('successful', 'skipped', 'failed') DEFAULT 'successful'");
         } elseif ($driver === 'pgsql') {
-            // Note: PostgreSQL doesn't support removing enum values easily
-            // You would need to recreate the enum type, which is complex
-            // For now, we'll leave a comment that manual intervention may be needed
-            // In production, you might want to handle this more carefully
+            // Revert to original check constraint
+            DB::statement("
+                ALTER TABLE qr_collections 
+                DROP CONSTRAINT IF EXISTS qr_collections_collection_status_check
+            ");
+            
+            DB::statement("
+                ALTER TABLE qr_collections 
+                ADD CONSTRAINT qr_collections_collection_status_check 
+                CHECK (collection_status IN ('successful', 'skipped', 'failed'))
+            ");
         }
     }
 };

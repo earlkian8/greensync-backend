@@ -12,8 +12,8 @@ export default defineConfig({
     ],
     server: {
         hmr: {
-            host: 'greensync-6i8z6.ondigitalocean.app',
-            // host: 'localhost',
+            // host: 'greensync-6i8z6.ondigitalocean.app',
+            host: 'localhost',
         },
     },
 });

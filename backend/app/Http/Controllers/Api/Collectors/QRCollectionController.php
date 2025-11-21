@@ -193,8 +193,6 @@ class QRCollectionController extends Controller
      */
     public function manualCollectStop(Request $request)
     {
-        dd($request->all());
-        try {
             $validator = Validator::make($request->all(), [
                 'assignment_id' => 'required|exists:route_assignments,id',
                 'stop_id' => 'required|exists:route_stops,id',
@@ -290,23 +288,6 @@ class QRCollectionController extends Controller
                     'collection_status' => $collection->collection_status,
                 ]
             ], 201);
-
-        } catch (ModelNotFoundException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid route assignment or stop'
-            ], 404);
-        } catch (\Exception $e) {
-            Log::error('Manual collect stop failed', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to mark stop as collected',
-                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
-            ], 500);
-        }
     }
 
 }
