@@ -39,7 +39,7 @@ class AuthenticatedSessionController extends Controller
                 ->with('success', 'Login Successfully! Please verify your email.');
         }
 
-        return redirect()->intended(route('dashboard'))
+        return redirect()->intended(route('admin.dashboard'))
             ->with('success', 'Login Successfully!');
     }
 
