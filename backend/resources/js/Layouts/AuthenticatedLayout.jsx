@@ -69,7 +69,6 @@ export default function AuthenticatedLayout({ breadcrumbs = [], children }) {
       url: route('admin.dashboard'),
       routeName: 'admin.*',
       icon: LayoutDashboard,
-      routeName: 'dashboard',
       type: 'single'
     },
     {

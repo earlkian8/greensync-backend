@@ -279,8 +279,9 @@ export default function CollectionRequestManagement() {
 
     return (
         <>
-        {showEditModal && (
+        {showEditModal && editRequest && (
             <EditCollectionRequest 
+                key={editRequest.id} // Force remount when editing different request
                 setShowEditModal={setShowEditModal} 
                 request={editRequest}
             />
@@ -300,8 +301,9 @@ export default function CollectionRequestManagement() {
             />
         )}
 
-        {showToRouteModal && (
+        {showToRouteModal && toRouteRequest && (
             <ToRouteModal 
+                key={toRouteRequest.id} // Force remount when adding different request to route
                 setShowToRouteModal={setShowToRouteModal} 
                 request={toRouteRequest}
             />

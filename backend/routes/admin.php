@@ -143,6 +143,7 @@ Route::middleware('auth')->group(function () {
             Route::get('/statistics', [CollectionRequestController::class, 'statistics'])->name('statistics');
             
             // Workflow actions (these should also come before resource routes)
+            Route::post('/assign/{collectionRequest}', [CollectionRequestController::class, 'assign'])->name('assign');
             Route::post('/to-route/{collectionRequest}', [CollectionRequestController::class, 'toRoute'])->name('to-route');
             Route::post('/start-progress/{collectionRequest}', [CollectionRequestController::class, 'startProgress'])->name('start-progress');
             Route::post('/complete/{collectionRequest}', [CollectionRequestController::class, 'complete'])->name('complete');

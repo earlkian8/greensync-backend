@@ -25,6 +25,11 @@ import { useEffect } from 'react';
 const EditCollectionRequest = ({ request: requestData, setShowEditModal }) => {
   const { residents, wasteBins, collectors } = usePage().props;
 
+  // Ensure we have valid request data
+  if (!requestData || !requestData.id) {
+    return null;
+  }
+
   const formatDate = (date) => {
     if (!date) return '';
     const d = new Date(date);
@@ -62,7 +67,8 @@ const EditCollectionRequest = ({ request: requestData, setShowEditModal }) => {
   });
 
   useEffect(() => {
-    if (requestData) {
+    if (requestData && requestData.id) {
+      // Reset form data when requestData changes to ensure we're editing the correct request
       setData({
         user_id: requestData.user_id?.toString() || '',
         bin_id: requestData.bin_id?.toString() || '',
@@ -80,18 +86,43 @@ const EditCollectionRequest = ({ request: requestData, setShowEditModal }) => {
         resolution_notes: requestData.resolution_notes || '',
         _method: 'PUT'
       });
+      
+      // Log for debugging
+      console.log('Edit form initialized for request:', {
+        id: requestData.id,
+        binId: requestData.bin_id,
+        binName: requestData.waste_bin?.name,
+        requestType: requestData.request_type,
+      });
     }
-  }, [requestData]);
+  }, [requestData?.id]); // Only depend on the ID to avoid unnecessary resets
 
   const handleSubmit = (e) => {
     e.preventDefault();
 
+    // Ensure we have a valid request ID
+    if (!requestData?.id) {
+      toast.error('Invalid request. Please refresh and try again.');
+      return;
+    }
+
+    // Log the data being submitted for debugging
+    console.log('Updating request:', {
+      requestId: requestData.id,
+      binId: data.bin_id,
+      binName: wasteBins?.find(b => b.id.toString() === data.bin_id)?.name,
+      requestType: data.request_type,
+    });
+
     router.post(route('admin.collection-request-management.update', requestData.id), data, {
       forceFormData: true,
+      preserveScroll: true,
       onSuccess: () => {
+        toast.success('Collection request updated successfully');
         setShowEditModal(false);
       },
-      onError: () => {
+      onError: (errors) => {
+        console.error('Update errors:', errors);
         toast.error('Failed to update collection request. Please check the form.');
       },
     });

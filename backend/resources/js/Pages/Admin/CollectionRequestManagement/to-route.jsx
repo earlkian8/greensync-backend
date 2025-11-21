@@ -22,6 +22,12 @@ import { router } from '@inertiajs/react';
 
 const ToRouteModal = ({ request, setShowToRouteModal }) => {
   const { routes } = usePage().props;
+  
+  // Ensure we have valid request data
+  if (!request || !request.id) {
+    return null;
+  }
+
   const { data, setData, post, errors, processing } = useForm({
     route_id: '',
   });
@@ -29,17 +35,34 @@ const ToRouteModal = ({ request, setShowToRouteModal }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
+    // Validate request ID
+    if (!request.id) {
+      toast.error('Invalid request. Please refresh and try again.');
+      return;
+    }
+
     if (!request.latitude || !request.longitude) {
       toast.error('Collection request must have latitude and longitude coordinates');
       return;
     }
 
+    // Log for debugging
+    console.log('Adding request to route:', {
+      requestId: request.id,
+      binId: request.bin_id,
+      binName: request.waste_bin?.name,
+      requestType: request.request_type,
+      routeId: data.route_id,
+    });
+
     post(route('admin.collection-request-management.to-route', request.id), {
+      preserveScroll: true,
       onSuccess: () => {
         setShowToRouteModal(false);
         toast.success('Collection request added to route successfully');
       },
-      onError: () => {
+      onError: (errors) => {
+        console.error('To-route errors:', errors);
         toast.error('Failed to add collection request to route');
       },
     });
