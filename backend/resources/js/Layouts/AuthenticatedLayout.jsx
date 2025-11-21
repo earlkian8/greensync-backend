@@ -66,7 +66,8 @@ export default function AuthenticatedLayout({ breadcrumbs = [], children }) {
   const navigationItems = [
     {
       title: 'Dashboard',
-      url: route('dashboard'),
+      url: route('admin.dashboard'),
+      routeName: 'admin.*',
       icon: LayoutDashboard,
       routeName: 'dashboard',
       type: 'single'
