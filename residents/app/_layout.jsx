@@ -1,4 +1,4 @@
-import { Stack, useRouter, useSegments, useNavigationContainerRef } from "expo-router";
+import { Stack, useRouter, useSegments, usePathname, useNavigationContainerRef } from "expo-router";
 import { useEffect, createContext, useState, useRef } from 'react';
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { View, ActivityIndicator, InteractionManager } from "react-native";
@@ -30,6 +30,7 @@ export default function RootLayout() {
   const [isLoading, setIsLoading] = useState(true);
   const [isNavigationReady, setIsNavigationReady] = useState(false);
   const segments = useSegments();
+  const pathname = usePathname();
   const router = useRouter();
   const navigationRef = useNavigationContainerRef();
   
@@ -67,6 +68,13 @@ export default function RootLayout() {
 
     const navigationTimer = setTimeout(() => {
       const inAuthGroup = segments[0] === 'auth';
+      const isRootRoute = pathname === '/' || segments.length === 0 || (segments.length === 1 && segments[0] === 'index');
+
+      // Force redirect to login if on root route
+      if (isRootRoute) {
+        router.replace('/auth/login');
+        return;
+      }
 
       if (!isAuthenticated && !inAuthGroup) {
         router.replace('/auth/login');
@@ -76,7 +84,7 @@ export default function RootLayout() {
     }, 120);
 
     return () => clearTimeout(navigationTimer);
-  }, [isAuthenticated, segments, isLoading, isNavigationReady]);
+  }, [isAuthenticated, segments, pathname, isLoading, isNavigationReady]);
 
   const checkAuthStatus = async () => {
     try {
