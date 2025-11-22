@@ -10,6 +10,8 @@ use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Carbon\Carbon;
 use Woenel\Prpcmblmts\Facades\Philippines;
@@ -235,41 +237,90 @@ class ResidentsController extends Controller
             }
         }
 
-        // Handle profile image upload
-        if ($request->hasFile('profile_image')) {
-            // Delete old image if exists
-            if ($resident->profile_image) {
-                Storage::disk('private')->delete($resident->profile_image);
+        DB::beginTransaction();
+        try {
+            $imagePath = null;
+            
+            // Handle profile image upload
+            if ($request->hasFile('profile_image')) {
+                // Delete old image if exists
+                if ($resident->profile_image) {
+                    Storage::disk('private')->delete($resident->profile_image);
+                }
+                $imagePath = $request->file('profile_image')->store('residents/profiles', 'private');
+                $validated['profile_image'] = $imagePath;
             }
-            $path = $request->file('profile_image')->store('residents/profiles', 'private');
-            $validated['profile_image'] = $path;
+
+            $resident->update($validated);
+
+            // Auto-verify if address is complete
+            if ($resident->isAddressComplete() && !$resident->is_verified) {
+                $resident->update(['is_verified' => true]);
+            }
+            
+            DB::commit();
+            
+            // Load address relationships for response
+            $resident->load(['region', 'provinceRelation', 'cityRelation', 'barangayRelation']);
+
+            return response()->json([
+                'message' => 'Profile updated successfully.',
+                'resident' => $resident->fresh(['region', 'provinceRelation', 'cityRelation', 'barangayRelation'])
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            // Delete uploaded image if transaction failed
+            if (isset($imagePath)) {
+                Storage::disk('private')->delete($imagePath);
+            }
+            
+            Log::error('Failed to update resident profile', [
+                'resident_id' => $resident->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'message' => 'Failed to update profile. Please try again.',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
+            ], 500);
         }
-
-        $resident->update($validated);
-
-        // Auto-verify if address is complete
-        if ($resident->isAddressComplete() && !$resident->is_verified) {
-            $resident->update(['is_verified' => true]);
-        }
-        
-        // Load address relationships for response
-        $resident->load(['region', 'provinceRelation', 'cityRelation', 'barangayRelation']);
-
-        return response()->json([
-            'message' => 'Profile updated successfully.',
-            'resident' => $resident->fresh(['region', 'provinceRelation', 'cityRelation', 'barangayRelation'])
-        ]);
     }
 
     /** Delete Account */
     public function destroy(Request $request)
     {
         $resident = $request->user();
-        $resident->delete();
+        
+        DB::beginTransaction();
+        try {
+            // Delete profile image if exists
+            if ($resident->profile_image) {
+                Storage::disk('private')->delete($resident->profile_image);
+            }
+            
+            $resident->delete();
+            
+            DB::commit();
 
-        return response()->json([
-            'message' => 'Account deleted successfully.'
-        ]);
+            return response()->json([
+                'message' => 'Account deleted successfully.'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            Log::error('Failed to delete resident account', [
+                'resident_id' => $resident->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'message' => 'Failed to delete account. Please try again.',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
+            ], 500);
+        }
     }
 
     public function profile(Request $request)

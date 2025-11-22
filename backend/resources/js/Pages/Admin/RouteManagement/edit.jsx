@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/Components/ui/select"
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 
 const EditRoute = ({ route: routeData, setShowEditModal }) => {
   const { residents } = usePage().props;
@@ -35,6 +35,11 @@ const EditRoute = ({ route: routeData, setShowEditModal }) => {
     created_by: routeData?.created_by?.toString() || '',
     _method: 'PUT'
   });
+
+  // Get selected resident to show barangay info
+  const selectedResident = useMemo(() => {
+    return residents?.find(r => r.id.toString() === data.created_by) || null;
+  }, [data.created_by, residents]);
 
   useEffect(() => {
     if (routeData) {
@@ -124,7 +129,14 @@ const EditRoute = ({ route: routeData, setShowEditModal }) => {
             <Label className="text-zinc-800">Created By </Label>
             <Select 
               value={data.created_by} 
-              onValueChange={(value) => setData('created_by', value)}
+              onValueChange={(value) => {
+                setData('created_by', value);
+                // Auto-fill barangay from selected resident if barangay is empty
+                const resident = residents.find(r => r.id.toString() === value);
+                if (resident && resident.barangay && !data.barangay) {
+                  setData('barangay', resident.barangay);
+                }
+              }}
             >
               <SelectTrigger className={inputClass(errors.created_by)}>
                 <SelectValue placeholder="Select resident" />
@@ -133,7 +145,7 @@ const EditRoute = ({ route: routeData, setShowEditModal }) => {
                 {residents && residents.length > 0 ? (
                   residents.map((resident) => (
                     <SelectItem key={resident.id} value={resident.id.toString()}>
-                      {resident.name} ({resident.email})
+                      {resident.name} ({resident.email}) - {resident.barangay}
                     </SelectItem>
                   ))
                 ) : (
@@ -142,6 +154,11 @@ const EditRoute = ({ route: routeData, setShowEditModal }) => {
               </SelectContent>
             </Select>
             <InputError message={errors.created_by} />
+            {selectedResident && (
+              <p className="text-xs text-zinc-500 mt-1">
+                Resident barangay: {selectedResident.barangay}
+              </p>
+            )}
           </div>
 
           {/* Route Map Data */}

@@ -15,6 +15,7 @@ import {
   CheckCircle,
   AlertCircle
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 
 const ShowWasteBin = ({ setShowViewModal, wasteBin }) => {
   const InfoRow = ({ icon: Icon, label, value, className = "" }) => (
@@ -79,10 +80,12 @@ const ShowWasteBin = ({ setShowViewModal, wasteBin }) => {
             <div className="flex flex-col items-center">
               <div className="w-40 h-40 border-4 border-zinc-200 rounded-lg p-2 mb-4 flex items-center justify-center bg-white">
                 {wasteBin.qr_code ? (
-                  <img 
-                    src={route('admin.waste-bin-management.qr-code', wasteBin.id)} 
-                    alt={`QR Code for ${wasteBin.qr_code}`}
-                    className="w-full h-full object-contain"
+                  <QRCodeSVG 
+                    value={wasteBin.qr_code}
+                    size={144}
+                    level="H"
+                    includeMargin={false}
+                    className="w-full h-full"
                   />
                 ) : (
                   <QrCode className="h-32 w-32 text-zinc-800" />

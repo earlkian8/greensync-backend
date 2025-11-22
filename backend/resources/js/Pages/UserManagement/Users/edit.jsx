@@ -13,10 +13,9 @@ import { Input } from '@/Components/ui/input';
 import InputError from '@/Components/InputError';
 import { Label } from '@/Components/ui/label';
 import { Button } from '@/Components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/Components/ui/select';
 import { Eye, EyeOff } from 'lucide-react';
 
-const EditUser = ({ setShowEditModal, user, roles }) => {
+const EditUser = ({ setShowEditModal, user }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordConfirmation, setShowPasswordConfirmation] = useState(false);
 
@@ -25,7 +24,6 @@ const EditUser = ({ setShowEditModal, user, roles }) => {
     email: user?.email || '',
     password: '',
     password_confirmation: '',
-    role: user?.roles?.[0]?.name || '',
   });
 
   const handleSubmit = (e) => {
@@ -47,8 +45,6 @@ const EditUser = ({ setShowEditModal, user, roles }) => {
           toast.error('Email is already taken');
         } else if (errors.password) {
           toast.error('Password must be at least 8 characters');
-        } else if (errors.role) {
-          toast.error('Please select a valid role');
         } else {
           toast.error('Please check the form for errors');
         }
@@ -97,24 +93,6 @@ const EditUser = ({ setShowEditModal, user, roles }) => {
               className={inputClass(errors.email)}
             />
             <InputError message={errors.email} />
-          </div>
-
-          {/* Role Selection */}
-          <div>
-            <Label className="text-zinc-800">Role</Label>
-            <Select value={data.role} onValueChange={(value) => setData('role', value)}>
-              <SelectTrigger className={inputClass(errors.role)}>
-                <SelectValue placeholder="Select a role" />
-              </SelectTrigger>
-              <SelectContent>
-                {roles.map((role) => (
-                  <SelectItem key={role.id} value={role.name}>
-                    {role.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <InputError message={errors.role} />
           </div>
 
           {/* Buttons */}

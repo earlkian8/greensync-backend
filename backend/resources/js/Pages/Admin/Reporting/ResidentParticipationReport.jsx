@@ -65,17 +65,6 @@ export default function ResidentParticipationReport() {
       <Head title="Resident Participation Report" />
 
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Resident Participation Report</h1>
-            <p className="text-gray-600 mt-1">Resident engagement and participation statistics</p>
-          </div>
-          <Button variant="outline" className="gap-2">
-            <Download className="h-4 w-4" />
-            Export Report
-          </Button>
-        </div>
-
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

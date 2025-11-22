@@ -19,9 +19,22 @@ import {
   SelectValue,
 } from "@/Components/ui/select"
 import { router } from '@inertiajs/react';
+import { useMemo } from 'react';
 
 const ToRouteModal = ({ request, setShowToRouteModal }) => {
   const { routes } = usePage().props;
+
+  // Filter routes by request's resident barangay (prefer matching, but show all)
+  const filteredRoutes = useMemo(() => {
+    if (!routes || !request?.resident?.barangay) return routes || [];
+    const requestBarangay = request.resident.barangay;
+    
+    // Separate matching and non-matching routes
+    const matching = routes.filter(r => r.barangay === requestBarangay);
+    const nonMatching = routes.filter(r => r.barangay !== requestBarangay);
+    
+    return [...matching, ...nonMatching];
+  }, [routes, request]);
   
   // Ensure we have valid request data
   if (!request || !request.id) {
@@ -95,12 +108,17 @@ const ToRouteModal = ({ request, setShowToRouteModal }) => {
                 <SelectValue placeholder="Select route" />
               </SelectTrigger>
               <SelectContent>
-                {routes && routes.length > 0 ? (
-                  routes.map((route) => (
-                    <SelectItem key={route.id} value={route.id.toString()}>
-                      {route.route_name} - {route.barangay}
-                    </SelectItem>
-                  ))
+                {filteredRoutes && filteredRoutes.length > 0 ? (
+                  filteredRoutes.map((route) => {
+                    const matchesBarangay = request?.resident?.barangay === route.barangay;
+                    return (
+                      <SelectItem key={route.id} value={route.id.toString()}>
+                        {route.route_name} - {route.barangay} 
+                        {matchesBarangay ? ' ✓' : ' ⚠'}
+                        {route.total_stops !== undefined && ` (${route.total_stops} stops)`}
+                      </SelectItem>
+                    );
+                  })
                 ) : (
                   <SelectItem value="none" disabled>No active routes available</SelectItem>
                 )}
@@ -109,7 +127,7 @@ const ToRouteModal = ({ request, setShowToRouteModal }) => {
             <InputError message={errors.route_id} />
           </div>
 
-          {/* Info Message */}
+          {/* Info Messages */}
           {(!request.latitude || !request.longitude) && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
               <p className="text-xs text-yellow-800">
@@ -118,6 +136,21 @@ const ToRouteModal = ({ request, setShowToRouteModal }) => {
               </p>
             </div>
           )}
+          
+          {request?.resident?.barangay && data.route_id && (() => {
+            const selectedRoute = filteredRoutes.find(r => r.id.toString() === data.route_id);
+            if (selectedRoute && selectedRoute.barangay !== request.resident.barangay) {
+              return (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                  <p className="text-xs text-yellow-800">
+                    <strong>Note:</strong> Route barangay ({selectedRoute.barangay}) does not match 
+                    request's resident barangay ({request.resident.barangay}). This is allowed but may cause routing issues.
+                  </p>
+                </div>
+              );
+            }
+            return null;
+          })()}
 
           {/* Buttons */}
           <DialogFooter className="flex flex-row gap-2 justify-end mt-4">

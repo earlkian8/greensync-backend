@@ -168,7 +168,7 @@ class UserController extends Controller
             return back()->withErrors(['error' => 'You cannot reset your own password.']);
         }
 
-        $defaultPassword = 'greenpassword';
+        $defaultPassword = config('system.default_password');
         
         $user->update([
             'password' => Hash::make($defaultPassword),

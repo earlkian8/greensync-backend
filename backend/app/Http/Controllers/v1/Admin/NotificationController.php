@@ -274,7 +274,7 @@ class NotificationController extends Controller
         $notification->delete();
 
         return redirect()->route('admin.notification-management.index')
-            ->with('success');
+            ->with('success', 'Notification deleted successfully');
     }
 
     /**

@@ -54,7 +54,8 @@ class CollectionScheduleController extends Controller
             $query->where('collection_day', $dayFilter);
         }
 
-        $schedules = $query->orderBy('collection_day')
+        $schedules = $query->withCount(['routeAssignments'])
+                          ->orderBy('collection_day')
                           ->orderBy('collection_time')
                           ->paginate(10)
                           ->withQueryString();
@@ -102,6 +103,21 @@ class CollectionScheduleController extends Controller
             'is_active' => 'nullable|boolean',
             'notes' => 'nullable|string',
         ]);
+
+        // Check for duplicate schedule (same barangay, day, and time)
+        $existingSchedule = CollectionSchedule::where('barangay', $validated['barangay'])
+            ->where('collection_day', $validated['collection_day'])
+            ->where('collection_time', $validated['collection_time'])
+            ->where('is_active', true)
+            ->first();
+
+        if ($existingSchedule) {
+            return back()->withErrors([
+                'collection_time' => 'A schedule already exists for ' . $validated['barangay'] . 
+                                   ' on ' . $validated['collection_day'] . 
+                                   ' at ' . $validated['collection_time']
+            ]);
+        }
 
         $scheduleData = [
             'barangay' => $validated['barangay'],
@@ -181,6 +197,22 @@ class CollectionScheduleController extends Controller
             'notes' => 'nullable|string',
         ]);
 
+        // Check for duplicate schedule (excluding current schedule)
+        $existingSchedule = CollectionSchedule::where('barangay', $validated['barangay'])
+            ->where('collection_day', $validated['collection_day'])
+            ->where('collection_time', $validated['collection_time'])
+            ->where('id', '!=', $collectionSchedule->id)
+            ->where('is_active', true)
+            ->first();
+
+        if ($existingSchedule) {
+            return back()->withErrors([
+                'collection_time' => 'A schedule already exists for ' . $validated['barangay'] . 
+                                   ' on ' . $validated['collection_day'] . 
+                                   ' at ' . $validated['collection_time']
+            ]);
+        }
+
         $updateData = [
             'barangay' => $validated['barangay'],
             'collection_day' => $validated['collection_day'],
@@ -248,7 +280,7 @@ class CollectionScheduleController extends Controller
         $collectionSchedule->delete();
 
         return redirect()->route('admin.collection-schedule-management.index')
-            ->with('success');
+            ->with('success', 'Collection schedule deleted successfully');
     }
 
     /**

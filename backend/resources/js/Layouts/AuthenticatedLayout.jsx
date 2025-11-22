@@ -16,7 +16,6 @@ import {
   Layers,
   Bell,
   BarChart2,
-  Key,
   Menu,
   X,
   User,
@@ -43,7 +42,6 @@ export default function AuthenticatedLayout({ breadcrumbs = [], children }) {
   const { flash } = usePage().props;
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [userManagementOpen, setUserManagementOpen] = useState(false);
 
   useEffect(() => {
     if (flash.success) {
@@ -67,7 +65,7 @@ export default function AuthenticatedLayout({ breadcrumbs = [], children }) {
     {
       title: 'Dashboard',
       url: route('admin.dashboard'),
-      routeName: 'admin.*',
+      routeName: 'admin.dashboard',
       icon: LayoutDashboard,
       type: 'single'
     },
@@ -136,30 +134,17 @@ export default function AuthenticatedLayout({ breadcrumbs = [], children }) {
     },
     {
       title: 'User Management',
-      icon: Key,
-      type: 'collapsible',
-      isOpen: userManagementOpen,
-      setIsOpen: setUserManagementOpen,
-      items: [
-        {
-          title: 'User Accounts',
-          url: route('user-management.users.index'),
-          routeName: 'user-management.users.*',
-          icon: Users
-        },
-        {
-          title: 'Roles & Permissions',
-          url: route('user-management.roles-and-permissions.index'),
-          routeName: 'user-management.roles-and-permissions.*',
-          icon: Key
-        },
-        {
-          title: 'Activity Logs',
-          url: route('user-management.activity-logs.index'),
-          routeName: 'user-management.activity-logs.*',
-          icon: FileText
-        },
-      ]
+      url: route('user-management.users.index'),
+      icon: Users,
+      routeName: 'user-management.users.*',
+      type: 'single'
+    },
+    {
+      title: 'Activity Logs',
+      url: route('user-management.activity-logs.index'),
+      icon: FileText,
+      routeName: 'user-management.activity-logs.*',
+      type: 'single'
     }
   ];
 

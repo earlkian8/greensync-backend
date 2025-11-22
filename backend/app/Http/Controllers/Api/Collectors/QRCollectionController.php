@@ -10,6 +10,7 @@ use App\Models\WasteBin;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -144,32 +145,47 @@ class QRCollectionController extends Controller
                 $wasteType = 'all'; // Map to 'all' which represents mixed waste in database
             }
 
-            $collection = QrCollection::create([
-                'bin_id' => $request->bin_id,
-                'collector_id' => $collectorId,
-                'assignment_id' => $request->assignment_id,
-                'qr_code' => $request->qr_code,
-                'collection_timestamp' => Carbon::now(),
-                'latitude' => $request->latitude,
-                'longitude' => $request->longitude,
-                'waste_weight' => $request->waste_weight,
-                'waste_type' => $wasteType,
-                'collection_status' => 'collected',
-                'notes' => $request->notes,
-                'is_verified' => false,
-            ]);
+            DB::beginTransaction();
+            try {
+                $collection = QrCollection::create([
+                    'bin_id' => $request->bin_id,
+                    'collector_id' => $collectorId,
+                    'assignment_id' => $request->assignment_id,
+                    'qr_code' => $request->qr_code,
+                    'collection_timestamp' => Carbon::now(),
+                    'latitude' => $request->latitude,
+                    'longitude' => $request->longitude,
+                    'waste_weight' => $request->waste_weight,
+                    'waste_type' => $wasteType,
+                    'collection_status' => 'collected',
+                    'notes' => $request->notes,
+                    'is_verified' => false,
+                ]);
 
-            WasteBin::where('id', $request->bin_id)->update(['last_collected' => Carbon::now()]);
+                WasteBin::where('id', $request->bin_id)->update(['last_collected' => Carbon::now()]);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Collection recorded successfully',
-                'data' => [
-                    'collection_id' => $collection->id,
-                    'collection_timestamp' => $collection->collection_timestamp->format('Y-m-d H:i:s'),
-                    'collection_status' => $collection->collection_status,
-                ]
-            ], 201);
+                DB::commit();
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Collection recorded successfully',
+                    'data' => [
+                        'collection_id' => $collection->id,
+                        'collection_timestamp' => $collection->collection_timestamp->format('Y-m-d H:i:s'),
+                        'collection_status' => $collection->collection_status,
+                    ]
+                ], 201);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('Failed to record collection', [
+                    'collector_id' => $collectorId,
+                    'bin_id' => $request->bin_id,
+                    'assignment_id' => $request->assignment_id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                throw $e; // Re-throw to be caught by outer catch
+            }
 
         } catch (ModelNotFoundException $e) {
             return response()->json([

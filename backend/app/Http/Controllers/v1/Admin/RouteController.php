@@ -49,7 +49,8 @@ class RouteController extends Controller
             $query->where('barangay', $barangayFilter);
         }
 
-        $routes = $query->orderBy('created_at', 'desc')
+        $routes = $query->withCount(['assignments'])
+                       ->orderBy('created_at', 'desc')
                        ->paginate(10)
                        ->withQueryString();
 
@@ -281,7 +282,7 @@ class RouteController extends Controller
         $route->delete();
 
         return redirect()->route('admin.route-management.index')
-            ->with('success');
+            ->with('success', 'Route deleted successfully');
     }
 
     /**

@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -54,9 +55,14 @@ class CollectorController extends Controller
             $query->where('is_active', false);
         }
 
-        $collectors = $query->orderBy('created_at', 'desc')
-                          ->paginate(10)
-                          ->withQueryString();
+        $collectors = $query->withCount([
+            'routeAssignments',
+            'collectionRequests',
+            'qrCollections'
+        ])
+        ->orderBy('created_at', 'desc')
+        ->paginate(10)
+        ->withQueryString();
 
         // Profile image URLs are automatically included via the model accessor
 
@@ -97,57 +103,78 @@ class CollectorController extends Controller
             'is_verified' => 'nullable|boolean',
         ]);
 
-        // Auto-generate employee_id
-        $lastEmployeeId = Collector::max('employee_id') ?? 0;
-        $employeeId = $lastEmployeeId + 1;
+        DB::beginTransaction();
+        try {
+            // Auto-generate employee_id
+            $lastEmployeeId = Collector::max('employee_id') ?? 0;
+            $employeeId = $lastEmployeeId + 1;
 
-        $collectorData = [
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'phone_number' => $validated['phone_number'],
-            'password' => Hash::make($validated['password']),
-            'employee_id' => $employeeId,
-            'license_number' => $validated['license_number'] ?? null,
-            'vehicle_plate_number' => $validated['vehicle_plate_number'] ?? null,
-            'vehicle_type' => $validated['vehicle_type'] ?? null,
-            'is_active' => $validated['is_active'] ?? true,
-            'is_verified' => $validated['is_verified'] ?? false,
-        ];
+            $collectorData = [
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'phone_number' => $validated['phone_number'],
+                'password' => Hash::make($validated['password']),
+                'employee_id' => $employeeId,
+                'license_number' => $validated['license_number'] ?? null,
+                'vehicle_plate_number' => $validated['vehicle_plate_number'] ?? null,
+                'vehicle_type' => $validated['vehicle_type'] ?? null,
+                'is_active' => $validated['is_active'] ?? true,
+                'is_verified' => $validated['is_verified'] ?? false,
+            ];
 
-        // Handle profile image upload
-        if ($request->hasFile('profile_image')) {
-            $path = $request->file('profile_image')->store('collectors/profiles', 'private');
-            $collectorData['profile_image'] = $path;
+            $imagePaths = [];
+
+            // Handle profile image upload
+            if ($request->hasFile('profile_image')) {
+                $path = $request->file('profile_image')->store('collectors/profiles', 'private');
+                $collectorData['profile_image'] = $path;
+                $imagePaths[] = $path;
+            }
+
+            // Handle license number image upload
+            if ($request->hasFile('license_number_image')) {
+                $path = $request->file('license_number_image')->store('collectors/licenses', 'private');
+                $collectorData['license_number_image'] = $path;
+                $imagePaths[] = $path;
+            }
+
+            // Handle vehicle plate number image upload
+            if ($request->hasFile('vehicle_plate_number_image')) {
+                $path = $request->file('vehicle_plate_number_image')->store('collectors/vehicle-plates', 'private');
+                $collectorData['vehicle_plate_number_image'] = $path;
+                $imagePaths[] = $path;
+            }
+
+            // Handle vehicle type image upload
+            if ($request->hasFile('vehicle_type_image')) {
+                $path = $request->file('vehicle_type_image')->store('collectors/vehicle-types', 'private');
+                $collectorData['vehicle_type_image'] = $path;
+                $imagePaths[] = $path;
+            }
+
+            $collector = Collector::create($collectorData);
+
+            DB::commit();
+
+            $this->adminActivityLogs(
+                'Collector',
+                'Add',
+                'Created Collector ' . $collector->name . ' (ID: ' . $collector->employee_id . ') - ' . $collector->email
+            );
+
+            return redirect()->route('admin.collector-management.index')
+                ->with('success', 'Collector created successfully');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            // Delete uploaded images if transaction failed
+            foreach ($imagePaths as $imagePath) {
+                Storage::disk('private')->delete($imagePath);
+            }
+            
+            return back()->withErrors(['error' => 'Failed to create collector: ' . $e->getMessage()])
+                ->withInput();
         }
-
-        // Handle license number image upload
-        if ($request->hasFile('license_number_image')) {
-            $path = $request->file('license_number_image')->store('collectors/licenses', 'private');
-            $collectorData['license_number_image'] = $path;
-        }
-
-        // Handle vehicle plate number image upload
-        if ($request->hasFile('vehicle_plate_number_image')) {
-            $path = $request->file('vehicle_plate_number_image')->store('collectors/vehicle-plates', 'private');
-            $collectorData['vehicle_plate_number_image'] = $path;
-        }
-
-        // Handle vehicle type image upload
-        if ($request->hasFile('vehicle_type_image')) {
-            $path = $request->file('vehicle_type_image')->store('collectors/vehicle-types', 'private');
-            $collectorData['vehicle_type_image'] = $path;
-        }
-
-        $collector = Collector::create($collectorData);
-
-        $this->adminActivityLogs(
-            'Collector',
-            'Add',
-            'Created Collector ' . $collector->name . ' (ID: ' . $collector->employee_id . ') - ' . $collector->email
-        );
-
-        return redirect()->route('admin.collector-management.index')
-            ->with('success', 'Collector created successfully');
     }
 
     /**
@@ -394,7 +421,7 @@ class CollectorController extends Controller
         $collector->delete();
 
         return redirect()->route('admin.collector-management.index')
-            ->with('success');
+            ->with('success', 'Collector deleted successfully');
     }
 
     /**

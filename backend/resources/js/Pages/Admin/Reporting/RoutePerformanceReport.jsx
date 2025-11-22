@@ -72,18 +72,6 @@ export default function RoutePerformanceReport() {
       <Head title="Route Performance Report" />
 
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Route Performance Report</h1>
-            <p className="text-gray-600 mt-1">Route efficiency, completion rates, and assignments</p>
-          </div>
-          <Button variant="outline" className="gap-2">
-            <Download className="h-4 w-4" />
-            Export Report
-          </Button>
-        </div>
-
         {/* Filters */}
         <Card>
           <CardHeader>

@@ -142,6 +142,42 @@ class RouteAssignmentController extends Controller
             'notes' => 'nullable|string',
         ]);
 
+        // Get route and schedule to validate constraints
+        $route = Route::findOrFail($validated['route_id']);
+        $schedule = CollectionSchedule::findOrFail($validated['schedule_id']);
+
+        // Validate route is active
+        if (!$route->is_active) {
+            return back()->withErrors(['route_id' => 'Selected route is not active']);
+        }
+
+        // Validate route has stops
+        if ($route->total_stops == 0) {
+            return back()->withErrors(['route_id' => 'Selected route has no stops. Please add stops to the route first.']);
+        }
+
+        // Validate route barangay matches schedule barangay
+        if ($route->barangay !== $schedule->barangay) {
+            return back()->withErrors(['schedule_id' => 'Schedule barangay (' . $schedule->barangay . ') does not match route barangay (' . $route->barangay . ')']);
+        }
+
+        // Validate assignment date matches schedule's collection day
+        $assignmentDay = date('l', strtotime($validated['assignment_date']));
+        if ($assignmentDay !== $schedule->collection_day) {
+            return back()->withErrors(['assignment_date' => 'Assignment date (' . $assignmentDay . ') does not match schedule collection day (' . $schedule->collection_day . ')']);
+        }
+
+        // Check for duplicate assignment (same route, collector, and date)
+        $existingAssignment = RouteAssignment::where('route_id', $validated['route_id'])
+            ->where('collector_id', $validated['collector_id'])
+            ->where('assignment_date', $validated['assignment_date'])
+            ->where('status', '!=', 'cancelled')
+            ->first();
+
+        if ($existingAssignment) {
+            return back()->withErrors(['assignment_date' => 'An assignment already exists for this route, collector, and date']);
+        }
+
         $assignmentData = [
             'route_id' => $validated['route_id'],
             'collector_id' => $validated['collector_id'],
@@ -252,6 +288,43 @@ class RouteAssignmentController extends Controller
             'end_time' => 'nullable|date|after:start_time',
             'notes' => 'nullable|string',
         ]);
+
+        // Get route and schedule to validate constraints
+        $route = Route::findOrFail($validated['route_id']);
+        $schedule = CollectionSchedule::findOrFail($validated['schedule_id']);
+
+        // Validate route is active (unless updating existing assignment)
+        if (!$route->is_active && $routeAssignment->route_id != $validated['route_id']) {
+            return back()->withErrors(['route_id' => 'Selected route is not active']);
+        }
+
+        // Validate route has stops
+        if ($route->total_stops == 0) {
+            return back()->withErrors(['route_id' => 'Selected route has no stops. Please add stops to the route first.']);
+        }
+
+        // Validate route barangay matches schedule barangay
+        if ($route->barangay !== $schedule->barangay) {
+            return back()->withErrors(['schedule_id' => 'Schedule barangay (' . $schedule->barangay . ') does not match route barangay (' . $route->barangay . ')']);
+        }
+
+        // Validate assignment date matches schedule's collection day
+        $assignmentDay = date('l', strtotime($validated['assignment_date']));
+        if ($assignmentDay !== $schedule->collection_day) {
+            return back()->withErrors(['assignment_date' => 'Assignment date (' . $assignmentDay . ') does not match schedule collection day (' . $schedule->collection_day . ')']);
+        }
+
+        // Check for duplicate assignment (excluding current assignment)
+        $existingAssignment = RouteAssignment::where('route_id', $validated['route_id'])
+            ->where('collector_id', $validated['collector_id'])
+            ->where('assignment_date', $validated['assignment_date'])
+            ->where('id', '!=', $routeAssignment->id)
+            ->where('status', '!=', 'cancelled')
+            ->first();
+
+        if ($existingAssignment) {
+            return back()->withErrors(['assignment_date' => 'An assignment already exists for this route, collector, and date']);
+        }
 
         $updateData = [
             'route_id' => $validated['route_id'],

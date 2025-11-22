@@ -16,11 +16,10 @@ import ResetPassword from './reset';
 
 export default function Users() {
     const columns = [
-        { header: 'Name', width: '20%' },
-        { header: 'Email', width: '25%' },
-        { header: 'Role', width: '15%' },
-        { header: 'Created At', width: '15%' },
-        { header: 'Updated At', width: '15%' },
+        { header: 'Name', width: '25%' },
+        { header: 'Email', width: '30%' },
+        { header: 'Created At', width: '20%' },
+        { header: 'Updated At', width: '20%' },
         { header: 'Action', width: '10%' },
     ];
 
@@ -36,7 +35,6 @@ export default function Users() {
 
     const pagination = usePage().props.users;
     const userData = usePage().props.users.data;
-    const roles = usePage().props.roles || [];
     const [search, setSearch] = useState(usePage().props.search || '');
 
     const handleSearch = (e) => {
@@ -61,11 +59,11 @@ export default function Users() {
     return (
         <>
         {showAddModal && (
-            <AddUser setShowAddModal={setShowAddModal} roles={roles}/>
+            <AddUser setShowAddModal={setShowAddModal} />
         )}
 
         {showEditModal && (
-            <EditUser setShowEditModal={setShowEditModal} user={editUser} roles={roles}/>
+            <EditUser setShowEditModal={setShowEditModal} user={editUser} />
         )}
         
         {showDeleteModal && (
@@ -100,11 +98,6 @@ export default function Users() {
                                 </TableCell>
                                 <TableCell className='text-left px-2 py-2 sm:px-4 md:px-6 text-xs sm:text-sm'>
                                     {user.email}
-                                </TableCell>
-                                <TableCell className='text-left px-2 py-2 sm:px-4 md:px-6 text-xs sm:text-sm'>
-                                    <span className="inline-flex items-center px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                                        {user.roles && user.roles.length > 0 ? user.roles[0].name : 'No Role'}
-                                    </span>
                                 </TableCell>
                                 <TableCell className='text-left px-2 py-2 sm:px-4 md:px-6 text-xs sm:text-sm'>
                                     {new Date(user.created_at).toLocaleString('en-US', {

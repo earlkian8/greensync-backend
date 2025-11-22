@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/Components/ui/select"
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 
 const EditRouteAssignment = ({ assignment: assignmentData, setShowEditModal }) => {
   const { routes, collectors, schedules } = usePage().props;
@@ -73,6 +73,47 @@ const EditRouteAssignment = ({ assignment: assignmentData, setShowEditModal }) =
     }
   }, [assignmentData]);
 
+  // Get selected route to filter schedules
+  const selectedRoute = useMemo(() => {
+    return routes?.find(r => r.id.toString() === data.route_id) || null;
+  }, [data.route_id, routes]);
+
+  // Filter schedules based on selected route's barangay
+  const filteredSchedules = useMemo(() => {
+    if (!selectedRoute || !schedules) return schedules || [];
+    return schedules.filter(s => s.barangay === selectedRoute.barangay);
+  }, [selectedRoute, schedules]);
+
+  // Get selected schedule
+  const selectedSchedule = useMemo(() => {
+    return filteredSchedules?.find(s => s.id.toString() === data.schedule_id) || null;
+  }, [data.schedule_id, filteredSchedules]);
+
+  // Calculate next date for the schedule's collection day
+  const getNextDateForDay = (dayName) => {
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayIndex = days.indexOf(dayName);
+    if (dayIndex === -1) return '';
+
+    const today = new Date();
+    const currentDay = today.getDay();
+    let daysUntil = dayIndex - currentDay;
+
+    if (daysUntil < 0) {
+      daysUntil += 7; // Next week
+    } else if (daysUntil === 0) {
+      daysUntil = 7; // Next week if today
+    }
+
+    const nextDate = new Date(today);
+    nextDate.setDate(today.getDate() + daysUntil);
+    
+    const year = nextDate.getFullYear();
+    const month = String(nextDate.getMonth() + 1).padStart(2, '0');
+    const day = String(nextDate.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -107,7 +148,13 @@ const EditRouteAssignment = ({ assignment: assignmentData, setShowEditModal }) =
             <Label className="text-zinc-800">Route </Label>
             <Select 
               value={data.route_id} 
-              onValueChange={(value) => setData('route_id', value)}
+              onValueChange={(value) => {
+                setData('route_id', value);
+                // Clear schedule when route changes (barangay mismatch)
+                if (selectedRoute && selectedRoute.barangay !== routes.find(r => r.id.toString() === value)?.barangay) {
+                  setData('schedule_id', '');
+                }
+              }}
             >
               <SelectTrigger className={inputClass(errors.route_id)}>
                 <SelectValue placeholder="Select route" />
@@ -125,6 +172,11 @@ const EditRouteAssignment = ({ assignment: assignmentData, setShowEditModal }) =
               </SelectContent>
             </Select>
             <InputError message={errors.route_id} />
+            {selectedRoute && (
+              <p className="text-xs text-zinc-500 mt-1">
+                Barangay: {selectedRoute.barangay} | Stops: {selectedRoute.total_stops || 0}
+              </p>
+            )}
           </div>
 
           {/* Collector */}
@@ -157,24 +209,57 @@ const EditRouteAssignment = ({ assignment: assignmentData, setShowEditModal }) =
             <Label className="text-zinc-800">Schedule </Label>
             <Select 
               value={data.schedule_id} 
-              onValueChange={(value) => setData('schedule_id', value)}
+              onValueChange={(value) => {
+                setData('schedule_id', value);
+                // Auto-fill assignment date based on schedule's collection day if date is empty or doesn't match
+                const schedule = filteredSchedules.find(s => s.id.toString() === value);
+                if (schedule) {
+                  const nextDate = getNextDateForDay(schedule.collection_day);
+                  if (nextDate) {
+                    // Only auto-fill if date is empty or doesn't match the schedule's day
+                    if (!data.assignment_date) {
+                      setData('assignment_date', nextDate);
+                    } else {
+                      const selectedDate = new Date(data.assignment_date);
+                      const dayName = selectedDate.toLocaleDateString('en-US', { weekday: 'long' });
+                      if (dayName !== schedule.collection_day) {
+                        setData('assignment_date', nextDate);
+                      }
+                    }
+                  }
+                }
+              }}
             >
               <SelectTrigger className={inputClass(errors.schedule_id)}>
                 <SelectValue placeholder="Select schedule" />
               </SelectTrigger>
               <SelectContent>
-                {schedules && schedules.length > 0 ? (
-                  schedules.map((schedule) => (
+                {filteredSchedules && filteredSchedules.length > 0 ? (
+                  filteredSchedules.map((schedule) => (
                     <SelectItem key={schedule.id} value={schedule.id.toString()}>
-                      {schedule.barangay} - {schedule.collection_day} ({schedule.frequency})
+                      {schedule.barangay} - {schedule.collection_day} at {schedule.collection_time} ({schedule.frequency})
                     </SelectItem>
                   ))
                 ) : (
-                  <SelectItem value="none" disabled>No schedules available</SelectItem>
+                  <SelectItem value="none" disabled>
+                    {selectedRoute 
+                      ? `No schedules available for ${selectedRoute.barangay}` 
+                      : 'Select a route first'}
+                  </SelectItem>
                 )}
               </SelectContent>
             </Select>
             <InputError message={errors.schedule_id} />
+            {selectedRoute && filteredSchedules.length === 0 && (
+              <p className="text-xs text-yellow-600 mt-1">
+                No active schedules found for {selectedRoute.barangay}. Please create a schedule first.
+              </p>
+            )}
+            {selectedSchedule && (
+              <p className="text-xs text-zinc-500 mt-1">
+                Collection Day: {selectedSchedule.collection_day} | Time: {selectedSchedule.collection_time}
+              </p>
+            )}
           </div>
 
           {/* Assignment Date */}
@@ -185,8 +270,23 @@ const EditRouteAssignment = ({ assignment: assignmentData, setShowEditModal }) =
               value={data.assignment_date}
               onChange={e => setData('assignment_date', e.target.value)}
               className={inputClass(errors.assignment_date)}
+              min={new Date().toISOString().split('T')[0]}
             />
             <InputError message={errors.assignment_date} />
+            {selectedSchedule && data.assignment_date && (
+              (() => {
+                const selectedDate = new Date(data.assignment_date);
+                const dayName = selectedDate.toLocaleDateString('en-US', { weekday: 'long' });
+                const matches = dayName === selectedSchedule.collection_day;
+                return (
+                  <p className={`text-xs mt-1 ${matches ? 'text-green-600' : 'text-yellow-600'}`}>
+                    {matches 
+                      ? `✓ Date matches schedule's ${selectedSchedule.collection_day}` 
+                      : `⚠ Date is ${dayName}, but schedule is ${selectedSchedule.collection_day}`}
+                  </p>
+                );
+              })()
+            )}
           </div>
 
           {/* Status */}

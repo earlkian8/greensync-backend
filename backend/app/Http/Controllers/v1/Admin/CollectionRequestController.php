@@ -111,7 +111,7 @@ class CollectionRequestController extends Controller
 
         // Get active routes for To-Route action
         $routes = Route::where('is_active', true)
-                      ->select('id', 'route_name', 'barangay')
+                      ->select('id', 'route_name', 'barangay', 'total_stops')
                       ->orderBy('route_name')
                       ->get();
 
@@ -137,7 +137,7 @@ class CollectionRequestController extends Controller
     {
         // Load relationships
         $collectionRequest->load([
-            'resident:id,name,email,phone_number,barangay,address',
+            'resident:id,name,email,phone_number,barangay',
             'wasteBin:id,name,qr_code,bin_type,status',
             'collector:id,name,phone_number,employee_id,email'
         ]);
@@ -420,13 +420,50 @@ class CollectionRequestController extends Controller
             return back()->withErrors(['error' => 'Collection request must have latitude and longitude coordinates']);
         }
 
+        // Check if request is already assigned to a route
+        $existingStop = RouteStop::where('bin_id', $collectionRequest->bin_id)
+            ->whereHas('route', function($q) {
+                $q->where('is_active', true);
+            })
+            ->first();
+
+        if ($existingStop) {
+            return back()->withErrors(['error' => 'This collection request is already assigned to route: ' . $existingStop->route->route_name]);
+        }
+
         DB::beginTransaction();
         try {
             $route = Route::findOrFail($validated['route_id']);
+
+            // Validate route is active
+            if (!$route->is_active) {
+                return back()->withErrors(['error' => 'Selected route is not active']);
+            }
+
+            // Validate route barangay matches resident barangay (warning, not blocking)
+            if ($route->barangay !== $resident->barangay) {
+                // Log warning but allow it
+                Log::warning('Route barangay mismatch', [
+                    'route_barangay' => $route->barangay,
+                    'resident_barangay' => $resident->barangay,
+                    'route_id' => $route->id,
+                    'request_id' => $collectionRequest->id
+                ]);
+            }
+
+            // Check if this bin is already in this route
+            $existingBinInRoute = RouteStop::where('route_id', $route->id)
+                ->where('bin_id', $collectionRequest->bin_id)
+                ->first();
+
+            if ($existingBinInRoute) {
+                return back()->withErrors(['error' => 'This waste bin is already a stop in the selected route (Stop #' . $existingBinInRoute->stop_order . ')']);
+            }
+
             $maxStopOrder = RouteStop::where('route_id', $route->id)->max('stop_order') ?? 0;
             
-            // Build stop address from fresh resident data - use full_address if available, otherwise build it
-            $stopAddress = $resident->full_address ?? trim(implode(', ', array_filter([
+            // Build base address from fresh resident data - use full_address if available, otherwise build it
+            $baseAddress = $resident->full_address ?? trim(implode(', ', array_filter([
                 $resident->house_no,
                 $resident->street,
                 $resident->barangay,
@@ -434,11 +471,37 @@ class CollectionRequestController extends Controller
                 $resident->province,
             ])));
 
+            // Make stop address unique by including bin name and resident name
+            // This ensures different stops have different addresses even if they share coordinates
+            $stopAddressParts = [];
+            
+            // Add bin name for uniqueness
+            if ($wasteBin->name) {
+                $stopAddressParts[] = $wasteBin->name;
+            }
+            
+            // Add resident name for clarity
+            if ($resident->name) {
+                $stopAddressParts[] = $resident->name;
+            }
+            
+            // Add base address
+            if ($baseAddress) {
+                $stopAddressParts[] = $baseAddress;
+            } else {
+                $stopAddressParts[] = $resident->barangay;
+            }
+            
+            // Add coordinates as a unique identifier (formatted for readability)
+            $stopAddressParts[] = sprintf('(%.6f, %.6f)', $collectionRequest->latitude, $collectionRequest->longitude);
+            
+            $stopAddress = implode(' - ', $stopAddressParts);
+
             $routeStop = RouteStop::create([
                 'route_id' => $route->id,
                 'bin_id' => $collectionRequest->bin_id,
                 'stop_order' => $maxStopOrder + 1,
-                'stop_address' => $stopAddress ?: $resident->barangay,
+                'stop_address' => $stopAddress,
                 'latitude' => $collectionRequest->latitude,
                 'longitude' => $collectionRequest->longitude,
                 'estimated_time' => $collectionRequest->preferred_time,
@@ -462,6 +525,11 @@ class CollectionRequestController extends Controller
             return back()->with('success', 'Collection request added to route successfully');
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Failed to add collection request to route', [
+                'request_id' => $collectionRequest->id,
+                'route_id' => $validated['route_id'],
+                'error' => $e->getMessage()
+            ]);
             return back()->withErrors(['error' => 'Failed to add collection request to route: ' . $e->getMessage()]);
         }
     }

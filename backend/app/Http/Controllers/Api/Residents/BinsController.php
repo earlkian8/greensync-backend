@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api\Residents;
 use App\Http\Controllers\Controller;
 use App\Models\WasteBin;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class BinsController extends Controller
@@ -56,12 +58,30 @@ class BinsController extends Controller
         $validated['resident_id'] = $resident->id;
         $validated['registered_at'] = now();
 
-        $bin = WasteBin::create($validated);
+        DB::beginTransaction();
+        try {
+            $bin = WasteBin::create($validated);
+            
+            DB::commit();
 
-        return response()->json([
-            'message' => 'Bin registered successfully.',
-            'bin' => $bin
-        ], 201);
+            return response()->json([
+                'message' => 'Bin registered successfully.',
+                'bin' => $bin
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            Log::error('Failed to create waste bin', [
+                'resident_id' => $resident->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'message' => 'Failed to register bin. Please try again.',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
+            ], 500);
+        }
     }
 
     /** Update bin */
@@ -77,12 +97,31 @@ class BinsController extends Controller
             'status' => 'sometimes|required|string|in:active,inactive,full,damaged',
         ]);
 
-        $bin->update($validated);
+        DB::beginTransaction();
+        try {
+            $bin->update($validated);
+            
+            DB::commit();
 
-        return response()->json([
-            'message' => 'Bin updated successfully.',
-            'bin' => $bin
-        ]);
+            return response()->json([
+                'message' => 'Bin updated successfully.',
+                'bin' => $bin->fresh()
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            Log::error('Failed to update waste bin', [
+                'bin_id' => $bin->id,
+                'resident_id' => $resident->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'message' => 'Failed to update bin. Please try again.',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
+            ], 500);
+        }
     }
 
     /** Delete bin */
@@ -91,11 +130,31 @@ class BinsController extends Controller
         $resident = $request->user();
 
         $bin = WasteBin::where('resident_id', $resident->id)->findOrFail($id);
-        $bin->delete();
+        
+        DB::beginTransaction();
+        try {
+            $bin->delete();
+            
+            DB::commit();
 
-        return response()->json([
-            'message' => 'Bin deleted successfully.'
-        ]);
+            return response()->json([
+                'message' => 'Bin deleted successfully.'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            Log::error('Failed to delete waste bin', [
+                'bin_id' => $bin->id,
+                'resident_id' => $resident->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'message' => 'Failed to delete bin. Please try again.',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
+            ], 500);
+        }
     }
 
     /** Mark bin as collected */

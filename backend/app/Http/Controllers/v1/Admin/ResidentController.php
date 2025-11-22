@@ -8,10 +8,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use App\Trait\ActivityLogsTrait;
+use Maatwebsite\Excel\Facades\Excel;
 
 class ResidentController extends Controller
 {
@@ -50,9 +52,14 @@ class ResidentController extends Controller
             $query->where('barangay', $barangayFilter);
         }
 
-        $residents = $query->orderBy('created_at', 'desc')
-                          ->paginate(10)
-                          ->withQueryString();
+        $residents = $query->withCount([
+            'wasteBins',
+            'collectionRequests',
+            'verifiedCollections'
+        ])
+        ->orderBy('created_at', 'desc')
+        ->paginate(10)
+        ->withQueryString();
 
         // Profile image URLs are automatically included via the model accessor
 
@@ -100,64 +107,92 @@ class ResidentController extends Controller
             'is_verified' => 'nullable|boolean',
         ]);
 
-        $residentData = [
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'phone_number' => $validated['phone_number'],
-            'password' => Hash::make($validated['password']),
-            'house_no' => $validated['house_no'] ?? null,
-            'street' => $validated['street'] ?? null,
-            'barangay' => $validated['barangay'],
-            'city' => $validated['city'],
-            'province' => $validated['province'],
-            'country' => $validated['country'],
-            'postal_code' => $validated['postal_code'],
-            'is_verified' => $validated['is_verified'] ?? false,
-        ];
+        DB::beginTransaction();
+        try {
+            $residentData = [
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'phone_number' => $validated['phone_number'],
+                'password' => Hash::make($validated['password']),
+                'house_no' => $validated['house_no'] ?? null,
+                'street' => $validated['street'] ?? null,
+                'barangay' => $validated['barangay'],
+                'city' => $validated['city'],
+                'province' => $validated['province'],
+                'country' => $validated['country'],
+                'postal_code' => $validated['postal_code'],
+                'is_verified' => $validated['is_verified'] ?? false,
+            ];
 
-        // Handle profile image upload
-        if ($request->hasFile('profile_image')) {
-            $path = $request->file('profile_image')->store('residents/profiles', 'public');
-            $residentData['profile_image'] = $path;
+            // Handle profile image upload
+            $imagePath = null;
+            if ($request->hasFile('profile_image')) {
+                $imagePath = $request->file('profile_image')->store('residents/profiles', 'public');
+                $residentData['profile_image'] = $imagePath;
+            }
+
+            // Auto-verify if address is complete (only if is_verified is not explicitly set)
+            $tempResident = new Resident($residentData);
+            if ($tempResident->isAddressComplete() && !array_key_exists('is_verified', $validated)) {
+                $residentData['is_verified'] = true;
+            }
+
+            $resident = Resident::create($residentData);
+
+            DB::commit();
+
+            $this->adminActivityLogs(
+                'Resident',
+                'Add',
+                'Created Resident ' . $resident->name . ' (' . $resident->email . ') - ' . $resident->barangay
+            );
+
+            return redirect()->route('admin.resident-management.index')
+                ->with('success', 'Resident created successfully');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            // Delete uploaded image if transaction failed
+            if (isset($imagePath)) {
+                Storage::disk('public')->delete($imagePath);
+            }
+            
+            return back()->withErrors(['error' => 'Failed to create resident: ' . $e->getMessage()])
+                ->withInput();
         }
-
-        // Auto-verify if address is complete (only if is_verified is not explicitly set)
-        $tempResident = new Resident($residentData);
-        if ($tempResident->isAddressComplete() && !array_key_exists('is_verified', $validated)) {
-            $residentData['is_verified'] = true;
-        }
-
-        $resident = Resident::create($residentData);
-
-        $this->adminActivityLogs(
-            'Resident',
-            'Add',
-            'Created Resident ' . $resident->name . ' (' . $resident->email . ') - ' . $resident->barangay
-        );
-
-        return redirect()->route('admin.resident-management.index')
-            ->with('success', 'Resident created successfully');
     }
 
     /**
      * Display the specified resident.
      */
     public function show(Resident $resident): Response
-    {
-        // Load relationships with accurate counts
-        $resident->load(['wasteBins', 'collectionRequests', 'verifiedCollections']);
-        $resident->loadCount(['wasteBins', 'collectionRequests', 'verifiedCollections']);
+{
+    $resident->load([
+        'wasteBins',
+        'collectionRequests',
+        'verifiedCollections',
+        'region',
+        'provinceRelation',
+        'cityRelation',
+        'barangayRelation'
+    ]);
 
-        $this->adminActivityLogs(
-            'Resident',
-            'View',
-            'Viewed Resident ' . $resident->name . ' (' . $resident->email . ')'
-        );
+    $resident->loadCount([
+        'wasteBins',
+        'collectionRequests',
+        'verifiedCollections'
+    ]);
 
-        return Inertia::render('Admin/ResidentManagement/show', [
-            'resident' => $resident,
-        ]);
-    }
+    $this->adminActivityLogs(
+        'Resident',
+        'View',
+        'Viewed Resident ' . $resident->name . ' (' . $resident->email . ')'
+    );
+
+    return Inertia::render('Admin/ResidentManagement/show', [
+        'resident' => $resident,
+    ]);
+}
 
     /**
      * Show the form for editing the specified resident.
@@ -310,7 +345,136 @@ class ResidentController extends Controller
         $resident->delete();
 
         return redirect()->route('admin.resident-management.index')
-            ->with('success');
+            ->with('success', 'Resident deleted successfully');
+    }
+
+    /**
+     * Bulk delete residents.
+     */
+    public function bulkDelete(Request $request)
+    {
+        $validated = $request->validate([
+            'resident_ids' => 'required|array|min:1',
+            'resident_ids.*' => 'required|exists:residents,id',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $residents = Resident::whereIn('id', $validated['resident_ids'])->get();
+            $deletedCount = 0;
+
+            foreach ($residents as $resident) {
+                // Delete profile image if exists
+                if ($resident->profile_image) {
+                    Storage::disk('public')->delete($resident->profile_image);
+                }
+                $resident->delete();
+                $deletedCount++;
+            }
+
+            DB::commit();
+
+            $this->adminActivityLogs(
+                'Resident',
+                'Bulk Delete',
+                'Bulk deleted ' . $deletedCount . ' residents'
+            );
+
+            return redirect()->route('admin.resident-management.index')
+                ->with('success', $deletedCount . ' resident(s) deleted successfully');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'Failed to delete residents: ' . $e->getMessage()]);
+        }
+    }
+
+    /**
+     * Export residents to Excel/CSV.
+     */
+    public function export(Request $request)
+    {
+        $search = $request->get('search', '');
+        $verificationFilter = $request->get('verification', '');
+        $barangayFilter = $request->get('barangay', '');
+
+        $query = Resident::query();
+
+        if ($search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('email', 'like', "%{$search}%")
+                  ->orWhere('phone_number', 'like', "%{$search}%")
+                  ->orWhere('barangay', 'like', "%{$search}%");
+            });
+        }
+
+        if ($verificationFilter === 'verified') {
+            $query->where('is_verified', true);
+        } elseif ($verificationFilter === 'unverified') {
+            $query->where('is_verified', false);
+        }
+
+        if ($barangayFilter) {
+            $query->where('barangay', $barangayFilter);
+        }
+
+        $residents = $query->orderBy('created_at', 'desc')->get();
+
+        $filename = 'residents_export_' . date('Y-m-d_His') . '.csv';
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+
+        $callback = function() use ($residents) {
+            $file = fopen('php://output', 'w');
+            
+            // Add CSV headers
+            fputcsv($file, [
+                'ID',
+                'Name',
+                'Email',
+                'Phone Number',
+                'House No',
+                'Street',
+                'Barangay',
+                'City',
+                'Province',
+                'Country',
+                'Postal Code',
+                'Is Verified',
+                'Created At'
+            ]);
+
+            // Add data rows
+            foreach ($residents as $resident) {
+                fputcsv($file, [
+                    $resident->id,
+                    $resident->name,
+                    $resident->email,
+                    $resident->phone_number,
+                    $resident->house_no ?? '',
+                    $resident->street ?? '',
+                    $resident->barangay,
+                    $resident->city,
+                    $resident->province,
+                    $resident->country,
+                    $resident->postal_code,
+                    $resident->is_verified ? 'Yes' : 'No',
+                    $resident->created_at->format('Y-m-d H:i:s'),
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        $this->adminActivityLogs(
+            'Resident',
+            'Export',
+            'Exported ' . $residents->count() . ' residents to CSV'
+        );
+
+        return response()->stream($callback, 200, $headers);
     }
 
     /**

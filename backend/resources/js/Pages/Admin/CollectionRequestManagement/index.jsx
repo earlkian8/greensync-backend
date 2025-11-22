@@ -541,7 +541,7 @@ export default function CollectionRequestManagement() {
                                         >
                                             <SquarePen size={18} />
                                         </button>
-                                        {(request.status === 'pending' || request.status === 'assigned') && (
+                                        {request.status === 'pending' && (
                                             <button
                                                 onClick={() => {
                                                     setToRouteRequest(request);
@@ -555,7 +555,7 @@ export default function CollectionRequestManagement() {
                                                 <Route size={18} />
                                             </button>
                                         )}
-                                        {request.status === 'assigned' && (
+                                        {/* {request.status === 'assigned' && (
                                             <button
                                                 onClick={() => handleStartProgress(request)}
                                                 className="p-2 rounded hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition"
@@ -576,7 +576,7 @@ export default function CollectionRequestManagement() {
                                             >
                                                 <CheckCircle2 size={18} />
                                             </button>
-                                        )}
+                                        )} */}
                                         <button
                                             onClick={() => {
                                                 setDeleteRequest(request);

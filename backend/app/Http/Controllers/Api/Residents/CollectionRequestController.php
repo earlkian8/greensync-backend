@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\CollectionRequest;
 use App\Models\WasteBin;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class CollectionRequestController extends Controller
@@ -90,11 +92,30 @@ class CollectionRequestController extends Controller
         $validated['status'] = 'pending';
         $validated['priority'] = $validated['priority'] ?? 'medium';
 
-        $collectionRequest = CollectionRequest::create($validated);
+        DB::beginTransaction();
+        try {
+            $collectionRequest = CollectionRequest::create($validated);
+            
+            DB::commit();
 
-        return response()->json([
-            'message' => 'Collection request submitted successfully.',
-            'collection_request' => $collectionRequest->load('wasteBin'),
-        ], 201);
+            return response()->json([
+                'message' => 'Collection request submitted successfully.',
+                'collection_request' => $collectionRequest->load('wasteBin'),
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            Log::error('Failed to create collection request', [
+                'resident_id' => $resident->id,
+                'bin_id' => $validated['bin_id'],
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'message' => 'Failed to submit collection request. Please try again.',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
+            ], 500);
+        }
     }
 }

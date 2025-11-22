@@ -174,19 +174,19 @@ const ShowResident = ({ setShowViewModal, resident }) => {
               <div className="bg-blue-50 p-4 rounded-lg">
                 <p className="text-sm text-blue-600 font-medium">Waste Bins</p>
                 <p className="text-2xl font-bold text-blue-900 mt-1">
-                  {resident.waste_bins?.length || 0}
+                  {resident.waste_bins_count || resident.waste_bins?.length || 0}
                 </p>
               </div>
               <div className="bg-green-50 p-4 rounded-lg">
                 <p className="text-sm text-green-600 font-medium">Collection Requests</p>
                 <p className="text-2xl font-bold text-green-900 mt-1">
-                  {resident.collection_requests?.length || 0}
+                  {resident.collection_requests_count || resident.collection_requests?.length || 0}
                 </p>
               </div>
               <div className="bg-purple-50 p-4 rounded-lg">
                 <p className="text-sm text-purple-600 font-medium">Verified Collections</p>
                 <p className="text-2xl font-bold text-purple-900 mt-1">
-                  {resident.verified_collections?.length || 0}
+                  {resident.verified_collections_count || resident.verified_collections?.length || 0}
                 </p>
               </div>
             </div>

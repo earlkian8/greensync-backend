@@ -7,6 +7,7 @@ use App\Models\Resident;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -57,9 +58,13 @@ class WasteBinController extends Controller
             $query->where('resident_id', $residentFilter);
         }
 
-        $wasteBins = $query->orderBy('created_at', 'desc')
-                          ->paginate(10)
-                          ->withQueryString();
+        $wasteBins = $query->withCount([
+            'collectionRequests',
+            'qrCollections'
+        ])
+        ->orderBy('created_at', 'desc')
+        ->paginate(10)
+        ->withQueryString();
 
         // Get residents for filter dropdown
         $residents = Resident::select('id', 'name', 'email')
@@ -134,24 +139,33 @@ class WasteBinController extends Controller
             'status' => 'required|in:active,inactive,damaged,full',
         ]);
 
-        $updateData = [
-            'name' => $validated['name'],
-            'resident_id' => $validated['resident_id'],
-            'bin_type' => $validated['bin_type'],
-            'status' => $validated['status'],
-        ];
+        DB::beginTransaction();
+        try {
+            $updateData = [
+                'name' => $validated['name'],
+                'resident_id' => $validated['resident_id'],
+                'bin_type' => $validated['bin_type'],
+                'status' => $validated['status'],
+            ];
 
-        $wasteBin->update($updateData);
-        $wasteBin->load('resident');
+            $wasteBin->update($updateData);
+            $wasteBin->load('resident');
 
-        $this->adminActivityLogs(
-            'Waste Bin',
-            'Update',
-            'Updated Waste Bin ' . $wasteBin->name . ' (QR: ' . $wasteBin->qr_code . ') for ' . $wasteBin->resident->name
-        );
+            DB::commit();
 
-        return redirect()->route('admin.waste-bin-management.index')
-            ->with('success', 'Waste Bin updated successfully');
+            $this->adminActivityLogs(
+                'Waste Bin',
+                'Update',
+                'Updated Waste Bin ' . $wasteBin->name . ' (QR: ' . $wasteBin->qr_code . ') for ' . $wasteBin->resident->name
+            );
+
+            return redirect()->route('admin.waste-bin-management.index')
+                ->with('success', 'Waste Bin updated successfully');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'Failed to update waste bin: ' . $e->getMessage()])
+                ->withInput();
+        }
     }
 
     /**
@@ -193,7 +207,7 @@ class WasteBinController extends Controller
         $wasteBin->delete();
 
         return redirect()->route('admin.waste-bin-management.index')
-            ->with('success');
+            ->with('success', 'Waste bin deleted successfully');
     }
 
     /**

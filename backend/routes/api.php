@@ -23,13 +23,13 @@ Route::prefix('v1')->group(function () {
         
         // Provinces - specific routes first to avoid conflicts
         Route::get('/provinces/region/{regionId}', [PhilippineAddressController::class, 'getProvincesByRegion']);
-        Route::get('/provinces/{id}', [PhilippineAddressController::class, 'getProvince']);
         Route::get('/provinces', [PhilippineAddressController::class, 'getProvincesByRegion']);
+        Route::get('/provinces/{id}', [PhilippineAddressController::class, 'getProvince']);
         
         // Cities - specific routes first to avoid conflicts
         Route::get('/cities/province/{provinceId}', [PhilippineAddressController::class, 'getCitiesByProvince']);
-        Route::get('/cities/{id}', [PhilippineAddressController::class, 'getCity']);
         Route::get('/cities', [PhilippineAddressController::class, 'getCitiesByProvince']);
+        Route::get('/cities/{id}', [PhilippineAddressController::class, 'getCity']);
         
         // Barangays - specific routes first to avoid conflicts
         Route::get('/barangays/city/{cityId}', [PhilippineAddressController::class, 'getBarangaysByCity']);
