@@ -1,4 +1,4 @@
-import { View, Text, Pressable } from "react-native";
+import { View, Text, Pressable, StyleSheet } from "react-native";
 import Feather from '@expo/vector-icons/Feather';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -27,35 +27,37 @@ const NotificationItem = ({ notification, onMarkAsRead }) => {
   return (
     <Pressable
       onPress={() => !notification.is_read && onMarkAsRead(notification.id)}
-      className={`${
-        !notification.is_read ? 'bg-green-50' : 'bg-white'
-      } rounded-xl p-4 mb-3 shadow-sm active:opacity-90`}
+      style={[
+        styles.card,
+        !notification.is_read && styles.cardUnread
+      ]}
     >
-      <View className="flex-row">
+      <View style={styles.content}>
         {/* Icon */}
-        <View className="mr-3 mt-1">
+        <View style={styles.iconContainer}>
           {getIcon()}
         </View>
 
         {/* Content */}
-        <View className="flex-1">
+        <View style={styles.textContainer}>
           {/* Header Row */}
-          <View className="flex-row justify-between items-start mb-1">
+          <View style={styles.headerRow}>
             <Text
-              className={`flex-1 font-semibold text-base mr-2 ${
-                !notification.is_read ? 'text-green-700' : 'text-gray-800'
-              }`}
+              style={[
+                styles.title,
+                !notification.is_read && styles.titleUnread
+              ]}
               numberOfLines={2}
             >
               {notification.title}
             </Text>
-            <Text className="text-xs text-gray-500">
+            <Text style={styles.date}>
               {formattedDate}
             </Text>
           </View>
 
           {/* Message */}
-          <Text className="text-sm text-gray-600 leading-5 mb-2">
+          <Text style={styles.message}>
             {notification.message}
           </Text>
 
@@ -66,9 +68,9 @@ const NotificationItem = ({ notification, onMarkAsRead }) => {
                 e.stopPropagation?.();
                 onMarkAsRead(notification.id);
               }}
-              className="self-start active:opacity-70"
+              style={styles.markReadButton}
             >
-              <Text className="text-sm text-green-600 font-medium">
+              <Text style={styles.markReadText}>
                 Mark as read
               </Text>
             </Pressable>
@@ -78,10 +80,75 @@ const NotificationItem = ({ notification, onMarkAsRead }) => {
 
       {/* Unread Indicator Dot */}
       {!notification.is_read && (
-        <View className="absolute top-4 right-4 w-2 h-2 bg-green-600 rounded-full" />
+        <View style={styles.unreadDot} />
       )}
     </Pressable>
   );
 };
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+  },
+  cardUnread: {
+    backgroundColor: '#F0FDF4',
+  },
+  content: {
+    flexDirection: 'row',
+  },
+  iconContainer: {
+    marginRight: 12,
+    marginTop: 4,
+  },
+  textContainer: {
+    flex: 1,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 4,
+  },
+  title: {
+    flex: 1,
+    fontWeight: '600',
+    fontSize: 16,
+    marginRight: 8,
+    color: '#1F2937',
+  },
+  titleUnread: {
+    color: '#15803D',
+  },
+  date: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  message: {
+    fontSize: 14,
+    color: '#4B5563',
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  markReadButton: {
+    alignSelf: 'flex-start',
+  },
+  markReadText: {
+    fontSize: 14,
+    color: '#16A34A',
+    fontWeight: '500',
+  },
+  unreadDot: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    width: 8,
+    height: 8,
+    backgroundColor: '#16A34A',
+    borderRadius: 9999,
+  },
+});
 
 export default NotificationItem;

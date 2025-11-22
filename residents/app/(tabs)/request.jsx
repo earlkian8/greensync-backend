@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, KeyboardAvoidingView, TextInput, Pressable, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, KeyboardAvoidingView, TextInput, Pressable, ActivityIndicator, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect, useCallback } from "react";
 import AntDesign from "@expo/vector-icons/AntDesign";
@@ -82,24 +82,24 @@ const Request = () => {
 };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={['bottom']}>
-      <KeyboardAvoidingView behavior="padding" className="flex-1">
+    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+      <KeyboardAvoidingView behavior="padding" style={styles.keyboardView}>
         {/* Header Section */}
-        <View className="bg-white px-5 pt-5 pb-4 shadow-sm">
-          <View className="flex-row items-center gap-3">
+        <View style={styles.header}>
+          <View style={styles.headerContent}>
             {/* Search Input */}
-            <View className="flex-1 relative">
+            <View style={styles.searchContainer}>
               <Feather
                 name="search"
                 size={18}
                 color="#9CA3AF"
-                style={{ position: "absolute", left: 12, top: 12, zIndex: 1 }}
+                style={styles.searchIcon}
               />
               <TextInput
                 placeholder="Search requests..."
                 value={search}
                 onChangeText={setSearch}
-                className="border border-gray-200 rounded-xl pl-10 pr-4 py-3 bg-gray-50 text-gray-800"
+                style={styles.searchInput}
                 placeholderTextColor="#9CA3AF"
               />
             </View>
@@ -107,17 +107,17 @@ const Request = () => {
             {/* Add Button */}
             <Pressable
               onPress={() => setModalVisible(true)}
-              className="bg-green-600 px-4 py-3 rounded-xl flex-row items-center shadow-sm active:bg-green-700"
+              style={styles.addButton}
             >
               <AntDesign name="plus" size={18} color="white" />
-              <Text className="text-white ml-1.5 font-semibold">Add</Text>
+              <Text style={styles.addButtonText}>Add</Text>
             </Pressable>
           </View>
         </View>
 
         {/* Content Section */}
         <ScrollView
-          className="flex-1 px-5"
+          style={styles.scrollView}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingTop: 16, paddingBottom: 20 }}
           refreshControl={
@@ -125,14 +125,14 @@ const Request = () => {
           }
         >
           {loading ? (
-            <View className="flex-1 justify-center items-center mt-10">
+            <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#16a34a" />
-              <Text className="text-gray-500 mt-3">Loading requests...</Text>
+              <Text style={styles.loadingText}>Loading requests...</Text>
             </View>
           ) : filteredRequests.length === 0 ? (
-            <View className="flex-1 justify-center items-center mt-20">
+            <View style={styles.emptyContainer}>
               <Feather name="inbox" size={40} color="#9CA3AF" />
-              <Text className="text-gray-500 mt-3">No collection requests found.</Text>
+              <Text style={styles.emptyText}>No collection requests found.</Text>
             </View>
           ) : (
             filteredRequests.map((request) => (
@@ -163,5 +163,83 @@ const Request = () => {
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  header: {
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  searchContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+  searchIcon: {
+    position: 'absolute',
+    left: 12,
+    top: 12,
+    zIndex: 1,
+  },
+  searchInput: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingLeft: 40,
+    paddingRight: 16,
+    paddingVertical: 12,
+    backgroundColor: '#F9FAFB',
+    color: '#1F2937',
+  },
+  addButton: {
+    backgroundColor: '#16A34A',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  addButtonText: {
+    color: '#FFFFFF',
+    marginLeft: 6,
+    fontWeight: '600',
+  },
+  scrollView: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 40,
+  },
+  loadingText: {
+    color: '#6B7280',
+    marginTop: 12,
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 80,
+  },
+  emptyText: {
+    color: '#6B7280',
+    marginTop: 12,
+  },
+});
 
 export default Request;

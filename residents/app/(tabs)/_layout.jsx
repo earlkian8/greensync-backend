@@ -2,7 +2,6 @@ import { Tabs } from "expo-router";
 import Feather from '@expo/vector-icons/Feather';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import './../../style/globals.css';
 
 export default function TabLayout() {
   return (

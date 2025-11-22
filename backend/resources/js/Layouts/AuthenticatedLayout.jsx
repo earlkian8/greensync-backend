@@ -376,7 +376,7 @@ export default function AuthenticatedLayout({ breadcrumbs = [], children }) {
                     {breadcrumbs[breadcrumbs.length - 1].name}
                   </h1>
                   <div className="text-sm text-gray-500 flex items-center">
-                    <Link href={route('dashboard')} className="text-gray-500 hover:text-gray-700">
+                    <Link href={route('admin.dashboard')} className="text-gray-500 hover:text-gray-700">
                       <Home className="h-4 w-4" />
                     </Link>
                     {breadcrumbs.map((item, index) => (

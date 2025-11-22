@@ -1,4 +1,4 @@
-import { View, Text, Modal, Pressable, ScrollView, ActivityIndicator } from "react-native";
+import { View, Text, Modal, Pressable, ScrollView, ActivityIndicator, StyleSheet } from "react-native";
 import { useState, useEffect } from "react";
 import Feather from '@expo/vector-icons/Feather';
 import AntDesign from "@expo/vector-icons/AntDesign";
@@ -23,35 +23,35 @@ const RequestDetailModal = ({ visible, onClose, requestId }) => {
     setLoading(false);
   };
 
-  const getStatusColor = (status) => {
+  const getStatusStyle = (status) => {
     switch (status?.toLowerCase()) {
       case 'pending':
-        return { bg: 'bg-yellow-100', text: 'text-yellow-700', border: 'border-yellow-200' };
+        return { bg: styles.statusPendingBg, text: styles.statusPendingText, border: styles.statusPendingBorder };
       case 'assigned':
-        return { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' };
+        return { bg: styles.statusAssignedBg, text: styles.statusAssignedText, border: styles.statusAssignedBorder };
       case 'in_progress':
-        return { bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200' };
+        return { bg: styles.statusInProgressBg, text: styles.statusInProgressText, border: styles.statusInProgressBorder };
       case 'completed':
-        return { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-200' };
+        return { bg: styles.statusCompletedBg, text: styles.statusCompletedText, border: styles.statusCompletedBorder };
       case 'cancelled':
-        return { bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200' };
+        return { bg: styles.statusCancelledBg, text: styles.statusCancelledText, border: styles.statusCancelledBorder };
       default:
-        return { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-200' };
+        return { bg: styles.statusDefaultBg, text: styles.statusDefaultText, border: styles.statusDefaultBorder };
     }
   };
 
-  const getPriorityColor = (priority) => {
+  const getPriorityStyle = (priority) => {
     switch (priority?.toLowerCase()) {
       case 'urgent':
-        return { bg: 'bg-red-100', text: 'text-red-700', icon: '🔥' };
+        return { bg: styles.priorityUrgentBg, text: styles.priorityUrgentText, icon: '🔥' };
       case 'high':
-        return { bg: 'bg-orange-100', text: 'text-orange-700', icon: '⚠️' };
+        return { bg: styles.priorityHighBg, text: styles.priorityHighText, icon: '⚠️' };
       case 'medium':
-        return { bg: 'bg-yellow-100', text: 'text-yellow-700', icon: '📌' };
+        return { bg: styles.priorityMediumBg, text: styles.priorityMediumText, icon: '📌' };
       case 'low':
-        return { bg: 'bg-blue-100', text: 'text-blue-700', icon: '📋' };
+        return { bg: styles.priorityLowBg, text: styles.priorityLowText, icon: '📋' };
       default:
-        return { bg: 'bg-gray-100', text: 'text-gray-700', icon: '📄' };
+        return { bg: styles.priorityDefaultBg, text: styles.priorityDefaultText, icon: '📄' };
     }
   };
 
@@ -101,8 +101,8 @@ const RequestDetailModal = ({ visible, onClose, requestId }) => {
     });
   };
 
-  const statusColors = getStatusColor(request?.status);
-  const priorityColors = getPriorityColor(request?.priority);
+  const statusStyles = getStatusStyle(request?.status);
+  const priorityStyles = getPriorityStyle(request?.priority);
   const requestType = formatRequestType(request?.request_type);
 
   return (
@@ -112,52 +112,52 @@ const RequestDetailModal = ({ visible, onClose, requestId }) => {
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View className="flex-1 bg-black/50 justify-end">
-        <View className="bg-white rounded-t-3xl max-h-[90%]">
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
           {/* Header */}
-          <View className="flex-row justify-between items-center px-5 pt-5 pb-4 border-b border-gray-200">
-            <Text className="text-xl font-bold text-gray-800">Request Details</Text>
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Request Details</Text>
             <Pressable
               onPress={onClose}
-              className="w-8 h-8 rounded-full bg-gray-100 items-center justify-center active:bg-gray-200"
+              style={styles.closeButton}
             >
               <AntDesign name="close" size={18} color="#374151" />
             </Pressable>
           </View>
 
           {loading ? (
-            <View className="py-20 items-center">
+            <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#16a34a" />
-              <Text className="text-gray-500 mt-3">Loading details...</Text>
+              <Text style={styles.loadingText}>Loading details...</Text>
             </View>
           ) : request ? (
             <ScrollView 
-              className="px-5"
+              style={styles.scrollView}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ paddingBottom: 24 }}
             >
               {/* Status Badge */}
-              <View className="mt-5">
-                <View className={`${statusColors.bg} ${statusColors.border} border-2 px-4 py-3 rounded-xl self-start`}>
-                  <Text className={`${statusColors.text} text-base font-bold uppercase tracking-wide`}>
+              <View style={styles.statusContainer}>
+                <View style={[styles.statusBadge, statusStyles.bg, statusStyles.border]}>
+                  <Text style={[styles.statusText, statusStyles.text]}>
                     {request.status}
                   </Text>
                 </View>
               </View>
 
               {/* Request Type & Priority */}
-              <View className="mt-5 bg-gray-50 rounded-xl p-4">
-                <View className="flex-row items-center mb-3">
+              <View style={styles.requestTypeCard}>
+                <View style={styles.requestTypeRow}>
                   <Feather name={requestType.icon} size={20} color="#16a34a" />
-                  <Text className="ml-2 text-base font-semibold text-gray-800">
+                  <Text style={styles.requestTypeLabel}>
                     {requestType.label}
                   </Text>
                 </View>
                 
-                <View className="flex-row items-center">
-                  <Text className="text-2xl mr-2">{priorityColors.icon}</Text>
-                  <View className={`${priorityColors.bg} px-3 py-1.5 rounded-lg`}>
-                    <Text className={`${priorityColors.text} text-sm font-semibold uppercase`}>
+                <View style={styles.priorityRow}>
+                  <Text style={styles.priorityIcon}>{priorityStyles.icon}</Text>
+                  <View style={[styles.priorityBadge, priorityStyles.bg]}>
+                    <Text style={[styles.priorityText, priorityStyles.text]}>
                       {request.priority} Priority
                     </Text>
                   </View>
@@ -165,31 +165,31 @@ const RequestDetailModal = ({ visible, onClose, requestId }) => {
               </View>
 
               {/* Waste Information */}
-              <View className="mt-5">
-                <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>
                   Waste Information
                 </Text>
-                <View className="bg-white border border-gray-200 rounded-xl p-4">
-                  <View className="flex-row items-center mb-3">
-                    <View className="w-10 h-10 bg-green-100 rounded-full items-center justify-center">
+                <View style={styles.infoCard}>
+                  <View style={styles.infoRow}>
+                    <View style={[styles.infoIcon, styles.infoIconGreen]}>
                       <Feather name="trash-2" size={18} color="#16a34a" />
                     </View>
-                    <View className="ml-3 flex-1">
-                      <Text className="text-xs text-gray-500">Waste Type</Text>
-                      <Text className="text-base font-semibold text-gray-800">
+                    <View style={styles.infoContent}>
+                      <Text style={styles.infoLabel}>Waste Type</Text>
+                      <Text style={styles.infoValue}>
                         {formatWasteType(request.waste_type)}
                       </Text>
                     </View>
                   </View>
 
                   {request.waste_bin && (
-                    <View className="flex-row items-center pt-3 border-t border-gray-100">
-                      <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center">
+                    <View style={[styles.infoRow, styles.infoRowBorder]}>
+                      <View style={[styles.infoIcon, styles.infoIconBlue]}>
                         <Feather name="inbox" size={18} color="#2563eb" />
                       </View>
-                      <View className="ml-3 flex-1">
-                        <Text className="text-xs text-gray-500">Bin Location</Text>
-                        <Text className="text-base font-semibold text-gray-800">
+                      <View style={styles.infoContent}>
+                        <Text style={styles.infoLabel}>Bin Location</Text>
+                        <Text style={styles.infoValue}>
                           {request.waste_bin.location || 'No location specified'}
                         </Text>
                       </View>
@@ -199,30 +199,30 @@ const RequestDetailModal = ({ visible, onClose, requestId }) => {
               </View>
 
               {/* Schedule */}
-              <View className="mt-5">
-                <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>
                   Preferred Schedule
                 </Text>
-                <View className="bg-white border border-gray-200 rounded-xl p-4">
-                  <View className="flex-row items-center mb-3">
-                    <View className="w-10 h-10 bg-purple-100 rounded-full items-center justify-center">
+                <View style={styles.infoCard}>
+                  <View style={styles.infoRow}>
+                    <View style={[styles.infoIcon, styles.infoIconPurple]}>
                       <Feather name="calendar" size={18} color="#9333ea" />
                     </View>
-                    <View className="ml-3 flex-1">
-                      <Text className="text-xs text-gray-500">Date</Text>
-                      <Text className="text-base font-semibold text-gray-800">
+                    <View style={styles.infoContent}>
+                      <Text style={styles.infoLabel}>Date</Text>
+                      <Text style={styles.infoValue}>
                         {formatDate(request.preferred_date)}
                       </Text>
                     </View>
                   </View>
 
-                  <View className="flex-row items-center pt-3 border-t border-gray-100">
-                    <View className="w-10 h-10 bg-orange-100 rounded-full items-center justify-center">
+                  <View style={[styles.infoRow, styles.infoRowBorder]}>
+                    <View style={[styles.infoIcon, styles.infoIconOrange]}>
                       <Feather name="clock" size={18} color="#ea580c" />
                     </View>
-                    <View className="ml-3 flex-1">
-                      <Text className="text-xs text-gray-500">Time</Text>
-                      <Text className="text-base font-semibold text-gray-800">
+                    <View style={styles.infoContent}>
+                      <Text style={styles.infoLabel}>Time</Text>
+                      <Text style={styles.infoValue}>
                         {formatTime(request.preferred_time)}
                       </Text>
                     </View>
@@ -232,12 +232,12 @@ const RequestDetailModal = ({ visible, onClose, requestId }) => {
 
               {/* Description */}
               {request.description && (
-                <View className="mt-5">
-                  <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>
                     Description
                   </Text>
-                  <View className="bg-white border border-gray-200 rounded-xl p-4">
-                    <Text className="text-gray-700 leading-6">
+                  <View style={styles.infoCard}>
+                    <Text style={styles.descriptionText}>
                       {request.description}
                     </Text>
                   </View>
@@ -246,13 +246,13 @@ const RequestDetailModal = ({ visible, onClose, requestId }) => {
 
               {/* Image */}
               {request.image_url && (
-                <View className="mt-5">
-                  <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>
                     Attached Image
                   </Text>
-                  <View className="bg-gray-100 rounded-xl p-3 flex-row items-center">
+                  <View style={styles.imageContainer}>
                     <Feather name="image" size={20} color="#6B7280" />
-                    <Text className="ml-2 text-sm text-gray-600 flex-1" numberOfLines={1}>
+                    <Text style={styles.imageText} numberOfLines={1}>
                       {request.image_url}
                     </Text>
                   </View>
@@ -260,25 +260,25 @@ const RequestDetailModal = ({ visible, onClose, requestId }) => {
               )}
 
               {/* Metadata */}
-              <View className="mt-5">
-                <Text className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>
                   Request Information
                 </Text>
-                <View className="bg-white border border-gray-200 rounded-xl p-4">
-                  <View className="flex-row justify-between mb-2">
-                    <Text className="text-gray-500">Request ID</Text>
-                    <Text className="font-semibold text-gray-800">#{request.id}</Text>
+                <View style={styles.infoCard}>
+                  <View style={styles.metadataRow}>
+                    <Text style={styles.metadataLabel}>Request ID</Text>
+                    <Text style={styles.metadataValue}>#{request.id}</Text>
                   </View>
-                  <View className="flex-row justify-between mb-2">
-                    <Text className="text-gray-500">Created</Text>
-                    <Text className="font-semibold text-gray-800">
+                  <View style={styles.metadataRow}>
+                    <Text style={styles.metadataLabel}>Created</Text>
+                    <Text style={styles.metadataValue}>
                       {formatDateTime(request.created_at)}
                     </Text>
                   </View>
                   {request.updated_at && request.updated_at !== request.created_at && (
-                    <View className="flex-row justify-between">
-                      <Text className="text-gray-500">Last Updated</Text>
-                      <Text className="font-semibold text-gray-800">
+                    <View style={styles.metadataRow}>
+                      <Text style={styles.metadataLabel}>Last Updated</Text>
+                      <Text style={styles.metadataValue}>
                         {formatDateTime(request.updated_at)}
                       </Text>
                     </View>
@@ -287,20 +287,20 @@ const RequestDetailModal = ({ visible, onClose, requestId }) => {
               </View>
             </ScrollView>
           ) : (
-            <View className="py-20 items-center">
+            <View style={styles.errorStateContainer}>
               <Feather name="alert-circle" size={40} color="#EF4444" />
-              <Text className="text-gray-500 mt-3">Failed to load request details</Text>
+              <Text style={styles.errorStateText}>Failed to load request details</Text>
             </View>
           )}
 
           {/* Footer Button */}
           {!loading && request && (
-            <View className="px-5 py-4 border-t border-gray-200">
+            <View style={styles.footer}>
               <Pressable
                 onPress={onClose}
-                className="bg-green-600 py-3.5 rounded-xl active:bg-green-700"
+                style={styles.closeFooterButton}
               >
-                <Text className="text-white text-center font-semibold text-base">
+                <Text style={styles.closeFooterButtonText}>
                   Close
                 </Text>
               </Pressable>
@@ -311,5 +311,239 @@ const RequestDetailModal = ({ visible, onClose, requestId }) => {
     </Modal>
   );
 };
+
+const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '90%',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 9999,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingContainer: {
+    paddingVertical: 80,
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#6B7280',
+    marginTop: 12,
+  },
+  scrollView: {
+    paddingHorizontal: 20,
+  },
+  statusContainer: {
+    marginTop: 20,
+  },
+  statusBadge: {
+    borderWidth: 2,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignSelf: 'flex-start',
+  },
+  statusText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  statusPendingBg: { backgroundColor: '#FEF3C7' },
+  statusPendingText: { color: '#92400E' },
+  statusPendingBorder: { borderColor: '#FDE68A' },
+  statusAssignedBg: { backgroundColor: '#DBEAFE' },
+  statusAssignedText: { color: '#1E40AF' },
+  statusAssignedBorder: { borderColor: '#BFDBFE' },
+  statusInProgressBg: { backgroundColor: '#E9D5FF' },
+  statusInProgressText: { color: '#6B21A8' },
+  statusInProgressBorder: { borderColor: '#DDD6FE' },
+  statusCompletedBg: { backgroundColor: '#D1FAE5' },
+  statusCompletedText: { color: '#065F46' },
+  statusCompletedBorder: { borderColor: '#A7F3D0' },
+  statusCancelledBg: { backgroundColor: '#FEE2E2' },
+  statusCancelledText: { color: '#991B1B' },
+  statusCancelledBorder: { borderColor: '#FECACA' },
+  statusDefaultBg: { backgroundColor: '#F3F4F6' },
+  statusDefaultText: { color: '#374151' },
+  statusDefaultBorder: { borderColor: '#E5E7EB' },
+  requestTypeCard: {
+    marginTop: 20,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+  },
+  requestTypeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  requestTypeLabel: {
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  priorityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  priorityIcon: {
+    fontSize: 24,
+    marginRight: 8,
+  },
+  priorityBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  priorityText: {
+    fontSize: 14,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+  },
+  priorityUrgentBg: { backgroundColor: '#FEE2E2' },
+  priorityUrgentText: { color: '#991B1B' },
+  priorityHighBg: { backgroundColor: '#FED7AA' },
+  priorityHighText: { color: '#9A3412' },
+  priorityMediumBg: { backgroundColor: '#FEF3C7' },
+  priorityMediumText: { color: '#92400E' },
+  priorityLowBg: { backgroundColor: '#DBEAFE' },
+  priorityLowText: { color: '#1E40AF' },
+  priorityDefaultBg: { backgroundColor: '#F3F4F6' },
+  priorityDefaultText: { color: '#374151' },
+  section: {
+    marginTop: 20,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+  },
+  infoCard: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    padding: 16,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  infoRowBorder: {
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    marginBottom: 0,
+  },
+  infoIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 9999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  infoIconGreen: { backgroundColor: '#D1FAE5' },
+  infoIconBlue: { backgroundColor: '#DBEAFE' },
+  infoIconPurple: { backgroundColor: '#E9D5FF' },
+  infoIconOrange: { backgroundColor: '#FED7AA' },
+  infoContent: {
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  infoValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  descriptionText: {
+    color: '#374151',
+    lineHeight: 24,
+  },
+  imageContainer: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  imageText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#4B5563',
+    flex: 1,
+  },
+  metadataRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  metadataLabel: {
+    color: '#6B7280',
+  },
+  metadataValue: {
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  errorStateContainer: {
+    paddingVertical: 80,
+    alignItems: 'center',
+  },
+  errorStateText: {
+    color: '#6B7280',
+    marginTop: 12,
+  },
+  footer: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+  },
+  closeFooterButton: {
+    backgroundColor: '#16A34A',
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  closeFooterButtonText: {
+    color: '#FFFFFF',
+    textAlign: 'center',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+});
 
 export default RequestDetailModal;

@@ -167,7 +167,7 @@ export default function CollectorManagement() {
     const breadcrumbs = [
         {
             name: "Home",
-            href: route('dashboard'),
+            href: route('admin.dashboard'),
         },
         {
             name: "Collector Management",

@@ -191,7 +191,7 @@ export default function NotificationManagement() {
     const breadcrumbs = [
         {
             name: "Home",
-            href: route('dashboard'),
+            href: route('admin.dashboard'),
         },
         {
             name: "Notification Management",

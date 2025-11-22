@@ -1,4 +1,4 @@
-import { View, Text, Modal, Pressable, TextInput, ScrollView } from "react-native";
+import { View, Text, Modal, Pressable, TextInput, ScrollView, StyleSheet } from "react-native";
 import { useState, useEffect } from "react";
 import Feather from '@expo/vector-icons/Feather';
 
@@ -118,14 +118,14 @@ const BinModal = ({ visible, onClose, onSubmit }) => {
       transparent={true}
       onRequestClose={handleClose}
     >
-      <View className="flex-1 justify-end bg-black/50">
-        <View className="bg-white rounded-t-3xl max-h-[90%]">
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
           {/* Header */}
-          <View className="flex-row items-center justify-between px-5 py-4 border-b border-gray-200">
-            <Text className="text-xl font-bold text-gray-800">Register New Bin</Text>
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Register New Bin</Text>
             <Pressable 
               onPress={handleClose} 
-              className="p-2 active:bg-gray-100 rounded-full"
+              style={styles.closeButton}
               disabled={isSubmitting}
             >
               <Feather name="x" size={24} color="#6B7280" />
@@ -134,93 +134,93 @@ const BinModal = ({ visible, onClose, onSubmit }) => {
 
           {/* Form Content */}
           <ScrollView 
-            className="px-5 py-4"
+            style={styles.scrollView}
             showsVerticalScrollIndicator={false}
           >
             {/* Bin Name */}
-            <View className="mb-4">
-              <Text className="text-sm font-medium text-gray-700 mb-2">
-                Bin Name <Text className="text-red-500">*</Text>
+            <View style={styles.fieldContainer}>
+              <Text style={styles.label}>
+                Bin Name <Text style={styles.required}>*</Text>
               </Text>
               <TextInput
                 value={formData.name}
                 onChangeText={(value) => handleChange("name", value)}
                 placeholder="e.g., Kitchen Organic Bin"
-                className={`border rounded-xl px-4 py-3 bg-gray-50 text-gray-800 ${
-                  errors.name ? 'border-red-500' : 'border-gray-200'
-                }`}
+                style={[
+                  styles.input,
+                  errors.name && styles.inputError
+                ]}
                 placeholderTextColor="#9CA3AF"
                 editable={!isSubmitting}
               />
               {errors.name && (
-                <View className="flex-row items-center mt-1.5">
+                <View style={styles.errorContainer}>
                   <Feather name="alert-circle" size={14} color="#EF4444" />
-                  <Text className="text-red-500 text-xs ml-1">{errors.name}</Text>
+                  <Text style={styles.errorText}>{errors.name}</Text>
                 </View>
               )}
-              <Text className="text-xs text-gray-500 mt-2">
+              <Text style={styles.helperText}>
                 Give your bin a recognizable name
               </Text>
             </View>
 
             {/* Bin Type */}
-            <View className="mb-4">
-              <Text className="text-sm font-medium text-gray-700 mb-2">
-                Bin Type <Text className="text-red-500">*</Text>
+            <View style={styles.fieldContainer}>
+              <Text style={styles.label}>
+                Bin Type <Text style={styles.required}>*</Text>
               </Text>
-              <View className="flex-row flex-wrap gap-2">
+              <View style={styles.optionsContainer}>
                 {binTypes.map((type) => (
                   <Pressable
                     key={type.value}
                     onPress={() => handleChange("bin_type", type.value)}
                     disabled={isSubmitting}
-                    className={`px-4 py-2.5 rounded-lg border ${
-                      formData.bin_type === type.value
-                        ? 'bg-green-600 border-green-600'
-                        : errors.bin_type
-                        ? 'bg-white border-red-300'
-                        : 'bg-white border-gray-300'
-                    }`}
+                    style={[
+                      styles.optionButton,
+                      formData.bin_type === type.value && styles.optionButtonSelected,
+                      errors.bin_type && formData.bin_type !== type.value && styles.optionButtonError
+                    ]}
                   >
-                    <Text className={`text-sm font-medium ${
-                      formData.bin_type === type.value ? 'text-white' : 'text-gray-700'
-                    }`}>
+                    <Text style={[
+                      styles.optionText,
+                      formData.bin_type === type.value && styles.optionTextSelected
+                    ]}>
                       {type.label}
                     </Text>
                   </Pressable>
                 ))}
               </View>
               {errors.bin_type && (
-                <View className="flex-row items-center mt-1.5">
+                <View style={styles.errorContainer}>
                   <Feather name="alert-circle" size={14} color="#EF4444" />
-                  <Text className="text-red-500 text-xs ml-1">{errors.bin_type}</Text>
+                  <Text style={styles.errorText}>{errors.bin_type}</Text>
                 </View>
               )}
-              <Text className="text-xs text-gray-500 mt-2">
+              <Text style={styles.helperText}>
                 Select the type of waste this bin will collect
               </Text>
             </View>
 
             {/* Status */}
-            <View className="mb-4">
-              <Text className="text-sm font-medium text-gray-700 mb-2">
-                Status <Text className="text-red-500">*</Text>
+            <View style={styles.fieldContainer}>
+              <Text style={styles.label}>
+                Status <Text style={styles.required}>*</Text>
               </Text>
-              <View className="flex-row flex-wrap gap-2">
+              <View style={styles.optionsContainer}>
                 {statuses.map((status) => (
                   <Pressable
                     key={status.value}
                     onPress={() => handleChange("status", status.value)}
                     disabled={isSubmitting}
-                    className={`px-4 py-3 rounded-lg border ${
-                      formData.status === status.value
-                        ? 'bg-green-600 border-green-600'
-                        : 'bg-white border-gray-300'
-                    }`}
+                    style={[
+                      styles.optionButton,
+                      formData.status === status.value && styles.optionButtonSelected
+                    ]}
                   >
-                    <Text className={`text-sm font-medium ${
-                      formData.status === status.value ? 'text-white' : 'text-gray-700'
-                    }`}>
+                    <Text style={[
+                      styles.optionText,
+                      formData.status === status.value && styles.optionTextSelected
+                    ]}>
                       {status.label}
                     </Text>
                   </Pressable>
@@ -230,18 +230,18 @@ const BinModal = ({ visible, onClose, onSubmit }) => {
 
             {/* Auto-generated QR Code */}
             {formData.qr_code && (
-              <View className="mb-4">
-                <Text className="text-sm font-medium text-gray-700 mb-2">
+              <View style={styles.fieldContainer}>
+                <Text style={styles.label}>
                   Generated QR Code
                 </Text>
-                <View className="border border-green-300 rounded-xl px-4 py-3 bg-green-50">
-                  <View className="flex-row items-center">
+                <View style={styles.qrContainer}>
+                  <View style={styles.qrContent}>
                     <Feather name="check-circle" size={18} color="#16A34A" />
-                    <Text className="text-green-700 font-semibold ml-2">
+                    <Text style={styles.qrText}>
                       {formData.qr_code}
                     </Text>
                   </View>
-                  <Text className="text-xs text-green-600 mt-1">
+                  <Text style={styles.qrHelperText}>
                     This QR code will be automatically assigned to the bin
                   </Text>
                 </View>
@@ -249,10 +249,10 @@ const BinModal = ({ visible, onClose, onSubmit }) => {
             )}
 
             {/* Info Box */}
-            <View className="bg-blue-50 border border-blue-200 rounded-xl p-3">
-              <View className="flex-row items-start">
+            <View style={styles.infoBox}>
+              <View style={styles.infoBoxContent}>
                 <Feather name="info" size={16} color="#3B82F6" style={{ marginTop: 2 }} />
-                <Text className="text-xs text-blue-700 ml-2 flex-1">
+                <Text style={styles.infoBoxText}>
                   Make sure to print and attach the QR code to your bin after registration
                 </Text>
               </View>
@@ -260,22 +260,23 @@ const BinModal = ({ visible, onClose, onSubmit }) => {
           </ScrollView>
 
           {/* Footer Buttons */}
-          <View className="px-5 py-4 border-t border-gray-200 flex-row gap-3">
+          <View style={styles.footer}>
             <Pressable
               onPress={handleClose}
               disabled={isSubmitting}
-              className="flex-1 border border-gray-300 rounded-xl py-3 active:bg-gray-50"
+              style={styles.cancelButton}
             >
-              <Text className="text-gray-700 text-center font-semibold">Cancel</Text>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
             </Pressable>
             <Pressable
               onPress={handleSubmit}
               disabled={isSubmitting}
-              className={`flex-1 rounded-xl py-3 ${
-                isSubmitting ? 'bg-green-400' : 'bg-green-600 active:bg-green-700'
-              }`}
+              style={[
+                styles.submitButton,
+                isSubmitting && styles.submitButtonDisabled
+              ]}
             >
-              <Text className="text-white text-center font-semibold">
+              <Text style={styles.submitButtonText}>
                 {isSubmitting ? 'Registering...' : 'Register Bin'}
               </Text>
             </Pressable>
@@ -285,5 +286,181 @@ const BinModal = ({ visible, onClose, onSubmit }) => {
     </Modal>
   );
 };
+
+const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '90%',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  closeButton: {
+    padding: 8,
+    borderRadius: 9999,
+  },
+  scrollView: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  fieldContainer: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  required: {
+    color: '#EF4444',
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#F9FAFB',
+    color: '#1F2937',
+    borderColor: '#E5E7EB',
+  },
+  inputError: {
+    borderColor: '#EF4444',
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: 12,
+    marginLeft: 4,
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 8,
+  },
+  optionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  optionButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#D1D5DB',
+  },
+  optionButtonSelected: {
+    backgroundColor: '#16A34A',
+    borderColor: '#16A34A',
+  },
+  optionButtonError: {
+    borderColor: '#FCA5A5',
+  },
+  optionText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+  },
+  optionTextSelected: {
+    color: '#FFFFFF',
+  },
+  qrContainer: {
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#F0FDF4',
+  },
+  qrContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  qrText: {
+    color: '#15803D',
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  qrHelperText: {
+    fontSize: 12,
+    color: '#16A34A',
+    marginTop: 4,
+  },
+  infoBox: {
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
+    borderRadius: 12,
+    padding: 12,
+  },
+  infoBoxContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  infoBoxText: {
+    fontSize: 12,
+    color: '#1E40AF',
+    marginLeft: 8,
+    flex: 1,
+  },
+  footer: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    flexDirection: 'row',
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 12,
+    paddingVertical: 12,
+  },
+  cancelButtonText: {
+    color: '#374151',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  submitButton: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    backgroundColor: '#16A34A',
+  },
+  submitButtonDisabled: {
+    backgroundColor: '#86EFAC',
+  },
+  submitButtonText: {
+    color: '#FFFFFF',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+});
 
 export default BinModal;

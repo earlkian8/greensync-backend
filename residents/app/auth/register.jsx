@@ -9,7 +9,8 @@ import {
   ScrollView,
   Pressable,
   ActivityIndicator,
-  Animated
+  Animated,
+  StyleSheet
 } from "react-native";
 import { useState, useRef, useEffect } from "react";
 import * as ImagePicker from "expo-image-picker";
@@ -210,8 +211,6 @@ const Register = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  
-
   const handleSelectProfileImage = async () => {
     try {
       if (Platform.OS !== "web") {
@@ -389,44 +388,42 @@ const Register = () => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1 bg-white"
+      style={styles.container}
       keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
     >
       <ScrollView
         ref={scrollViewRef}
-        contentContainerStyle={{ paddingVertical: 40, paddingHorizontal: 24 }}
+        contentContainerStyle={styles.scrollContent}
         bounces={false}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <View className="items-center">
-
-          <View className="items-center mb-8">
+        <View style={styles.content}>
+          <View style={styles.logoContainer}>
             <Image
               source={require("@/assets/logo/whitebg.png")}
-              style={{ width: 3000, height: 150, resizeMode: "contain" }}
+              style={styles.logo}
             />
-            <Text className="text-gray-600 text-lg font-medium mt-2">
+            <Text style={styles.subtitle}>
               Smart Waste Management
             </Text>
           </View>
 
-          <View className="w-full max-w-sm">
+          <View style={styles.formContainer}>
             {/* Success Message Banner */}
             {successMessage ? (
               <Animated.View 
-                style={{ opacity: fadeAnim }}
-                className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4"
+                style={[styles.successBanner, { opacity: fadeAnim }]}
               >
-                <View className="flex-row items-start">
-                  <View className="bg-green-100 rounded-full p-1 mr-3">
+                <View style={styles.bannerContent}>
+                  <View style={styles.successIconContainer}>
                     <Ionicons name="checkmark-circle" size={24} color="#16A34A" />
                   </View>
-                  <View className="flex-1">
-                    <Text className="text-green-900 text-base font-semibold mb-1">
+                  <View style={styles.bannerTextContainer}>
+                    <Text style={styles.successBannerTitle}>
                       Registration Successful!
                     </Text>
-                    <Text className="text-green-800 text-sm leading-5">
+                    <Text style={styles.successBannerText}>
                       {successMessage}
                     </Text>
                   </View>
@@ -437,27 +434,26 @@ const Register = () => {
             {/* Error Message Banner */}
             {generalError ? (
               <Animated.View 
-                style={{ opacity: fadeAnim }}
-                className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4"
+                style={[styles.errorBanner, { opacity: fadeAnim }]}
               >
-                <View className="flex-row items-start">
-                  <View className="bg-red-100 rounded-full p-1 mr-3">
+                <View style={styles.bannerContent}>
+                  <View style={styles.errorIconContainer}>
                     <Ionicons name="alert-circle" size={24} color="#DC2626" />
                   </View>
-                  <View className="flex-1">
-                    <Text className="text-red-900 text-base font-semibold mb-1">
+                  <View style={styles.bannerTextContainer}>
+                    <Text style={styles.errorBannerTitle}>
                       Registration Failed
                     </Text>
-                    <Text className="text-red-800 text-sm leading-5">
+                    <Text style={styles.errorBannerText}>
                       {generalError}
                     </Text>
                     {Object.keys(errors).length > 0 && (
-                      <Text className="text-red-700 text-xs mt-2 italic">
+                      <Text style={styles.errorBannerHint}>
                         Check the highlighted fields below for details.
                       </Text>
                     )}
                   </View>
-                  <Pressable onPress={() => setGeneralError("")} className="ml-2">
+                  <Pressable onPress={() => setGeneralError("")} style={styles.bannerClose}>
                     <Ionicons name="close" size={20} color="#DC2626" />
                   </Pressable>
                 </View>
@@ -465,17 +461,17 @@ const Register = () => {
             ) : null}
 
             {/* Personal Information Section */}
-            <View className="mb-6">
-              <View className="flex-row items-center mb-3">
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
                 <Ionicons name="person-outline" size={20} color="#374151" style={{ marginRight: 6 }} />
-                <Text className="text-lg font-bold text-gray-800">
+                <Text style={styles.sectionTitle}>
                   Personal Information
                 </Text>
               </View>
               
-              <View className="mb-4">
-                <Text className="text-gray-700 mb-1 font-medium">
-                  Full Name <Text className="text-red-500">*</Text>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>
+                  Full Name <Text style={styles.required}>*</Text>
                 </Text>
                 <TextInput
                   placeholder="Enter your full name"
@@ -484,19 +480,22 @@ const Register = () => {
                     setName(text);
                     clearError('name');
                   }}
-                  className={`border ${errors.name ? 'border-red-500 bg-red-50' : 'border-gray-300'} w-full rounded-lg p-3 text-base`}
+                  style={[
+                    styles.input,
+                    errors.name && styles.inputError
+                  ]}
                 />
                 {errors.name && (
-                  <View className="flex-row items-center mt-1 bg-red-50 p-2 rounded">
+                  <View style={styles.errorBox}>
                     <Ionicons name="alert-circle-outline" size={14} color="#EF4444" style={{ marginRight: 4 }} />
-                    <Text className="text-red-600 text-xs flex-1">{errors.name}</Text>
+                    <Text style={styles.errorBoxText}>{errors.name}</Text>
                   </View>
                 )}
               </View>
 
-              <View className="mb-4">
-                <Text className="text-gray-700 mb-1 font-medium">
-                  Email <Text className="text-red-500">*</Text>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>
+                  Email <Text style={styles.required}>*</Text>
                 </Text>
                 <TextInput
                   placeholder="Enter your email"
@@ -507,18 +506,21 @@ const Register = () => {
                   }}
                   keyboardType="email-address"
                   autoCapitalize="none"
-                  className={`border ${errors.email ? 'border-red-500 bg-red-50' : 'border-gray-300'} w-full rounded-lg p-3 text-base`}
+                  style={[
+                    styles.input,
+                    errors.email && styles.inputError
+                  ]}
                 />
                 {errors.email && (
-                  <View className="flex-row items-center mt-1 bg-red-50 p-2 rounded">
+                  <View style={styles.errorBox}>
                     <Ionicons name="alert-circle-outline" size={14} color="#EF4444" style={{ marginRight: 4 }} />
-                    <Text className="text-red-600 text-xs flex-1">{errors.email}</Text>
+                    <Text style={styles.errorBoxText}>{errors.email}</Text>
                   </View>
                 )}
               </View>
 
-              <View className="mb-4">
-                <Text className="text-gray-700 mb-1 font-medium">Phone Number</Text>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Phone Number</Text>
                 <TextInput
                   placeholder="e.g., +63 912 345 6789 (Optional)"
                   value={phoneNumber}
@@ -528,29 +530,32 @@ const Register = () => {
                   }}
                   keyboardType="phone-pad"
                   maxLength={20}
-                  className={`border ${errors.phone_number ? 'border-red-500 bg-red-50' : 'border-gray-300'} w-full rounded-lg p-3 text-base`}
+                  style={[
+                    styles.input,
+                    errors.phone_number && styles.inputError
+                  ]}
                 />
                 {errors.phone_number && (
-                  <View className="flex-row items-center mt-1 bg-red-50 p-2 rounded">
+                  <View style={styles.errorBox}>
                     <Ionicons name="alert-circle-outline" size={14} color="#EF4444" style={{ marginRight: 4 }} />
-                    <Text className="text-red-600 text-xs flex-1">{errors.phone_number}</Text>
+                    <Text style={styles.errorBoxText}>{errors.phone_number}</Text>
                   </View>
                 )}
               </View>
             </View>
 
             {/* Address Information Section */}
-            <View className="mb-6">
-              <View className="flex-row items-center mb-3">
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
                 <Ionicons name="location-outline" size={20} color="#374151" style={{ marginRight: 6 }} />
-                <Text className="text-lg font-bold text-gray-800">
+                <Text style={styles.sectionTitle}>
                   Address Information
                 </Text>
               </View>
 
-              <View className="flex-row mb-4 gap-2">
-                <View className="flex-1">
-                  <Text className="text-gray-700 mb-1 font-medium">House No.</Text>
+              <View style={styles.rowInputs}>
+                <View style={styles.halfInput}>
+                  <Text style={styles.label}>House No.</Text>
                   <TextInput
                     placeholder="Optional"
                     value={houseNo}
@@ -559,11 +564,14 @@ const Register = () => {
                       clearError('house_no');
                     }}
                     maxLength={50}
-                    className={`border ${errors.house_no ? 'border-red-500 bg-red-50' : 'border-gray-300'} w-full rounded-lg p-3 text-base`}
+                    style={[
+                      styles.input,
+                      errors.house_no && styles.inputError
+                    ]}
                   />
                 </View>
-                <View className="flex-1">
-                  <Text className="text-gray-700 mb-1 font-medium">Street</Text>
+                <View style={styles.halfInput}>
+                  <Text style={styles.label}>Street</Text>
                   <TextInput
                     placeholder="Optional"
                     value={street}
@@ -571,7 +579,10 @@ const Register = () => {
                       setStreet(text);
                       clearError('street');
                     }}
-                    className={`border ${errors.street ? 'border-red-500 bg-red-50' : 'border-gray-300'} w-full rounded-lg p-3 text-base`}
+                    style={[
+                      styles.input,
+                      errors.street && styles.inputError
+                    ]}
                   />
                 </View>
               </View>
@@ -640,8 +651,8 @@ const Register = () => {
               />
 
               {/* Postal Code */}
-              <View className="mb-4">
-                <Text className="text-gray-700 mb-1 font-medium">Postal Code</Text>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Postal Code</Text>
                 <TextInput
                   placeholder="Optional"
                   value={postalCode}
@@ -651,32 +662,35 @@ const Register = () => {
                   }}
                   keyboardType="number-pad"
                   maxLength={20}
-                  className={`border ${errors.postal_code ? 'border-red-500 bg-red-50' : 'border-gray-300'} w-full rounded-lg p-3 text-base`}
+                  style={[
+                    styles.input,
+                    errors.postal_code && styles.inputError
+                  ]}
                 />
                 {errors.postal_code && (
-                  <View className="flex-row items-center mt-1 bg-red-50 p-2 rounded">
+                  <View style={styles.errorBox}>
                     <Ionicons name="alert-circle-outline" size={14} color="#EF4444" style={{ marginRight: 4 }} />
-                    <Text className="text-red-600 text-xs flex-1">{errors.postal_code}</Text>
+                    <Text style={styles.errorBoxText}>{errors.postal_code}</Text>
                   </View>
                 )}
               </View>
             </View>
 
             {/* Profile Image Section */}
-            <View className="mb-6">
-              <View className="flex-row items-center mb-3">
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
                 <Ionicons name="image-outline" size={20} color="#374151" style={{ marginRight: 6 }} />
-                <Text className="text-lg font-bold text-gray-800">
+                <Text style={styles.sectionTitle}>
                   Profile Photo
                 </Text>
               </View>
 
-              <View className="items-center">
-                <View className="w-28 h-28 rounded-full bg-gray-100 border border-dashed border-gray-300 overflow-hidden mb-3 justify-center items-center">
+              <View style={styles.profileImageContainer}>
+                <View style={styles.profileImagePlaceholder}>
                   {profileImage ? (
                     <Image
                       source={{ uri: profileImage.uri }}
-                      style={{ width: '100%', height: '100%' }}
+                      style={styles.profileImage}
                     />
                   ) : (
                     <Ionicons name="person-circle-outline" size={64} color="#9CA3AF" />
@@ -684,38 +698,38 @@ const Register = () => {
                 </View>
 
                 <TouchableOpacity
-                  className="px-4 py-2 bg-white border border-gray-300 rounded-full flex-row items-center"
+                  style={styles.uploadButton}
                   onPress={handleSelectProfileImage}
                 >
                   <Ionicons name="cloud-upload-outline" size={18} color="#16A34A" style={{ marginRight: 6 }} />
-                  <Text className="text-green-600 font-medium">
+                  <Text style={styles.uploadButtonText}>
                     {profileImage ? "Change Photo" : "Upload Photo (Optional)"}
                   </Text>
                 </TouchableOpacity>
 
                 {errors.profile_image && (
-                  <View className="flex-row items-center mt-2 bg-red-50 p-2 rounded">
+                  <View style={styles.errorBox}>
                     <Ionicons name="alert-circle-outline" size={14} color="#EF4444" style={{ marginRight: 4 }} />
-                    <Text className="text-red-600 text-xs flex-1">{errors.profile_image}</Text>
+                    <Text style={styles.errorBoxText}>{errors.profile_image}</Text>
                   </View>
                 )}
               </View>
             </View>
 
             {/* Security Section */}
-            <View className="mb-6">
-              <View className="flex-row items-center mb-3">
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
                 <Ionicons name="lock-closed-outline" size={20} color="#374151" style={{ marginRight: 6 }} />
-                <Text className="text-lg font-bold text-gray-800">
+                <Text style={styles.sectionTitle}>
                   Security
                 </Text>
               </View>
 
-              <View className="mb-4">
-                <Text className="text-gray-700 mb-1 font-medium">
-                  Password <Text className="text-red-500">*</Text>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>
+                  Password <Text style={styles.required}>*</Text>
                 </Text>
-                <View className="relative">
+                <View style={styles.passwordContainer}>
                   <TextInput
                     placeholder="Enter your password"
                     value={password}
@@ -724,39 +738,43 @@ const Register = () => {
                       clearError('password');
                     }}
                     secureTextEntry={!showPassword}
-                    className={`border ${errors.password ? 'border-red-500 bg-red-50' : 'border-gray-300'} w-full rounded-lg p-3 text-base pr-12`}
+                    style={[
+                      styles.input,
+                      styles.passwordInput,
+                      errors.password && styles.inputError
+                    ]}
                   />
                   <Pressable 
                     onPress={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-0 bottom-0 justify-center"
+                    style={styles.passwordToggle}
                   >
                     <Ionicons 
                       name={showPassword ? "eye-outline" : "eye-off-outline"} 
                       size={24} 
-                      color="gray" 
+                      color="#6B7280" 
                     />
                   </Pressable>
                 </View>
                 {errors.password ? (
-                  <View className="flex-row items-center mt-1 bg-red-50 p-2 rounded">
+                  <View style={styles.errorBox}>
                     <Ionicons name="alert-circle-outline" size={14} color="#EF4444" style={{ marginRight: 4 }} />
-                    <Text className="text-red-600 text-xs flex-1">{errors.password}</Text>
+                    <Text style={styles.errorBoxText}>{errors.password}</Text>
                   </View>
                 ) : (
-                  <View className="flex-row items-center mt-1">
+                  <View style={styles.helperRow}>
                     <Ionicons name="information-circle-outline" size={14} color="#6B7280" style={{ marginRight: 4 }} />
-                    <Text className="text-xs text-gray-500">
+                    <Text style={styles.helperText}>
                       Must be at least 6 characters
                     </Text>
                   </View>
                 )}
               </View>
 
-              <View className="mb-6">
-                <Text className="text-gray-700 mb-1 font-medium">
-                  Confirm Password <Text className="text-red-500">*</Text>
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>
+                  Confirm Password <Text style={styles.required}>*</Text>
                 </Text>
-                <View className="relative">
+                <View style={styles.passwordContainer}>
                   <TextInput
                     placeholder="Confirm your password"
                     value={confirmPassword}
@@ -765,54 +783,61 @@ const Register = () => {
                       clearError('confirmPassword');
                     }}
                     secureTextEntry={!showConfirmPassword}
-                    className={`border ${errors.confirmPassword ? 'border-red-500 bg-red-50' : 'border-gray-300'} w-full rounded-lg p-3 text-base pr-12`}
+                    style={[
+                      styles.input,
+                      styles.passwordInput,
+                      errors.confirmPassword && styles.inputError
+                    ]}
                   />
                   <Pressable 
                     onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-0 bottom-0 justify-center"
+                    style={styles.passwordToggle}
                   >
                     <Ionicons 
                       name={showConfirmPassword ? "eye-outline" : "eye-off-outline"} 
                       size={24} 
-                      color="gray" 
+                      color="#6B7280" 
                     />
                   </Pressable>
                 </View>
                 {errors.confirmPassword && (
-                  <View className="flex-row items-center mt-1 bg-red-50 p-2 rounded">
+                  <View style={styles.errorBox}>
                     <Ionicons name="alert-circle-outline" size={14} color="#EF4444" style={{ marginRight: 4 }} />
-                    <Text className="text-red-600 text-xs flex-1">{errors.confirmPassword}</Text>
+                    <Text style={styles.errorBoxText}>{errors.confirmPassword}</Text>
                   </View>
                 )}
               </View>
             </View>
 
             <TouchableOpacity 
-              className={`p-4 rounded-lg ${loading ? 'bg-green-400' : 'bg-green-500 active:bg-green-600'} shadow-md`}
+              style={[
+                styles.registerButton,
+                loading && styles.registerButtonDisabled
+              ]}
               onPress={handleRegister}
               disabled={loading}
             >
               {loading ? (
-                <View className="flex-row justify-center items-center">
+                <View style={styles.registerButtonContent}>
                   <ActivityIndicator color="white" />
-                  <Text className="text-white text-center text-base font-semibold ml-2">
+                  <Text style={styles.registerButtonText}>
                     Creating Account...
                   </Text>
                 </View>
               ) : (
-                <View className="flex-row justify-center items-center">
+                <View style={styles.registerButtonContent}>
                   <Ionicons name="checkmark-circle-outline" size={20} color="white" style={{ marginRight: 6 }} />
-                  <Text className="text-white text-center text-base font-semibold">
+                  <Text style={styles.registerButtonText}>
                     Create Account
                   </Text>
                 </View>
               )}
             </TouchableOpacity>
 
-            <View className="flex-row justify-center mt-6 mb-4">
-              <Text className="text-gray-600">Already have an account? </Text>
+            <View style={styles.loginLinkContainer}>
+              <Text style={styles.loginLinkText}>Already have an account? </Text>
               <Link href={'/auth/login'}>
-                <Text className="text-green-600 font-medium">Login</Text>
+                <Text style={styles.loginLink}>Login</Text>
               </Link>
             </View>
           </View>
@@ -821,5 +846,253 @@ const Register = () => {
     </KeyboardAvoidingView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  scrollContent: {
+    paddingVertical: 40,
+    paddingHorizontal: 24,
+  },
+  content: {
+    alignItems: 'center',
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  logo: {
+    width: 300,
+    height: 150,
+    resizeMode: "contain",
+  },
+  subtitle: {
+    color: '#4B5563',
+    fontSize: 18,
+    fontWeight: '500',
+    marginTop: 8,
+  },
+  formContainer: {
+    width: '100%',
+    maxWidth: 384,
+  },
+  successBanner: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+  },
+  errorBanner: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+  },
+  bannerContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  successIconContainer: {
+    backgroundColor: '#D1FAE5',
+    borderRadius: 9999,
+    padding: 4,
+    marginRight: 12,
+  },
+  errorIconContainer: {
+    backgroundColor: '#FEE2E2',
+    borderRadius: 9999,
+    padding: 4,
+    marginRight: 12,
+  },
+  bannerTextContainer: {
+    flex: 1,
+  },
+  successBannerTitle: {
+    color: '#166534',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  successBannerText: {
+    color: '#15803D',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  errorBannerTitle: {
+    color: '#991B1B',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  errorBannerText: {
+    color: '#B91C1C',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  errorBannerHint: {
+    color: '#DC2626',
+    fontSize: 12,
+    marginTop: 8,
+    fontStyle: 'italic',
+  },
+  bannerClose: {
+    marginLeft: 8,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  label: {
+    color: '#374151',
+    marginBottom: 4,
+    fontWeight: '500',
+    fontSize: 14,
+  },
+  required: {
+    color: '#EF4444',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    width: '100%',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: '#1F2937',
+    backgroundColor: '#FFFFFF',
+  },
+  inputError: {
+    borderColor: '#EF4444',
+    backgroundColor: '#FEF2F2',
+  },
+  rowInputs: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    gap: 8,
+  },
+  halfInput: {
+    flex: 1,
+  },
+  passwordContainer: {
+    position: 'relative',
+  },
+  passwordInput: {
+    paddingRight: 48,
+  },
+  passwordToggle: {
+    position: 'absolute',
+    right: 12,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+  },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    backgroundColor: '#FEF2F2',
+    padding: 8,
+    borderRadius: 4,
+  },
+  errorBoxText: {
+    color: '#DC2626',
+    fontSize: 12,
+    flex: 1,
+  },
+  helperRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  profileImageContainer: {
+    alignItems: 'center',
+  },
+  profileImagePlaceholder: {
+    width: 112,
+    height: 112,
+    borderRadius: 9999,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: '#D1D5DB',
+    overflow: 'hidden',
+    marginBottom: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileImage: {
+    width: '100%',
+    height: '100%',
+  },
+  uploadButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 9999,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  uploadButtonText: {
+    color: '#16A34A',
+    fontWeight: '500',
+  },
+  registerButton: {
+    padding: 16,
+    borderRadius: 8,
+    backgroundColor: '#16A34A',
+    marginBottom: 24,
+  },
+  registerButtonDisabled: {
+    backgroundColor: '#86EFAC',
+  },
+  registerButtonContent: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  registerButtonText: {
+    color: '#FFFFFF',
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 6,
+  },
+  loginLinkContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  loginLinkText: {
+    color: '#4B5563',
+  },
+  loginLink: {
+    color: '#16A34A',
+    fontWeight: '500',
+  },
+});
 
 export default Register;

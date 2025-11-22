@@ -190,7 +190,7 @@ export default function RouteAssignmentManagement() {
     const breadcrumbs = [
         {
             name: "Home",
-            href: route('dashboard'),
+            href: route('admin.dashboard'),href: route('dashboard'),
         },
         {
             name: "Route Assignment",

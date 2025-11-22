@@ -1,30 +1,30 @@
-import { View, Text, Pressable } from "react-native";
+import { View, Text, Pressable, StyleSheet } from "react-native";
 import Feather from '@expo/vector-icons/Feather';
 
 const RequestCard = ({ request, onViewDetails }) => {
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
       case 'pending':
-        return { bg: 'bg-yellow-100', text: 'text-yellow-700' };
+        return { bg: styles.statusPendingBg, text: styles.statusPendingText };
       case 'assigned':
-        return { bg: 'bg-blue-100', text: 'text-blue-700' };
+        return { bg: styles.statusAssignedBg, text: styles.statusAssignedText };
       case 'completed':
-        return { bg: 'bg-green-100', text: 'text-green-700' };
+        return { bg: styles.statusCompletedBg, text: styles.statusCompletedText };
       default:
-        return { bg: 'bg-gray-100', text: 'text-gray-700' };
+        return { bg: styles.statusDefaultBg, text: styles.statusDefaultText };
     }
   };
 
   const getPriorityColor = (priority) => {
     switch (priority?.toLowerCase()) {
       case 'high':
-        return { bg: 'bg-red-100', text: 'text-red-700' };
+        return { bg: styles.priorityHighBg, text: styles.priorityHighText };
       case 'medium':
-        return { bg: 'bg-orange-100', text: 'text-orange-700' };
+        return { bg: styles.priorityMediumBg, text: styles.priorityMediumText };
       case 'low':
-        return { bg: 'bg-blue-100', text: 'text-blue-700' };
+        return { bg: styles.priorityLowBg, text: styles.priorityLowText };
       default:
-        return { bg: 'bg-gray-100', text: 'text-gray-700' };
+        return { bg: styles.priorityDefaultBg, text: styles.priorityDefaultText };
     }
   };
 
@@ -46,38 +46,38 @@ const RequestCard = ({ request, onViewDetails }) => {
   return (
     <Pressable
       onPress={() => onViewDetails(request.id)}
-      className="bg-white rounded-xl p-4 mb-3 shadow-sm active:bg-gray-50"
+      style={styles.card}
     >
       {/* Header */}
-      <View className="flex-row justify-between items-center mb-3">
-        <Text className="text-base font-semibold text-gray-800 flex-1">
+      <View style={styles.header}>
+        <Text style={styles.requestType} numberOfLines={1}>
           {request.request_type || 'Unnamed Request'}
         </Text>
-        <View className={`${statusColors.bg} px-3 py-1 rounded-full`}>
-          <Text className={`${statusColors.text} text-xs font-medium`}>
+        <View style={[styles.statusBadge, statusColors.bg]}>
+          <Text style={[styles.statusText, statusColors.text]}>
             {request.status || 'Unknown'}
           </Text>
         </View>
       </View>
 
       {/* Waste Type & Priority */}
-      <View className="flex-row justify-between items-center mb-3">
-        <Text className="text-sm text-gray-600">{request.waste_type || 'N/A'}</Text>
-        <View className={`${priorityColors.bg} px-3 py-1 rounded-full`}>
-          <Text className={`${priorityColors.text} text-xs font-medium`}>
+      <View style={styles.infoRow}>
+        <Text style={styles.wasteType}>{request.waste_type || 'N/A'}</Text>
+        <View style={[styles.priorityBadge, priorityColors.bg]}>
+          <Text style={[styles.priorityText, priorityColors.text]}>
             {request.priority || 'Normal'}
           </Text>
         </View>
       </View>
 
       {/* Date & Time */}
-      <View className="flex-row items-center mb-3">
+      <View style={styles.dateTimeRow}>
         <Feather name="calendar" size={14} color="#6B7280" />
-        <Text className="text-sm text-gray-600 ml-1.5">
+        <Text style={styles.dateTimeText}>
           {formattedDate}
         </Text>
         <Feather name="clock" size={14} color="#6B7280" style={{ marginLeft: 12 }} />
-        <Text className="text-sm text-gray-600 ml-1.5">{formattedTime}</Text>
+        <Text style={styles.dateTimeText}>{formattedTime}</Text>
       </View>
 
       {/* Button */}
@@ -86,14 +86,101 @@ const RequestCard = ({ request, onViewDetails }) => {
           e.stopPropagation?.();
           onViewDetails(request.id);
         }}
-        className="border border-green-600 rounded-lg py-2.5 active:bg-green-50"
+        style={styles.viewButton}
       >
-        <Text className="text-green-600 text-center font-medium text-sm">
+        <Text style={styles.viewButtonText}>
           View Details
         </Text>
       </Pressable>
     </Pressable>
   );
 };
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  requestType: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    flex: 1,
+  },
+  statusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 9999,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  statusPendingBg: { backgroundColor: '#FEF3C7' },
+  statusPendingText: { color: '#92400E' },
+  statusAssignedBg: { backgroundColor: '#DBEAFE' },
+  statusAssignedText: { color: '#1E40AF' },
+  statusCompletedBg: { backgroundColor: '#D1FAE5' },
+  statusCompletedText: { color: '#065F46' },
+  statusDefaultBg: { backgroundColor: '#F3F4F6' },
+  statusDefaultText: { color: '#374151' },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  wasteType: {
+    fontSize: 14,
+    color: '#4B5563',
+  },
+  priorityBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 9999,
+  },
+  priorityText: {
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  priorityHighBg: { backgroundColor: '#FEE2E2' },
+  priorityHighText: { color: '#991B1B' },
+  priorityMediumBg: { backgroundColor: '#FED7AA' },
+  priorityMediumText: { color: '#9A3412' },
+  priorityLowBg: { backgroundColor: '#DBEAFE' },
+  priorityLowText: { color: '#1E40AF' },
+  priorityDefaultBg: { backgroundColor: '#F3F4F6' },
+  priorityDefaultText: { color: '#374151' },
+  dateTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  dateTimeText: {
+    fontSize: 14,
+    color: '#4B5563',
+    marginLeft: 6,
+  },
+  viewButton: {
+    borderWidth: 1,
+    borderColor: '#16A34A',
+    borderRadius: 8,
+    paddingVertical: 10,
+  },
+  viewButtonText: {
+    color: '#16A34A',
+    textAlign: 'center',
+    fontWeight: '500',
+    fontSize: 14,
+  },
+});
 
 export default RequestCard;

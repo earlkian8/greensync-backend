@@ -158,7 +158,7 @@ export default function CollectionScheduleManagement() {
     const breadcrumbs = [
         {
             name: "Home",
-            href: route('dashboard'),
+            href: route('admin.dashboard'),
         },
         {
             name: "Collection Schedule Management",

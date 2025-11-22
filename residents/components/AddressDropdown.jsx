@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, Pressable, Modal, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, Modal, FlatList, ActivityIndicator, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 const AddressDropdown = ({
@@ -18,27 +18,27 @@ const AddressDropdown = ({
   const selectedOption = options.find(opt => opt.id === value);
 
   return (
-    <View className="mb-4">
-      <Text className="text-gray-700 mb-1 font-medium">
-        {label} {required && <Text className="text-red-500">*</Text>}
+    <View style={styles.container}>
+      <Text style={styles.label}>
+        {label} {required && <Text style={styles.required}>*</Text>}
       </Text>
       <Pressable
         onPress={() => !disabled && !loading && setIsOpen(true)}
         disabled={disabled || loading}
-        className={`border ${
-          error ? 'border-red-500 bg-red-50' : 'border-gray-300'
-        } w-full rounded-lg p-3 flex-row items-center justify-between ${
-          disabled || loading ? 'bg-gray-100' : 'bg-white'
-        }`}
+        style={[
+          styles.pressable,
+          error && styles.pressableError,
+          (disabled || loading) && styles.pressableDisabled
+        ]}
       >
-        <View className="flex-1 flex-row items-center">
+        <View style={styles.pressableContent}>
           {loading ? (
             <>
               <ActivityIndicator size="small" color="#6B7280" />
-              <Text className="text-gray-500 ml-2 text-base">Loading...</Text>
+              <Text style={styles.loadingText}>Loading...</Text>
             </>
           ) : (
-            <Text className={`text-base ${selectedOption ? 'text-gray-900' : 'text-gray-500'}`}>
+            <Text style={[styles.pressableText, selectedOption && styles.pressableTextSelected]}>
               {selectedOption ? selectedOption.name : placeholder}
             </Text>
           )}
@@ -51,9 +51,9 @@ const AddressDropdown = ({
       </Pressable>
 
       {error && (
-        <View className="flex-row items-center mt-1 bg-red-50 p-2 rounded">
+        <View style={styles.errorContainer}>
           <Ionicons name="alert-circle-outline" size={14} color="#EF4444" style={{ marginRight: 4 }} />
-          <Text className="text-red-600 text-xs flex-1">{error}</Text>
+          <Text style={styles.errorText}>{error}</Text>
         </View>
       )}
 
@@ -64,16 +64,16 @@ const AddressDropdown = ({
         onRequestClose={() => setIsOpen(false)}
       >
         <Pressable 
-          className="flex-1 bg-black/50 justify-end"
+          style={styles.modalOverlay}
           onPress={() => setIsOpen(false)}
         >
           <Pressable 
-            className="bg-white rounded-t-3xl max-h-[80%]"
+            style={styles.modalContent}
             onPress={(e) => e.stopPropagation()}
           >
-            <View className="p-4 border-b border-gray-200">
-              <View className="flex-row items-center justify-between">
-                <Text className="text-lg font-bold text-gray-800">{label}</Text>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalHeaderContent}>
+                <Text style={styles.modalTitle}>{label}</Text>
                 <Pressable onPress={() => setIsOpen(false)}>
                   <Ionicons name="close" size={24} color="#6B7280" />
                 </Pressable>
@@ -81,9 +81,9 @@ const AddressDropdown = ({
             </View>
             
             {options.length === 0 ? (
-              <View className="p-8 items-center">
+              <View style={styles.emptyContainer}>
                 <Ionicons name="information-circle-outline" size={48} color="#9CA3AF" />
-                <Text className="text-gray-500 mt-4 text-center">
+                <Text style={styles.emptyText}>
                   {loading ? 'Loading options...' : 'No options available'}
                 </Text>
               </View>
@@ -97,14 +97,16 @@ const AddressDropdown = ({
                       onSelect(item.id);
                       setIsOpen(false);
                     }}
-                    className={`p-4 border-b border-gray-100 ${
-                      value === item.id ? 'bg-green-50' : 'bg-white'
-                    }`}
+                    style={[
+                      styles.optionItem,
+                      value === item.id && styles.optionItemSelected
+                    ]}
                   >
-                    <View className="flex-row items-center justify-between">
-                      <Text className={`text-base ${
-                        value === item.id ? 'text-green-700 font-semibold' : 'text-gray-900'
-                      }`}>
+                    <View style={styles.optionContent}>
+                      <Text style={[
+                        styles.optionText,
+                        value === item.id && styles.optionTextSelected
+                      ]}>
                         {item.name}
                       </Text>
                       {value === item.id && (
@@ -113,7 +115,7 @@ const AddressDropdown = ({
                     </View>
                   </Pressable>
                 )}
-                className="max-h-96"
+                style={styles.flatList}
               />
             )}
           </Pressable>
@@ -122,6 +124,129 @@ const AddressDropdown = ({
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    marginBottom: 16,
+  },
+  label: {
+    color: '#374151',
+    marginBottom: 4,
+    fontWeight: '500',
+    fontSize: 14,
+  },
+  required: {
+    color: '#EF4444',
+  },
+  pressable: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    width: '100%',
+    borderRadius: 8,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+  },
+  pressableError: {
+    borderColor: '#EF4444',
+    backgroundColor: '#FEF2F2',
+  },
+  pressableDisabled: {
+    backgroundColor: '#F3F4F6',
+  },
+  pressableContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  pressableText: {
+    fontSize: 16,
+    color: '#6B7280',
+  },
+  pressableTextSelected: {
+    color: '#111827',
+  },
+  loadingText: {
+    color: '#6B7280',
+    marginLeft: 8,
+    fontSize: 16,
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    backgroundColor: '#FEF2F2',
+    padding: 8,
+    borderRadius: 4,
+  },
+  errorText: {
+    color: '#DC2626',
+    fontSize: 12,
+    flex: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  emptyContainer: {
+    padding: 32,
+    alignItems: 'center',
+  },
+  emptyText: {
+    color: '#6B7280',
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  optionItem: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    backgroundColor: '#FFFFFF',
+  },
+  optionItemSelected: {
+    backgroundColor: '#F0FDF4',
+  },
+  optionContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  optionText: {
+    fontSize: 16,
+    color: '#111827',
+  },
+  optionTextSelected: {
+    color: '#15803D',
+    fontWeight: '600',
+  },
+  flatList: {
+    maxHeight: 384,
+  },
+});
 
 export default AddressDropdown;
 

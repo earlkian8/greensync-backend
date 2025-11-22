@@ -164,7 +164,7 @@ export default function WasteBinManagement() {
     const breadcrumbs = [
         {
             name: "Home",
-            href: route('dashboard'),
+            href: route('admin.dashboard'),
         },
         {
             name: "Waste Bin Management",

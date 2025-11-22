@@ -1,10 +1,10 @@
-import { View, Text, Modal, Pressable, TextInput, ScrollView, Platform, ActivityIndicator } from "react-native";
+import { View, Text, Modal, Pressable, TextInput, ScrollView, Platform, ActivityIndicator, StyleSheet } from "react-native";
 import { useState, useEffect } from "react";
 import Feather from "@expo/vector-icons/Feather";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import Toast from "react-native-root-toast";
 import * as Location from "expo-location";
-import { fetchBins } from "@/services/binsService"; // 👈 Make sure you have this
+import { fetchBins } from "@/services/binsService";
 import { fetchResidentProfile } from "@/services/profileService";
 import { geocodeAddress } from "@/services/geocodingService";
 
@@ -338,123 +338,119 @@ const RequestModal = ({ visible, onClose, onSubmit }) => {
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View className="flex-1 justify-end bg-black/50">
-        <View className="bg-white rounded-t-3xl max-h-[90%]">
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
           {/* Header */}
-          <View className="flex-row items-center justify-between px-5 py-4 border-b border-gray-200">
-            <Text className="text-xl font-bold text-gray-800">Create Collection Request</Text>
-            <Pressable onPress={onClose} className="p-2 active:bg-gray-100 rounded-full">
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Create Collection Request</Text>
+            <Pressable onPress={onClose} style={styles.closeButton}>
               <Feather name="x" size={24} color="#6B7280" />
             </Pressable>
           </View>
 
           {/* Form */}
-          <ScrollView className="px-5 py-4" showsVerticalScrollIndicator={false}>
+          <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
 
             {/* Bin Selection */}
-            <View className="mb-4">
-              <Text className="text-sm font-medium text-gray-700 mb-2">
-                Select Bin <Text className="text-red-500">*</Text>
+            <View style={styles.fieldContainer}>
+              <Text style={styles.label}>
+                Select Bin <Text style={styles.required}>*</Text>
               </Text>
 
               {binsLoading ? (
                 <ActivityIndicator size="small" color="#16A34A" />
               ) : bins.length > 0 ? (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row gap-2">
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.binsScrollView}>
                   {bins.map((bin) => (
                     <Pressable
                       key={bin.id}
                       onPress={() => setSelectedBin(bin)}
-                      className={`px-4 py-3 rounded-xl border ${
-                        selectedBin?.id === bin.id
-                          ? "bg-green-600 border-green-600"
-                          : "bg-white border-gray-300"
-                      }`}
+                      style={[
+                        styles.binOption,
+                        selectedBin?.id === bin.id && styles.binOptionSelected
+                      ]}
                     >
-                      <Text
-                        className={`text-sm font-medium ${
-                          selectedBin?.id === bin.id ? "text-white" : "text-gray-800"
-                        }`}
-                      >
+                      <Text style={[
+                        styles.binOptionText,
+                        selectedBin?.id === bin.id && styles.binOptionTextSelected
+                      ]}>
                         {bin.qr_code || "Bin"} - {bin.bin_type}
                       </Text>
                     </Pressable>
                   ))}
                 </ScrollView>
               ) : (
-                <Text className="text-xs text-gray-500 mt-1">No bins available.</Text>
+                <Text style={styles.helperText}>No bins available.</Text>
               )}
 
-              {errors.bin_id && <Text className="text-xs text-red-500 mt-1">{errors.bin_id}</Text>}
+              {errors.bin_id && <Text style={styles.errorText}>{errors.bin_id}</Text>}
             </View>
 
             {/* Pickup Address */}
-            <View className="mb-4">
-              <Text className="text-sm font-medium text-gray-700 mb-2">
+            <View style={styles.fieldContainer}>
+              <Text style={styles.label}>
                 Pickup Address
               </Text>
 
               {addressLoading ? (
-                <View className="flex-row items-center gap-2">
+                <View style={styles.loadingRow}>
                   <ActivityIndicator size="small" color="#16A34A" />
-                  <Text className="text-gray-500 text-sm">Loading your address…</Text>
+                  <Text style={styles.loadingText}>Loading your address…</Text>
                 </View>
               ) : addressInfo.fullAddress ? (
-                <View className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
-                  <Text className="text-gray-800 text-sm leading-5">{addressInfo.fullAddress}</Text>
+                <View style={styles.addressBox}>
+                  <Text style={styles.addressText}>{addressInfo.fullAddress}</Text>
                 </View>
               ) : (
-                <Text className="text-xs text-gray-500">
-                  We couldn’t find your address. Please update your profile details.
+                <Text style={styles.helperText}>
+                  We couldn't find your address. Please update your profile details.
                 </Text>
               )}
 
-              {addressError && <Text className="text-xs text-red-500 mt-1">{addressError}</Text>}
+              {addressError && <Text style={styles.errorText}>{addressError}</Text>}
             </View>
 
             {/* Coordinates */}
-            <View className="mb-4">
-              <View className="flex-row items-start justify-between gap-2 mb-2">
-                <View className="flex-1">
-                  <Text className="text-sm font-medium text-gray-700">
-                    Detected Coordinates <Text className="text-red-500">*</Text>
+            <View style={styles.fieldContainer}>
+              <View style={styles.coordinatesHeader}>
+                <View style={styles.coordinatesHeaderLeft}>
+                  <Text style={styles.label}>
+                    Detected Coordinates <Text style={styles.required}>*</Text>
                   </Text>
                   {coordinatesSource && (
-                    <Text className="text-[11px] text-gray-500 mt-1">
+                    <Text style={styles.coordinatesSourceText}>
                       {coordinatesSource === "device" ? "Using your current location" : "Based on your profile address"}
                     </Text>
                   )}
                 </View>
-                <View className="flex-row gap-2">
+                <View style={styles.coordinateButtons}>
                   <Pressable
                     onPress={handleRefreshCoordinates}
                     disabled={geocodeMeta.loading || !addressInfo.isComplete}
-                    className={`px-3 py-1.5 rounded-lg border ${
-                      geocodeMeta.loading || !addressInfo.isComplete
-                        ? "border-gray-200 bg-gray-100"
-                        : "border-green-600 bg-white"
-                    }`}
+                    style={[
+                      styles.coordinateButton,
+                      (geocodeMeta.loading || !addressInfo.isComplete) && styles.coordinateButtonDisabled
+                    ]}
                   >
-                    <Text
-                      className={`text-xs font-semibold ${
-                        geocodeMeta.loading || !addressInfo.isComplete ? "text-gray-400" : "text-green-600"
-                      }`}
-                    >
+                    <Text style={[
+                      styles.coordinateButtonText,
+                      (geocodeMeta.loading || !addressInfo.isComplete) && styles.coordinateButtonTextDisabled
+                    ]}>
                       {geocodeMeta.loading ? "Locating..." : "Refresh"}
                     </Text>
                   </Pressable>
                   <Pressable
                     onPress={handleUseCurrentLocation}
                     disabled={deviceLocationMeta.loading}
-                    className={`px-3 py-1.5 rounded-lg border ${
-                      deviceLocationMeta.loading ? "border-gray-200 bg-gray-100" : "border-green-600 bg-white"
-                    }`}
+                    style={[
+                      styles.coordinateButton,
+                      deviceLocationMeta.loading && styles.coordinateButtonDisabled
+                    ]}
                   >
-                    <Text
-                      className={`text-xs font-semibold ${
-                        deviceLocationMeta.loading ? "text-gray-400" : "text-green-600"
-                      }`}
-                    >
+                    <Text style={[
+                      styles.coordinateButtonText,
+                      deviceLocationMeta.loading && styles.coordinateButtonTextDisabled
+                    ]}>
                       {deviceLocationMeta.loading ? "Getting..." : "Use My Location"}
                     </Text>
                   </Pressable>
@@ -462,27 +458,27 @@ const RequestModal = ({ visible, onClose, onSubmit }) => {
               </View>
 
               {(geocodeMeta.loading || addressLoading) && !deviceLocationMeta.loading ? (
-                <View className="flex-row items-center gap-2">
+                <View style={styles.loadingRow}>
                   <ActivityIndicator size="small" color="#16A34A" />
-                  <Text className="text-gray-500 text-sm">Retrieving coordinates…</Text>
+                  <Text style={styles.loadingText}>Retrieving coordinates…</Text>
                 </View>
               ) : deviceLocationMeta.loading ? (
-                <View className="flex-row items-center gap-2">
+                <View style={styles.loadingRow}>
                   <ActivityIndicator size="small" color="#16A34A" />
-                  <Text className="text-gray-500 text-sm">Capturing your current location…</Text>
+                  <Text style={styles.loadingText}>Capturing your current location…</Text>
                 </View>
               ) : coordinates ? (
-                <View className="bg-green-50 border border-green-100 rounded-xl px-4 py-3">
-                  <Text className="text-green-900 text-sm font-semibold">
-                    Latitude: <Text className="font-normal">{coordinates.latitude.toFixed(6)}</Text>
+                <View style={styles.coordinatesBox}>
+                  <Text style={styles.coordinatesLabel}>
+                    Latitude: <Text style={styles.coordinatesValue}>{coordinates.latitude.toFixed(6)}</Text>
                   </Text>
-                  <Text className="text-green-900 text-sm font-semibold mt-1">
-                    Longitude: <Text className="font-normal">{coordinates.longitude.toFixed(6)}</Text>
+                  <Text style={styles.coordinatesLabel}>
+                    Longitude: <Text style={styles.coordinatesValue}>{coordinates.longitude.toFixed(6)}</Text>
                   </Text>
                   {(coordinatesSource === "device"
                     ? deviceLocationMeta.lastUpdated
                     : geocodeMeta.lastUpdated) && (
-                    <Text className="text-[11px] text-green-700 mt-2">
+                    <Text style={styles.coordinatesTimestamp}>
                       Updated{" "}
                       {(coordinatesSource === "device"
                         ? deviceLocationMeta.lastUpdated
@@ -492,97 +488,89 @@ const RequestModal = ({ visible, onClose, onSubmit }) => {
                   )}
                 </View>
               ) : (
-                <Text className="text-xs text-gray-500">
+                <Text style={styles.helperText}>
                   Coordinates unavailable. Please refresh once your address is complete.
                 </Text>
               )}
 
               {(errors.coordinates || geocodeMeta.error || deviceLocationMeta.error) && (
-                <Text className="text-xs text-red-500 mt-1">
+                <Text style={styles.errorText}>
                   {errors.coordinates || geocodeMeta.error || deviceLocationMeta.error}
                 </Text>
               )}
             </View>
 
             {/* Request Type */}
-            <View className="mb-4">
-              <Text className="text-sm font-medium text-gray-700 mb-2">
-                Request Type <Text className="text-red-500">*</Text>
+            <View style={styles.fieldContainer}>
+              <Text style={styles.label}>
+                Request Type <Text style={styles.required}>*</Text>
               </Text>
-              <View className="flex-row flex-wrap gap-2">
+              <View style={styles.optionsContainer}>
                 {requestTypes.map((type) => (
                   <Pressable
                     key={type}
                     onPress={() => handleChange("request_type", type.toLowerCase())}
-                    className={`px-4 py-2 rounded-lg border ${
-                      formData.request_type === type.toLowerCase()
-                        ? "bg-green-600 border-green-600"
-                        : "bg-white border-gray-300"
-                    }`}
+                    style={[
+                      styles.optionButton,
+                      formData.request_type === type.toLowerCase() && styles.optionButtonSelected
+                    ]}
                   >
-                    <Text
-                      className={`text-sm font-medium ${
-                        formData.request_type === type.toLowerCase() ? "text-white" : "text-gray-700"
-                      }`}
-                    >
+                    <Text style={[
+                      styles.optionText,
+                      formData.request_type === type.toLowerCase() && styles.optionTextSelected
+                    ]}>
                       {type}
                     </Text>
                   </Pressable>
                 ))}
               </View>
-              {errors.request_type && <Text className="text-xs text-red-500 mt-1">{errors.request_type}</Text>}
+              {errors.request_type && <Text style={styles.errorText}>{errors.request_type}</Text>}
             </View>
 
             {/* Waste Type */}
-            <View className="mb-4">
-              <Text className="text-sm font-medium text-gray-700 mb-2">
-                Waste Type <Text className="text-red-500">*</Text>
+            <View style={styles.fieldContainer}>
+              <Text style={styles.label}>
+                Waste Type <Text style={styles.required}>*</Text>
               </Text>
-              <View className="flex-row flex-wrap gap-2">
+              <View style={styles.optionsContainer}>
                 {wasteTypes.map((type) => (
                   <Pressable
                     key={type}
                     onPress={() => handleChange("waste_type", type.toLowerCase().replace(" ", "-"))}
-                    className={`px-4 py-2 rounded-lg border ${
-                      formData.waste_type === type.toLowerCase().replace(" ", "-")
-                        ? "bg-green-600 border-green-600"
-                        : "bg-white border-gray-300"
-                    }`}
+                    style={[
+                      styles.optionButton,
+                      formData.waste_type === type.toLowerCase().replace(" ", "-") && styles.optionButtonSelected
+                    ]}
                   >
-                    <Text
-                      className={`text-sm font-medium ${
-                        formData.waste_type === type.toLowerCase().replace(" ", "-")
-                          ? "text-white"
-                          : "text-gray-700"
-                      }`}
-                    >
+                    <Text style={[
+                      styles.optionText,
+                      formData.waste_type === type.toLowerCase().replace(" ", "-") && styles.optionTextSelected
+                    ]}>
                       {type}
                     </Text>
                   </Pressable>
                 ))}
               </View>
-              {errors.waste_type && <Text className="text-xs text-red-500 mt-1">{errors.waste_type}</Text>}
+              {errors.waste_type && <Text style={styles.errorText}>{errors.waste_type}</Text>}
             </View>
 
             {/* Priority */}
-            <View className="mb-4">
-              <Text className="text-sm font-medium text-gray-700 mb-2">Priority</Text>
-              <View className="flex-row gap-2">
+            <View style={styles.fieldContainer}>
+              <Text style={styles.label}>Priority</Text>
+              <View style={styles.priorityContainer}>
                 {priorities.map((priority) => (
                   <Pressable
                     key={priority}
                     onPress={() => handleChange("priority", priority.toLowerCase())}
-                    className={`flex-1 px-4 py-3 rounded-lg border ${
-                      formData.priority === priority.toLowerCase()
-                        ? "bg-green-600 border-green-600"
-                        : "bg-white border-gray-300"
-                    }`}
+                    style={[
+                      styles.priorityButton,
+                      formData.priority === priority.toLowerCase() && styles.priorityButtonSelected
+                    ]}
                   >
-                    <Text
-                      className={`text-sm font-medium text-center ${
-                        formData.priority === priority.toLowerCase() ? "text-white" : "text-gray-700"
-                      }`}
-                    >
+                    <Text style={[
+                      styles.priorityText,
+                      formData.priority === priority.toLowerCase() && styles.priorityTextSelected
+                    ]}>
                       {priority}
                     </Text>
                   </Pressable>
@@ -591,13 +579,13 @@ const RequestModal = ({ visible, onClose, onSubmit }) => {
             </View>
 
             {/* Date & Time */}
-            <View className="mb-4">
-              <Text className="text-sm font-medium text-gray-700 mb-2">Preferred Date</Text>
+            <View style={styles.fieldContainer}>
+              <Text style={styles.label}>Preferred Date</Text>
               <Pressable
                 onPress={() => setShowDatePicker(true)}
-                className="border border-gray-300 rounded-xl px-4 py-3 bg-white flex-row items-center justify-between"
+                style={styles.dateTimeButton}
               >
-                <Text className="text-gray-800">
+                <Text style={styles.dateTimeText}>
                   {formData.preferred_date.toLocaleDateString("en-US", {
                     year: "numeric",
                     month: "short",
@@ -620,13 +608,13 @@ const RequestModal = ({ visible, onClose, onSubmit }) => {
               )}
             </View>
 
-            <View className="mb-4">
-              <Text className="text-sm font-medium text-gray-700 mb-2">Preferred Time</Text>
+            <View style={styles.fieldContainer}>
+              <Text style={styles.label}>Preferred Time</Text>
               <Pressable
                 onPress={() => setShowTimePicker(true)}
-                className="border border-gray-300 rounded-xl px-4 py-3 bg-white flex-row items-center justify-between"
+                style={styles.dateTimeButton}
               >
-                <Text className="text-gray-800">
+                <Text style={styles.dateTimeText}>
                   {formData.preferred_time.toLocaleTimeString("en-US", {
                     hour: "2-digit",
                     minute: "2-digit",
@@ -648,8 +636,8 @@ const RequestModal = ({ visible, onClose, onSubmit }) => {
             </View>
 
             {/* Description */}
-            <View className="mb-4">
-              <Text className="text-sm font-medium text-gray-700 mb-2">Description (Optional)</Text>
+            <View style={styles.fieldContainer}>
+              <Text style={styles.label}>Description (Optional)</Text>
               <TextInput
                 value={formData.description}
                 onChangeText={(value) => handleChange("description", value)}
@@ -657,32 +645,33 @@ const RequestModal = ({ visible, onClose, onSubmit }) => {
                 multiline
                 numberOfLines={4}
                 textAlignVertical="top"
-                className="border border-gray-300 rounded-xl px-4 py-3 bg-white text-gray-800"
+                style={styles.descriptionInput}
                 placeholderTextColor="#9CA3AF"
               />
             </View>
           </ScrollView>
 
           {/* Footer */}
-          <View className="px-5 py-4 border-t border-gray-200 flex-row gap-3">
+          <View style={styles.footer}>
             <Pressable
               onPress={onClose}
-              className="flex-1 border border-gray-300 rounded-xl py-3 active:bg-gray-50"
+              style={styles.cancelButton}
               disabled={loading}
             >
-              <Text className="text-gray-700 text-center font-semibold">Cancel</Text>
+              <Text style={styles.cancelButtonText}>Cancel</Text>
             </Pressable>
             <Pressable
               onPress={handleSubmit}
-              className={`flex-1 rounded-xl py-3 ${
-                loading ? "bg-green-400" : "bg-green-600 active:bg-green-700"
-              }`}
+              style={[
+                styles.submitButton,
+                loading && styles.submitButtonDisabled
+              ]}
               disabled={loading}
             >
               {loading ? (
                 <ActivityIndicator color="white" />
               ) : (
-                <Text className="text-white text-center font-semibold">Submit Request</Text>
+                <Text style={styles.submitButtonText}>Submit Request</Text>
               )}
             </Pressable>
           </View>
@@ -691,5 +680,276 @@ const RequestModal = ({ visible, onClose, onSubmit }) => {
     </Modal>
   );
 };
+
+const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '90%',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  closeButton: {
+    padding: 8,
+    borderRadius: 9999,
+  },
+  scrollView: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+  },
+  fieldContainer: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  required: {
+    color: '#EF4444',
+  },
+  binsScrollView: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  binOption: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#D1D5DB',
+    marginRight: 8,
+  },
+  binOptionSelected: {
+    backgroundColor: '#16A34A',
+    borderColor: '#16A34A',
+  },
+  binOptionText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1F2937',
+  },
+  binOptionTextSelected: {
+    color: '#FFFFFF',
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 4,
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#EF4444',
+    marginTop: 4,
+  },
+  loadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  loadingText: {
+    color: '#6B7280',
+    fontSize: 14,
+  },
+  addressBox: {
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  addressText: {
+    color: '#1F2937',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  coordinatesHeader: {
+    marginBottom: 8,
+  },
+  coordinatesHeaderLeft: {
+    flex: 1,
+  },
+  coordinatesSourceText: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginTop: 4,
+  },
+  coordinateButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 8,
+  },
+  coordinateButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#16A34A',
+    backgroundColor: '#FFFFFF',
+  },
+  coordinateButtonDisabled: {
+    borderColor: '#E5E7EB',
+    backgroundColor: '#F3F4F6',
+  },
+  coordinateButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#16A34A',
+  },
+  coordinateButtonTextDisabled: {
+    color: '#9CA3AF',
+  },
+  coordinatesBox: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+  coordinatesLabel: {
+    color: '#15803D',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  coordinatesValue: {
+    fontWeight: '400',
+  },
+  coordinatesTimestamp: {
+    fontSize: 11,
+    color: '#15803D',
+    marginTop: 8,
+  },
+  optionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  optionButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#D1D5DB',
+  },
+  optionButtonSelected: {
+    backgroundColor: '#16A34A',
+    borderColor: '#16A34A',
+  },
+  optionText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+  },
+  optionTextSelected: {
+    color: '#FFFFFF',
+  },
+  priorityContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  priorityButton: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#D1D5DB',
+  },
+  priorityButtonSelected: {
+    backgroundColor: '#16A34A',
+    borderColor: '#16A34A',
+  },
+  priorityText: {
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
+    color: '#374151',
+  },
+  priorityTextSelected: {
+    color: '#FFFFFF',
+  },
+  dateTimeButton: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dateTimeText: {
+    color: '#1F2937',
+  },
+  descriptionInput: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    color: '#1F2937',
+    minHeight: 100,
+  },
+  footer: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    flexDirection: 'row',
+    gap: 12,
+  },
+  cancelButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 12,
+    paddingVertical: 12,
+  },
+  cancelButtonText: {
+    color: '#374151',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  submitButton: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    backgroundColor: '#16A34A',
+  },
+  submitButtonDisabled: {
+    backgroundColor: '#86EFAC',
+  },
+  submitButtonText: {
+    color: '#FFFFFF',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+});
 
 export default RequestModal;

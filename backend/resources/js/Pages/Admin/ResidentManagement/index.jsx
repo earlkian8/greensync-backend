@@ -128,7 +128,7 @@ export default function ResidentManagement() {
     const breadcrumbs = [
         {
             name: "Home",
-            href: route('dashboard'),
+           href: route('admin.dashboard'),
         },
         {
             name: "Resident Management",

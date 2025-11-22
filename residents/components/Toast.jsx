@@ -1,4 +1,4 @@
-import { View, Text, Animated } from "react-native";
+import { View, Text, Animated, StyleSheet } from "react-native";
 import { useEffect, useRef } from "react";
 import Feather from '@expo/vector-icons/Feather';
 
@@ -43,40 +43,70 @@ const Toast = ({ visible, message, type = "success", onHide }) => {
 
   if (!visible) return null;
 
-  const bgColor = type === "success" 
-    ? "bg-green-600" 
-    : type === "error" 
-    ? "bg-red-600" 
-    : type === "warning"
-    ? "bg-orange-600"
-    : "bg-blue-600";
+  const getBgColor = () => {
+    switch (type) {
+      case 'success':
+        return '#16A34A';
+      case 'error':
+        return '#DC2626';
+      case 'warning':
+        return '#EA580C';
+      default:
+        return '#2563EB';
+    }
+  };
 
-  const icon = type === "success" 
-    ? "check-circle" 
-    : type === "error" 
-    ? "x-circle" 
-    : type === "warning"
-    ? "alert-circle"
-    : "info";
+  const getIcon = () => {
+    switch (type) {
+      case 'success':
+        return 'check-circle';
+      case 'error':
+        return 'x-circle';
+      case 'warning':
+        return 'alert-circle';
+      default:
+        return 'info';
+    }
+  };
 
   return (
     <Animated.View
-      style={{
-        opacity: fadeAnim,
-        transform: [{ translateY: slideAnim }],
-        position: 'absolute',
-        top: 60,
-        left: 20,
-        right: 20,
-        zIndex: 9999,
-      }}
+      style={[
+        styles.container,
+        {
+          opacity: fadeAnim,
+          transform: [{ translateY: slideAnim }],
+        }
+      ]}
     >
-      <View className={`${bgColor} rounded-xl p-4 flex-row items-center shadow-lg`}>
-        <Feather name={icon} size={20} color="white" />
-        <Text className="text-white font-semibold ml-3 flex-1">{message}</Text>
+      <View style={[styles.toast, { backgroundColor: getBgColor() }]}>
+        <Feather name={getIcon()} size={20} color="white" />
+        <Text style={styles.message}>{message}</Text>
       </View>
     </Animated.View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    right: 20,
+    zIndex: 9999,
+  },
+  toast: {
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  message: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    marginLeft: 12,
+    flex: 1,
+  },
+});
 
 export default Toast;

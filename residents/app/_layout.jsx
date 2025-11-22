@@ -1,5 +1,4 @@
 import { Stack, useRouter, useSegments, useNavigationContainerRef } from "expo-router";
-import './../style/globals.css';
 import { useEffect, createContext, useState, useRef } from 'react';
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { View, ActivityIndicator, InteractionManager } from "react-native";

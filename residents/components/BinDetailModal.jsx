@@ -1,4 +1,4 @@
-import { View, Text, Modal, Pressable, TextInput, ScrollView, Alert, ActivityIndicator } from "react-native";
+import { View, Text, Modal, Pressable, TextInput, ScrollView, Alert, ActivityIndicator, StyleSheet } from "react-native";
 import { useState, useEffect } from "react";
 import Feather from '@expo/vector-icons/Feather';
 import AntDesign from '@expo/vector-icons/AntDesign';
@@ -148,19 +148,19 @@ const BinDetailModal = ({ visible, onClose, binId, onUpdate, onDelete }) => {
     { label: "Damaged", value: "Damaged" }
   ];
 
-  const getStatusColor = (status) => {
+  const getStatusStyle = (status) => {
     const lowerStatus = status.toLowerCase();
     switch (lowerStatus) {
       case 'active':
-        return { bg: 'bg-green-100', text: 'text-green-700' };
+        return { bg: styles.statusActiveBg, text: styles.statusActiveText };
       case 'inactive':
-        return { bg: 'bg-gray-100', text: 'text-gray-700' };
+        return { bg: styles.statusInactiveBg, text: styles.statusInactiveText };
       case 'full':
-        return { bg: 'bg-orange-100', text: 'text-orange-700' };
+        return { bg: styles.statusFullBg, text: styles.statusFullText };
       case 'damaged':
-        return { bg: 'bg-red-100', text: 'text-red-700' };
+        return { bg: styles.statusDamagedBg, text: styles.statusDamagedText };
       default:
-        return { bg: 'bg-gray-100', text: 'text-gray-700' };
+        return { bg: styles.statusDefaultBg, text: styles.statusDefaultText };
     }
   };
 
@@ -171,47 +171,47 @@ const BinDetailModal = ({ visible, onClose, binId, onUpdate, onDelete }) => {
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View className="flex-1 bg-black/50 justify-end">
-        <View className="bg-white rounded-t-3xl max-h-[90%]">
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
           {/* Header */}
-          <View className="flex-row justify-between items-center px-5 pt-5 pb-4 border-b border-gray-200">
-            <Text className="text-xl font-bold text-gray-800">Bin Details</Text>
+          <View style={styles.header}>
+            <Text style={styles.headerTitle}>Bin Details</Text>
             <Pressable
               onPress={onClose}
-              className="w-8 h-8 rounded-full bg-gray-100 items-center justify-center active:bg-gray-200"
+              style={styles.closeButton}
             >
               <AntDesign name="close" size={18} color="#374151" />
             </Pressable>
           </View>
 
           {loading ? (
-            <View className="py-20 items-center">
+            <View style={styles.loadingContainer}>
               <ActivityIndicator size="large" color="#16a34a" />
-              <Text className="text-gray-500 mt-3">Loading details...</Text>
+              <Text style={styles.loadingText}>Loading details...</Text>
             </View>
           ) : bin ? (
             <ScrollView 
-              className="px-5"
+              style={styles.scrollView}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ paddingBottom: 24 }}
             >
               {/* Edit Button */}
               {!isEditing && (
-                <View className="mt-5 flex-row justify-end">
+                <View style={styles.editButtonContainer}>
                   <Pressable
                     onPress={() => setIsEditing(true)}
-                    className="px-4 py-2 bg-green-100 rounded-lg active:bg-green-200"
+                    style={styles.editButton}
                   >
-                    <View className="flex-row items-center">
+                    <View style={styles.editButtonContent}>
                       <Feather name="edit-2" size={16} color="#16a34a" />
-                      <Text className="text-green-700 font-semibold ml-2">Edit</Text>
+                      <Text style={styles.editButtonText}>Edit</Text>
                     </View>
                   </Pressable>
                 </View>
               )}
             {/* QR Code Display */}
-            <View className="items-center py-6 bg-gray-50 rounded-2xl mb-6">
-              <View className="bg-white p-4 rounded-xl shadow-sm">
+            <View style={styles.qrSection}>
+              <View style={styles.qrCard}>
                 <QRCode
                   value={bin.qrCode}
                   size={200}
@@ -219,14 +219,14 @@ const BinDetailModal = ({ visible, onClose, binId, onUpdate, onDelete }) => {
                   color="black"
                 />
               </View>
-              <Text className="text-gray-600 font-semibold mt-4 text-base">{bin.qrCode}</Text>
-              <Text className="text-gray-500 text-sm mt-1">Scan to access bin</Text>
+              <Text style={styles.qrCodeText}>{bin.qrCode}</Text>
+              <Text style={styles.qrHelperText}>Scan to access bin</Text>
             </View>
 
             {/* Bin Name */}
-            <View className="mb-6">
-              <Text className="text-sm font-medium text-gray-500 mb-2">
-                Bin Name {isEditing && <Text className="text-red-500">*</Text>}
+            <View style={styles.fieldContainer}>
+              <Text style={styles.fieldLabel}>
+                Bin Name {isEditing && <Text style={styles.required}>*</Text>}
               </Text>
               {isEditing ? (
                 <>
@@ -234,63 +234,63 @@ const BinDetailModal = ({ visible, onClose, binId, onUpdate, onDelete }) => {
                     value={editedBin.name}
                     onChangeText={(value) => handleChange("name", value)}
                     placeholder="Enter bin name"
-                    className={`border rounded-xl px-4 py-3 bg-gray-50 text-gray-800 text-lg font-semibold ${
-                      errors.name ? 'border-red-500' : 'border-gray-200'
-                    }`}
+                    style={[
+                      styles.inputLarge,
+                      errors.name && styles.inputError
+                    ]}
                     placeholderTextColor="#9CA3AF"
                     editable={!isUpdating}
                   />
                   {errors.name && (
-                    <View className="flex-row items-center mt-1.5">
+                    <View style={styles.errorContainer}>
                       <Feather name="alert-circle" size={14} color="#EF4444" />
-                      <Text className="text-red-500 text-xs ml-1">{errors.name}</Text>
+                      <Text style={styles.errorText}>{errors.name}</Text>
                     </View>
                   )}
                 </>
               ) : (
-                <Text className="text-2xl font-bold text-gray-800">{bin.name}</Text>
+                <Text style={styles.binNameDisplay}>{bin.name}</Text>
               )}
             </View>
 
             {/* Bin Type */}
-            <View className="mb-6">
-              <Text className="text-sm font-medium text-gray-500 mb-3">
-                Bin Type {isEditing && <Text className="text-red-500">*</Text>}
+            <View style={styles.fieldContainer}>
+              <Text style={styles.fieldLabel}>
+                Bin Type {isEditing && <Text style={styles.required}>*</Text>}
               </Text>
               {isEditing ? (
                 <>
-                  <View className="flex-row flex-wrap gap-2">
+                  <View style={styles.optionsContainer}>
                     {binTypes.map((type) => (
                       <Pressable
                         key={type.value}
                         onPress={() => handleChange("bin_type", type.value)}
                         disabled={isUpdating}
-                        className={`px-4 py-2.5 rounded-lg border-2 ${
-                          editedBin.bin_type === type.value
-                            ? 'bg-green-600 border-green-600'
-                            : errors.bin_type
-                            ? 'bg-white border-red-300'
-                            : 'bg-white border-gray-200'
-                        }`}
+                        style={[
+                          styles.optionButtonLarge,
+                          editedBin.bin_type === type.value && styles.optionButtonSelected,
+                          errors.bin_type && editedBin.bin_type !== type.value && styles.optionButtonError
+                        ]}
                       >
-                        <Text className={`text-sm font-semibold ${
-                          editedBin.bin_type === type.value ? 'text-white' : 'text-gray-700'
-                        }`}>
+                        <Text style={[
+                          styles.optionTextLarge,
+                          editedBin.bin_type === type.value && styles.optionTextSelected
+                        ]}>
                           {type.label}
                         </Text>
                       </Pressable>
                     ))}
                   </View>
                   {errors.bin_type && (
-                    <View className="flex-row items-center mt-1.5">
+                    <View style={styles.errorContainer}>
                       <Feather name="alert-circle" size={14} color="#EF4444" />
-                      <Text className="text-red-500 text-xs ml-1">{errors.bin_type}</Text>
+                      <Text style={styles.errorText}>{errors.bin_type}</Text>
                     </View>
                   )}
                 </>
               ) : (
-                <View className="inline-flex self-start px-4 py-2.5 rounded-xl bg-blue-100">
-                  <Text className="font-semibold text-blue-700">
+                <View style={styles.binTypeBadge}>
+                  <Text style={styles.binTypeText}>
                     {bin.binType}
                   </Text>
                 </View>
@@ -298,44 +298,43 @@ const BinDetailModal = ({ visible, onClose, binId, onUpdate, onDelete }) => {
             </View>
 
             {/* Status */}
-            <View className="mb-6">
-              <Text className="text-sm font-medium text-gray-500 mb-3">
-                Status {isEditing && <Text className="text-red-500">*</Text>}
+            <View style={styles.fieldContainer}>
+              <Text style={styles.fieldLabel}>
+                Status {isEditing && <Text style={styles.required}>*</Text>}
               </Text>
               {isEditing ? (
                 <>
-                  <View className="flex-row flex-wrap gap-2">
+                  <View style={styles.optionsContainer}>
                     {statuses.map((status) => (
                       <Pressable
                         key={status.value}
                         onPress={() => handleChange("status", status.value)}
                         disabled={isUpdating}
-                        className={`px-4 py-3 rounded-xl border-2 ${
-                          editedBin.status === status.value
-                            ? 'bg-green-600 border-green-600'
-                            : errors.status
-                            ? 'bg-white border-red-300'
-                            : 'bg-white border-gray-200'
-                        }`}
+                        style={[
+                          styles.optionButtonLarge,
+                          editedBin.status === status.value && styles.optionButtonSelected,
+                          errors.status && editedBin.status !== status.value && styles.optionButtonError
+                        ]}
                       >
-                        <Text className={`text-sm font-semibold ${
-                          editedBin.status === status.value ? 'text-white' : 'text-gray-700'
-                        }`}>
+                        <Text style={[
+                          styles.optionTextLarge,
+                          editedBin.status === status.value && styles.optionTextSelected
+                        ]}>
                           {status.label}
                         </Text>
                       </Pressable>
                     ))}
                   </View>
                   {errors.status && (
-                    <View className="flex-row items-center mt-1.5">
+                    <View style={styles.errorContainer}>
                       <Feather name="alert-circle" size={14} color="#EF4444" />
-                      <Text className="text-red-500 text-xs ml-1">{errors.status}</Text>
+                      <Text style={styles.errorText}>{errors.status}</Text>
                     </View>
                   )}
                 </>
               ) : (
-                <View className={`inline-flex self-start px-4 py-2.5 rounded-xl ${getStatusColor(bin.status).bg}`}>
-                  <Text className={`font-semibold capitalize ${getStatusColor(bin.status).text}`}>
+                <View style={[styles.statusBadge, getStatusStyle(bin.status).bg]}>
+                  <Text style={[styles.statusText, getStatusStyle(bin.status).text]}>
                     {bin.status}
                   </Text>
                 </View>
@@ -343,26 +342,26 @@ const BinDetailModal = ({ visible, onClose, binId, onUpdate, onDelete }) => {
             </View>
 
             {/* Additional Info */}
-            <View className="bg-gray-50 rounded-xl p-4 mb-6">
-              <View className="flex-row items-center mb-3">
-                <View className="bg-white p-2 rounded-lg mr-3">
+            <View style={styles.infoSection}>
+              <View style={styles.infoRow}>
+                <View style={styles.infoIconContainer}>
                   <Feather name="calendar" size={18} color="#16A34A" />
                 </View>
-                <View className="flex-1">
-                  <Text className="text-xs text-gray-500">Last Collected</Text>
-                  <Text className="text-sm font-semibold text-gray-800">
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Last Collected</Text>
+                  <Text style={styles.infoValue}>
                     {bin.lastCollected || 'Never'}
                   </Text>
                 </View>
               </View>
 
-              <View className="flex-row items-center">
-                <View className="bg-white p-2 rounded-lg mr-3">
+              <View style={styles.infoRow}>
+                <View style={styles.infoIconContainer}>
                   <AntDesign name="clockcircleo" size={18} color="#16A34A" />
                 </View>
-                <View className="flex-1">
-                  <Text className="text-xs text-gray-500">Registered</Text>
-                  <Text className="text-sm font-semibold text-gray-800">
+                <View style={styles.infoContent}>
+                  <Text style={styles.infoLabel}>Registered</Text>
+                  <Text style={styles.infoValue}>
                     {bin.registeredAt}
                   </Text>
                 </View>
@@ -371,22 +370,23 @@ const BinDetailModal = ({ visible, onClose, binId, onUpdate, onDelete }) => {
 
             {/* Action Buttons */}
             {isEditing && (
-              <View className="flex-row gap-3 mb-4">
+              <View style={styles.actionButtons}>
                 <Pressable
                   onPress={handleCancelEdit}
                   disabled={isUpdating}
-                  className="flex-1 border-2 border-gray-300 rounded-xl py-3 active:bg-gray-50"
+                  style={styles.cancelButton}
                 >
-                  <Text className="text-gray-700 text-center font-semibold">Cancel</Text>
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
                 </Pressable>
                 <Pressable
                   onPress={handleUpdate}
                   disabled={isUpdating}
-                  className={`flex-1 rounded-xl py-3 ${
-                    isUpdating ? 'bg-green-400' : 'bg-green-600 active:bg-green-700'
-                  }`}
+                  style={[
+                    styles.saveButton,
+                    isUpdating && styles.saveButtonDisabled
+                  ]}
                 >
-                  <Text className="text-white text-center font-semibold">
+                  <Text style={styles.saveButtonText}>
                     {isUpdating ? 'Saving...' : 'Save Changes'}
                   </Text>
                 </Pressable>
@@ -397,19 +397,19 @@ const BinDetailModal = ({ visible, onClose, binId, onUpdate, onDelete }) => {
               {!isEditing && (
                 <Pressable
                   onPress={handleDelete}
-                  className="border-2 border-red-500 rounded-xl py-3 active:bg-red-50 mb-4"
+                  style={styles.deleteButton}
                 >
-                  <View className="flex-row items-center justify-center">
+                  <View style={styles.deleteButtonContent}>
                     <Feather name="trash-2" size={18} color="#EF4444" />
-                    <Text className="text-red-500 font-semibold ml-2">Delete Bin</Text>
+                    <Text style={styles.deleteButtonText}>Delete Bin</Text>
                   </View>
                 </Pressable>
               )}
             </ScrollView>
           ) : (
-            <View className="py-20 items-center">
+            <View style={styles.errorStateContainer}>
               <Feather name="alert-circle" size={40} color="#EF4444" />
-              <Text className="text-gray-500 mt-3">Failed to load bin details</Text>
+              <Text style={styles.errorStateText}>Failed to load bin details</Text>
             </View>
           )}
 
@@ -419,5 +419,281 @@ const BinDetailModal = ({ visible, onClose, binId, onUpdate, onDelete }) => {
     </Modal>
   );
 };
+
+const styles = StyleSheet.create({
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '90%',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 9999,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingContainer: {
+    paddingVertical: 80,
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#6B7280',
+    marginTop: 12,
+  },
+  scrollView: {
+    paddingHorizontal: 20,
+  },
+  editButtonContainer: {
+    marginTop: 20,
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  editButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: '#D1FAE5',
+    borderRadius: 8,
+  },
+  editButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  editButtonText: {
+    color: '#15803D',
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  qrSection: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
+    marginBottom: 24,
+  },
+  qrCard: {
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 12,
+  },
+  qrCodeText: {
+    color: '#4B5563',
+    fontWeight: '600',
+    marginTop: 16,
+    fontSize: 16,
+  },
+  qrHelperText: {
+    color: '#6B7280',
+    fontSize: 14,
+    marginTop: 4,
+  },
+  fieldContainer: {
+    marginBottom: 24,
+  },
+  fieldLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+    marginBottom: 8,
+  },
+  required: {
+    color: '#EF4444',
+  },
+  inputLarge: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#F9FAFB',
+    color: '#1F2937',
+    fontSize: 18,
+    fontWeight: '600',
+    borderColor: '#E5E7EB',
+  },
+  inputError: {
+    borderColor: '#EF4444',
+  },
+  binNameDisplay: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  optionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  optionButtonLarge: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 2,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E5E7EB',
+  },
+  optionButtonSelected: {
+    backgroundColor: '#16A34A',
+    borderColor: '#16A34A',
+  },
+  optionButtonError: {
+    borderColor: '#FCA5A5',
+  },
+  optionTextLarge: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  optionTextSelected: {
+    color: '#FFFFFF',
+  },
+  binTypeBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: '#DBEAFE',
+  },
+  binTypeText: {
+    fontWeight: '600',
+    color: '#1E40AF',
+  },
+  statusBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  statusText: {
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  statusActiveBg: { backgroundColor: '#D1FAE5' },
+  statusActiveText: { color: '#065F46' },
+  statusInactiveBg: { backgroundColor: '#F3F4F6' },
+  statusInactiveText: { color: '#374151' },
+  statusFullBg: { backgroundColor: '#FED7AA' },
+  statusFullText: { color: '#9A3412' },
+  statusDamagedBg: { backgroundColor: '#FEE2E2' },
+  statusDamagedText: { color: '#991B1B' },
+  statusDefaultBg: { backgroundColor: '#F3F4F6' },
+  statusDefaultText: { color: '#374151' },
+  infoSection: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  infoIconContainer: {
+    backgroundColor: '#FFFFFF',
+    padding: 8,
+    borderRadius: 8,
+    marginRight: 12,
+  },
+  infoContent: {
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  infoValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  cancelButton: {
+    flex: 1,
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    borderRadius: 12,
+    paddingVertical: 12,
+  },
+  cancelButtonText: {
+    color: '#374151',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  saveButton: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    backgroundColor: '#16A34A',
+  },
+  saveButtonDisabled: {
+    backgroundColor: '#86EFAC',
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  deleteButton: {
+    borderWidth: 2,
+    borderColor: '#EF4444',
+    borderRadius: 12,
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  deleteButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteButtonText: {
+    color: '#EF4444',
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 6,
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: 12,
+    marginLeft: 4,
+  },
+  errorStateContainer: {
+    paddingVertical: 80,
+    alignItems: 'center',
+  },
+  errorStateText: {
+    color: '#6B7280',
+    marginTop: 12,
+  },
+});
 
 export default BinDetailModal;

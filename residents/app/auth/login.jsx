@@ -8,7 +8,8 @@ import {
   Image, 
   ScrollView,
   Pressable,
-  ActivityIndicator
+  ActivityIndicator,
+  StyleSheet
 } from "react-native";
 import { useContext, useState } from "react";
 import { AuthContext } from "../_layout";
@@ -117,44 +118,43 @@ const Login = () => {
   return (  
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1 bg-white"
+      style={styles.container}
       keyboardVerticalOffset={Platform.OS === "ios" ? 64 : 0}
     >
       <ScrollView
-        contentContainerStyle={{ paddingVertical: 40, paddingHorizontal: 24, flexGrow: 1, justifyContent: 'center' }}
+        contentContainerStyle={styles.scrollContent}
         bounces={false}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <View className="items-center">
-
-          <View className="items-center mb-12">
+        <View style={styles.content}>
+          <View style={styles.logoContainer}>
             <Image
               source={require("@/assets/logo/whitebg.png")}
-              style={{ width: 3000, height: 150, resizeMode: "contain" }}
+              style={styles.logo}
             />
-            <Text className="text-gray-600 text-lg font-medium mt-2">
+            <Text style={styles.subtitle}>
               Smart Waste Management
             </Text>
           </View>
 
-          <View className="w-full max-w-sm">
+          <View style={styles.formContainer}>
             {/* General Error Banner */}
             {generalError ? (
-              <View className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 flex-row">
+              <View style={styles.errorBanner}>
                 <Ionicons name="alert-circle" size={20} color="#DC2626" style={{ marginRight: 8, marginTop: 2 }} />
-                <View className="flex-1">
-                  <Text className="text-red-800 text-sm font-medium mb-1">Login Failed</Text>
-                  <Text className="text-red-700 text-sm">{generalError}</Text>
+                <View style={styles.errorBannerContent}>
+                  <Text style={styles.errorBannerTitle}>Login Failed</Text>
+                  <Text style={styles.errorBannerText}>{generalError}</Text>
                 </View>
-                <Pressable onPress={() => setGeneralError("")} className="ml-2">
+                <Pressable onPress={() => setGeneralError("")} style={styles.errorBannerClose}>
                   <Ionicons name="close" size={20} color="#DC2626" />
                 </Pressable>
               </View>
             ) : null}
 
-            <View className="mb-4">
-              <Text className="text-gray-700 mb-1 font-medium">Email</Text>
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Email</Text>
               <TextInput
                 placeholder="Enter your email"
                 value={email}
@@ -165,19 +165,22 @@ const Login = () => {
                 }}
                 keyboardType="email-address"
                 autoCapitalize="none"
-                className={`border ${errors.email ? 'border-red-500' : 'border-gray-300'} w-full rounded-lg p-3 text-base`}
+                style={[
+                  styles.input,
+                  errors.email && styles.inputError
+                ]}
               />
               {errors.email && (
-                <View className="flex-row items-center mt-1">
+                <View style={styles.errorRow}>
                   <Ionicons name="alert-circle-outline" size={14} color="#EF4444" style={{ marginRight: 4 }} />
-                  <Text className="text-red-500 text-xs">{errors.email}</Text>
+                  <Text style={styles.errorText}>{errors.email}</Text>
                 </View>
               )}
             </View>
 
-            <View className="mb-2">
-              <Text className="text-gray-700 mb-1 font-medium">Password</Text>
-              <View className="relative">
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Password</Text>
+              <View style={styles.passwordContainer}>
                 <TextInput
                   placeholder="Enter your password"
                   value={password}
@@ -187,56 +190,63 @@ const Login = () => {
                     if (generalError) setGeneralError("");
                   }}
                   secureTextEntry={!showPassword}
-                  className={`border ${errors.password ? 'border-red-500' : 'border-gray-300'} w-full rounded-lg p-3 text-base pr-12`}
+                  style={[
+                    styles.input,
+                    styles.passwordInput,
+                    errors.password && styles.inputError
+                  ]}
                 />
                 <Pressable 
                   onPress={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-0 bottom-0 justify-center"
+                  style={styles.passwordToggle}
                 >
                   <Ionicons 
                     name={showPassword ? "eye-outline" : "eye-off-outline"} 
                     size={24} 
-                    color="gray" 
+                    color="#6B7280" 
                   />
                 </Pressable>
               </View>
               {errors.password && (
-                <View className="flex-row items-center mt-1">
+                <View style={styles.errorRow}>
                   <Ionicons name="alert-circle-outline" size={14} color="#EF4444" style={{ marginRight: 4 }} />
-                  <Text className="text-red-500 text-xs">{errors.password}</Text>
+                  <Text style={styles.errorText}>{errors.password}</Text>
                 </View>
               )}
             </View>
 
-            <TouchableOpacity className="self-end mt-1">
-              <Text className="text-green-600 text-sm font-medium">
+            <TouchableOpacity style={styles.forgotPasswordButton}>
+              <Text style={styles.forgotPasswordText}>
                 Forgot Password?
               </Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
-              className={`p-4 rounded-lg mt-6 ${loading ? 'bg-green-400' : 'bg-green-500 active:bg-green-600'}`}
+              style={[
+                styles.loginButton,
+                loading && styles.loginButtonDisabled
+              ]}
               onPress={handleLogin}
               disabled={loading}
             >
               {loading ? (
-                <View className="flex-row justify-center items-center">
+                <View style={styles.loginButtonContent}>
                   <ActivityIndicator color="white" />
-                  <Text className="text-white text-center text-base font-semibold ml-2">
+                  <Text style={styles.loginButtonText}>
                     Logging in...
                   </Text>
                 </View>
               ) : (
-                <Text className="text-white text-center text-base font-semibold">
+                <Text style={styles.loginButtonText}>
                   Login
                 </Text>
               )}
             </TouchableOpacity>
 
-            <View className="flex-row justify-center mt-6">
-              <Text className="text-gray-600">Don't have an account? </Text>
+            <View style={styles.registerLinkContainer}>
+              <Text style={styles.registerLinkText}>Don't have an account? </Text>
               <Link href={'/auth/register'}>
-                <Text className="text-green-600 font-medium">Create Account</Text>
+                <Text style={styles.registerLink}>Create Account</Text>
               </Link>
             </View>
           </View>
@@ -245,5 +255,150 @@ const Login = () => {
     </KeyboardAvoidingView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  scrollContent: {
+    paddingVertical: 40,
+    paddingHorizontal: 24,
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
+  content: {
+    alignItems: 'center',
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 48,
+  },
+  logo: {
+    width: 300,
+    height: 150,
+    resizeMode: "contain",
+  },
+  subtitle: {
+    color: '#4B5563',
+    fontSize: 18,
+    fontWeight: '500',
+    marginTop: 8,
+  },
+  formContainer: {
+    width: '100%',
+    maxWidth: 384,
+  },
+  errorBanner: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    flexDirection: 'row',
+  },
+  errorBannerContent: {
+    flex: 1,
+  },
+  errorBannerTitle: {
+    color: '#991B1B',
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  errorBannerText: {
+    color: '#B91C1C',
+    fontSize: 14,
+  },
+  errorBannerClose: {
+    marginLeft: 8,
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  label: {
+    color: '#374151',
+    marginBottom: 4,
+    fontWeight: '500',
+    fontSize: 14,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    width: '100%',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: '#1F2937',
+  },
+  inputError: {
+    borderColor: '#EF4444',
+  },
+  passwordContainer: {
+    position: 'relative',
+  },
+  passwordInput: {
+    paddingRight: 48,
+  },
+  passwordToggle: {
+    position: 'absolute',
+    right: 12,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+  },
+  errorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: 12,
+  },
+  forgotPasswordButton: {
+    alignSelf: 'flex-end',
+    marginTop: 4,
+  },
+  forgotPasswordText: {
+    color: '#16A34A',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  loginButton: {
+    padding: 16,
+    borderRadius: 8,
+    marginTop: 24,
+    backgroundColor: '#16A34A',
+  },
+  loginButtonDisabled: {
+    backgroundColor: '#86EFAC',
+  },
+  loginButtonContent: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loginButtonText: {
+    color: '#FFFFFF',
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  registerLinkContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 24,
+  },
+  registerLinkText: {
+    color: '#4B5563',
+  },
+  registerLink: {
+    color: '#16A34A',
+    fontWeight: '500',
+  },
+});
 
 export default Login;

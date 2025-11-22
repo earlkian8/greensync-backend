@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, Pressable, TextInput, Image, ActivityIndicator, Animated } from "react-native";
+import { View, Text, ScrollView, Pressable, TextInput, Image, ActivityIndicator, Animated, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useContext, useRef, useEffect } from "react";
 import Feather from '@expo/vector-icons/Feather';
@@ -163,59 +163,58 @@ const Profile = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={['bottom']}>
+    <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 20 }}
       >
         {/* Profile Header */}
-        <View className="items-center py-6 bg-white mb-4">
-          <View className="relative mb-3">
-            <View className="w-24 h-24 rounded-full bg-gray-200 overflow-hidden">
+        <View style={styles.profileHeader}>
+          <View style={styles.avatarContainer}>
+            <View style={styles.avatar}>
               {user?.profile_image ? (
                 <Image 
                   source={{ uri: user.profile_image }} 
-                  className="w-full h-full"
+                  style={styles.avatarImage}
                   resizeMode="cover"
                 />
               ) : (
-                <View className="w-full h-full flex items-center justify-center bg-green-100">
+                <View style={styles.avatarPlaceholder}>
                   <Feather name="user" size={40} color="#16A34A" />
                 </View>
               )}
             </View>
-            <Pressable className="absolute bottom-0 right-0 bg-green-600 p-1.5 rounded-full active:bg-green-700">
+            <Pressable style={styles.cameraButton}>
               <Feather name="camera" size={16} color="white" />
             </Pressable>
           </View>
-          <Text className="text-xl font-bold text-gray-800">{formData.name || 'User'}</Text>
-          <Text className="text-gray-600 text-sm mt-1">
+          <Text style={styles.profileName}>{formData.name || 'User'}</Text>
+          <Text style={styles.profileLocation}>
             {formData.barangay ? `${formData.barangay}, ${formData.city}` : 'No address set'}
           </Text>
           {!isEditing && (
             <Pressable
               onPress={() => setIsEditing(true)}
-              className="mt-3 border border-green-600 rounded-lg py-2 px-6 active:bg-green-50"
+              style={styles.editButton}
             >
-              <Text className="text-green-600 font-medium text-sm">Edit Profile</Text>
+              <Text style={styles.editButtonText}>Edit Profile</Text>
             </Pressable>
           )}
         </View>
 
-        <View className="px-5">
+        <View style={styles.content}>
           {/* Success Message Banner */}
           {successMessage ? (
             <Animated.View 
-              style={{ opacity: fadeAnim }}
-              className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4"
+              style={[styles.successBanner, { opacity: fadeAnim }]}
             >
-              <View className="flex-row items-start">
-                <View className="bg-green-100 rounded-full p-1 mr-3">
+              <View style={styles.bannerContent}>
+                <View style={styles.successIconContainer}>
                   <Ionicons name="checkmark-circle" size={24} color="#16A34A" />
                 </View>
-                <View className="flex-1">
-                  <Text className="text-green-900 text-base font-semibold mb-1">Success!</Text>
-                  <Text className="text-green-800 text-sm">{successMessage}</Text>
+                <View style={styles.bannerTextContainer}>
+                  <Text style={styles.successBannerTitle}>Success!</Text>
+                  <Text style={styles.successBannerText}>{successMessage}</Text>
                 </View>
                 <Pressable onPress={() => setSuccessMessage("")}>
                   <Ionicons name="close" size={20} color="#16A34A" />
@@ -227,16 +226,15 @@ const Profile = () => {
           {/* Error Message Banner */}
           {errorMessage ? (
             <Animated.View 
-              style={{ opacity: fadeAnim }}
-              className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4"
+              style={[styles.errorBanner, { opacity: fadeAnim }]}
             >
-              <View className="flex-row items-start">
-                <View className="bg-red-100 rounded-full p-1 mr-3">
+              <View style={styles.bannerContent}>
+                <View style={styles.errorIconContainer}>
                   <Ionicons name="alert-circle" size={24} color="#DC2626" />
                 </View>
-                <View className="flex-1">
-                  <Text className="text-red-900 text-base font-semibold mb-1">Error</Text>
-                  <Text className="text-red-800 text-sm">{errorMessage}</Text>
+                <View style={styles.bannerTextContainer}>
+                  <Text style={styles.errorBannerTitle}>Error</Text>
+                  <Text style={styles.errorBannerText}>{errorMessage}</Text>
                 </View>
                 <Pressable onPress={() => setErrorMessage("")}>
                   <Ionicons name="close" size={20} color="#DC2626" />
@@ -246,219 +244,237 @@ const Profile = () => {
           ) : null}
 
           {isEditing ? (
-            <View className="bg-white rounded-xl shadow-sm p-4 mb-4">
-              <View className="flex-row items-center mb-4">
+            <View style={styles.editCard}>
+              <View style={styles.sectionHeader}>
                 <Ionicons name="person-outline" size={20} color="#374151" style={{ marginRight: 6 }} />
-                <Text className="font-semibold text-base text-gray-800">Edit Profile</Text>
+                <Text style={styles.sectionTitle}>Edit Profile</Text>
               </View>
               
-              <View className="space-y-4">
+              <View style={styles.formFields}>
                 {/* Full Name */}
-                <View className="mb-4">
-                  <Text className="text-sm text-gray-700 mb-1.5">
-                    Full Name <Text className="text-red-500">*</Text>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>
+                    Full Name <Text style={styles.required}>*</Text>
                   </Text>
                   <TextInput
                     value={formData.name}
                     onChangeText={(value) => handleChange('name', value)}
-                    className={`border ${errors.name ? 'border-red-500 bg-red-50' : 'border-gray-200'} rounded-lg px-4 py-3 text-gray-800`}
+                    style={[
+                      styles.input,
+                      errors.name && styles.inputError
+                    ]}
                   />
                   {errors.name && (
-                    <View className="flex-row items-center mt-1 bg-red-50 p-2 rounded">
+                    <View style={styles.errorBox}>
                       <Ionicons name="alert-circle-outline" size={14} color="#EF4444" style={{ marginRight: 4 }} />
-                      <Text className="text-red-600 text-xs flex-1">{errors.name}</Text>
+                      <Text style={styles.errorBoxText}>{errors.name}</Text>
                     </View>
                   )}
                 </View>
 
                 {/* Email */}
-                <View className="mb-4">
-                  <Text className="text-sm text-gray-700 mb-1.5">
-                    Email <Text className="text-red-500">*</Text>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>
+                    Email <Text style={styles.required}>*</Text>
                   </Text>
                   <TextInput
                     value={formData.email}
                     onChangeText={(value) => handleChange('email', value)}
                     keyboardType="email-address"
                     autoCapitalize="none"
-                    className={`border ${errors.email ? 'border-red-500 bg-red-50' : 'border-gray-200'} rounded-lg px-4 py-3 text-gray-800`}
+                    style={[
+                      styles.input,
+                      errors.email && styles.inputError
+                    ]}
                   />
                   {errors.email && (
-                    <View className="flex-row items-center mt-1 bg-red-50 p-2 rounded">
+                    <View style={styles.errorBox}>
                       <Ionicons name="alert-circle-outline" size={14} color="#EF4444" style={{ marginRight: 4 }} />
-                      <Text className="text-red-600 text-xs flex-1">{errors.email}</Text>
+                      <Text style={styles.errorBoxText}>{errors.email}</Text>
                     </View>
                   )}
                 </View>
 
                 {/* Phone Number */}
-                <View className="mb-4">
-                  <Text className="text-sm text-gray-700 mb-1.5">Phone Number</Text>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>Phone Number</Text>
                   <TextInput
                     value={formData.phone_number}
                     onChangeText={(value) => handleChange('phone_number', value)}
                     keyboardType="phone-pad"
                     maxLength={20}
                     placeholder="Optional"
-                    className={`border ${errors.phone_number ? 'border-red-500 bg-red-50' : 'border-gray-200'} rounded-lg px-4 py-3 text-gray-800`}
+                    style={[
+                      styles.input,
+                      errors.phone_number && styles.inputError
+                    ]}
                   />
                   {errors.phone_number && (
-                    <View className="flex-row items-center mt-1 bg-red-50 p-2 rounded">
+                    <View style={styles.errorBox}>
                       <Ionicons name="alert-circle-outline" size={14} color="#EF4444" style={{ marginRight: 4 }} />
-                      <Text className="text-red-600 text-xs flex-1">{errors.phone_number}</Text>
+                      <Text style={styles.errorBoxText}>{errors.phone_number}</Text>
                     </View>
                   )}
                 </View>
 
                 {/* House No & Street */}
-                <View className="flex-row gap-3 mb-4">
-                  <View className="flex-1">
-                    <Text className="text-sm text-gray-700 mb-1.5">House No</Text>
+                <View style={styles.rowInputs}>
+                  <View style={styles.halfInput}>
+                    <Text style={styles.label}>House No</Text>
                     <TextInput
                       value={formData.house_no}
                       onChangeText={(value) => handleChange('house_no', value)}
                       maxLength={50}
                       placeholder="Optional"
-                      className="border border-gray-200 rounded-lg px-4 py-3 text-gray-800"
+                      style={styles.input}
                     />
                   </View>
-                  <View className="flex-1">
-                    <Text className="text-sm text-gray-700 mb-1.5">Street</Text>
+                  <View style={styles.halfInput}>
+                    <Text style={styles.label}>Street</Text>
                     <TextInput
                       value={formData.street}
                       onChangeText={(value) => handleChange('street', value)}
                       placeholder="Optional"
-                      className="border border-gray-200 rounded-lg px-4 py-3 text-gray-800"
+                      style={styles.input}
                     />
                   </View>
                 </View>
 
                 {/* Barangay */}
-                <View className="mb-4">
-                  <Text className="text-sm text-gray-700 mb-1.5">
-                    Barangay <Text className="text-red-500">*</Text>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.label}>
+                    Barangay <Text style={styles.required}>*</Text>
                   </Text>
                   <TextInput
                     value={formData.barangay}
                     onChangeText={(value) => handleChange('barangay', value)}
-                    className={`border ${errors.barangay ? 'border-red-500 bg-red-50' : 'border-gray-200'} rounded-lg px-4 py-3 text-gray-800`}
+                    style={[
+                      styles.input,
+                      errors.barangay && styles.inputError
+                    ]}
                   />
                   {errors.barangay && (
-                    <View className="flex-row items-center mt-1 bg-red-50 p-2 rounded">
+                    <View style={styles.errorBox}>
                       <Ionicons name="alert-circle-outline" size={14} color="#EF4444" style={{ marginRight: 4 }} />
-                      <Text className="text-red-600 text-xs flex-1">{errors.barangay}</Text>
+                      <Text style={styles.errorBoxText}>{errors.barangay}</Text>
                     </View>
                   )}
                 </View>
 
                 {/* City & Province */}
-                <View className="flex-row gap-3 mb-4">
-                  <View className="flex-1">
-                    <Text className="text-sm text-gray-700 mb-1.5">
-                      City <Text className="text-red-500">*</Text>
+                <View style={styles.rowInputs}>
+                  <View style={styles.halfInput}>
+                    <Text style={styles.label}>
+                      City <Text style={styles.required}>*</Text>
                     </Text>
                     <TextInput
                       value={formData.city}
                       onChangeText={(value) => handleChange('city', value)}
-                      className={`border ${errors.city ? 'border-red-500 bg-red-50' : 'border-gray-200'} rounded-lg px-4 py-3 text-gray-800`}
+                      style={[
+                        styles.input,
+                        errors.city && styles.inputError
+                      ]}
                     />
                     {errors.city && (
-                      <View className="flex-row items-center mt-1 bg-red-50 p-2 rounded">
+                      <View style={styles.errorBox}>
                         <Ionicons name="alert-circle-outline" size={14} color="#EF4444" style={{ marginRight: 4 }} />
-                        <Text className="text-red-600 text-xs flex-1">{errors.city}</Text>
+                        <Text style={styles.errorBoxText}>{errors.city}</Text>
                       </View>
                     )}
                   </View>
-                  <View className="flex-1">
-                    <Text className="text-sm text-gray-700 mb-1.5">Province</Text>
+                  <View style={styles.halfInput}>
+                    <Text style={styles.label}>Province</Text>
                     <TextInput
                       value={formData.province}
                       onChangeText={(value) => handleChange('province', value)}
                       placeholder="Optional"
-                      className="border border-gray-200 rounded-lg px-4 py-3 text-gray-800"
+                      style={styles.input}
                     />
                   </View>
                 </View>
 
                 {/* Country & Postal Code */}
-                <View className="flex-row gap-3 mb-4">
-                  <View className="flex-1">
-                    <Text className="text-sm text-gray-700 mb-1.5">Country</Text>
+                <View style={styles.rowInputs}>
+                  <View style={styles.halfInput}>
+                    <Text style={styles.label}>Country</Text>
                     <TextInput
                       value={formData.country}
                       onChangeText={(value) => handleChange('country', value)}
                       placeholder="Optional"
-                      className="border border-gray-200 rounded-lg px-4 py-3 text-gray-800"
+                      style={styles.input}
                     />
                   </View>
-                  <View className="flex-1">
-                    <Text className="text-sm text-gray-700 mb-1.5">Postal Code</Text>
+                  <View style={styles.halfInput}>
+                    <Text style={styles.label}>Postal Code</Text>
                     <TextInput
                       value={formData.postal_code}
                       onChangeText={(value) => handleChange('postal_code', value)}
                       keyboardType="number-pad"
                       maxLength={20}
                       placeholder="Optional"
-                      className="border border-gray-200 rounded-lg px-4 py-3 text-gray-800"
+                      style={styles.input}
                     />
                   </View>
                 </View>
               </View>
 
               {/* Action Buttons */}
-              <View className="flex-row gap-3 mt-6">
+              <View style={styles.actionButtons}>
                 <Pressable
                   onPress={handleCancel}
                   disabled={loading}
-                  className="flex-1 border border-gray-300 rounded-lg py-3 active:bg-gray-50"
+                  style={styles.cancelButton}
                 >
-                  <Text className="text-gray-700 text-center font-medium">Cancel</Text>
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
                 </Pressable>
                 <Pressable
                   onPress={handleSave}
                   disabled={loading}
-                  className={`flex-1 ${loading ? 'bg-green-400' : 'bg-green-600 active:bg-green-700'} rounded-lg py-3`}
+                  style={[
+                    styles.saveButton,
+                    loading && styles.saveButtonDisabled
+                  ]}
                 >
                   {loading ? (
                     <ActivityIndicator color="white" />
                   ) : (
-                    <Text className="text-white text-center font-semibold">Save Changes</Text>
+                    <Text style={styles.saveButtonText}>Save Changes</Text>
                   )}
                 </Pressable>
               </View>
             </View>
           ) : (
-            <View className="bg-white rounded-xl shadow-sm p-4 mb-4">
-              <View className="flex-row items-center mb-3">
+            <View style={styles.infoCard}>
+              <View style={styles.sectionHeader}>
                 <Ionicons name="information-circle-outline" size={20} color="#374151" style={{ marginRight: 6 }} />
-                <Text className="font-semibold text-base text-gray-800">Personal Information</Text>
+                <Text style={styles.sectionTitle}>Personal Information</Text>
               </View>
               
-              <View className="space-y-3">
+              <View style={styles.infoFields}>
                 {/* Email */}
-                <View className="flex-row items-center py-2">
+                <View style={styles.infoRow}>
                   <Feather name="mail" size={18} color="#6B7280" />
-                  <View className="ml-3">
-                    <Text className="text-xs text-gray-500">Email</Text>
-                    <Text className="text-sm text-gray-800">{formData.email || 'Not set'}</Text>
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Email</Text>
+                    <Text style={styles.infoValue}>{formData.email || 'Not set'}</Text>
                   </View>
                 </View>
 
                 {/* Phone */}
-                <View className="flex-row items-center py-2">
+                <View style={styles.infoRow}>
                   <Feather name="phone" size={18} color="#6B7280" />
-                  <View className="ml-3">
-                    <Text className="text-xs text-gray-500">Phone</Text>
-                    <Text className="text-sm text-gray-800">{formData.phone_number || 'Not set'}</Text>
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Phone</Text>
+                    <Text style={styles.infoValue}>{formData.phone_number || 'Not set'}</Text>
                   </View>
                 </View>
 
                 {/* Address */}
-                <View className="flex-row items-start py-2">
+                <View style={styles.infoRow}>
                   <Feather name="map-pin" size={18} color="#6B7280" style={{ marginTop: 2 }} />
-                  <View className="ml-3 flex-1">
-                    <Text className="text-xs text-gray-500">Address</Text>
-                    <Text className="text-sm text-gray-800">
+                  <View style={styles.infoContent}>
+                    <Text style={styles.infoLabel}>Address</Text>
+                    <Text style={styles.infoValue}>
                       {[formData.house_no, formData.street, formData.barangay, formData.city]
                         .filter(Boolean)
                         .join(', ') || 'Not set'}
@@ -473,17 +489,20 @@ const Profile = () => {
           <Pressable
             onPress={handleLogout}
             disabled={logoutLoading}
-            className={`flex-row items-center justify-center py-4 rounded-lg ${logoutLoading ? 'bg-red-50' : 'active:bg-red-50'}`}
+            style={[
+              styles.logoutButton,
+              logoutLoading && styles.logoutButtonDisabled
+            ]}
           >
             {logoutLoading ? (
               <>
                 <ActivityIndicator size="small" color="#DC2626" />
-                <Text className="text-red-600 font-semibold ml-2">Logging out...</Text>
+                <Text style={styles.logoutButtonText}>Logging out...</Text>
               </>
             ) : (
               <>
                 <Feather name="log-out" size={18} color="#DC2626" />
-                <Text className="text-red-600 font-semibold ml-2">Logout</Text>
+                <Text style={styles.logoutButtonText}>Logout</Text>
               </>
             )}
           </Pressable>
@@ -492,5 +511,266 @@ const Profile = () => {
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  profileHeader: {
+    alignItems: 'center',
+    paddingVertical: 24,
+    backgroundColor: '#FFFFFF',
+    marginBottom: 16,
+  },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 12,
+  },
+  avatar: {
+    width: 96,
+    height: 96,
+    borderRadius: 9999,
+    backgroundColor: '#E5E7EB',
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+  },
+  avatarPlaceholder: {
+    width: '100%',
+    height: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#D1FAE5',
+  },
+  cameraButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#16A34A',
+    padding: 6,
+    borderRadius: 9999,
+  },
+  profileName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  profileLocation: {
+    color: '#4B5563',
+    fontSize: 14,
+    marginTop: 4,
+  },
+  editButton: {
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: '#16A34A',
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 24,
+  },
+  editButtonText: {
+    color: '#16A34A',
+    fontWeight: '500',
+    fontSize: 14,
+  },
+  content: {
+    paddingHorizontal: 20,
+  },
+  successBanner: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#BBF7D0',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+  },
+  errorBanner: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 16,
+  },
+  bannerContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+  successIconContainer: {
+    backgroundColor: '#D1FAE5',
+    borderRadius: 9999,
+    padding: 4,
+    marginRight: 12,
+  },
+  errorIconContainer: {
+    backgroundColor: '#FEE2E2',
+    borderRadius: 9999,
+    padding: 4,
+    marginRight: 12,
+  },
+  bannerTextContainer: {
+    flex: 1,
+  },
+  successBannerTitle: {
+    color: '#166534',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  successBannerText: {
+    color: '#15803D',
+    fontSize: 14,
+  },
+  errorBannerTitle: {
+    color: '#991B1B',
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  errorBannerText: {
+    color: '#B91C1C',
+    fontSize: 14,
+  },
+  editCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontWeight: '600',
+    fontSize: 16,
+    color: '#1F2937',
+  },
+  formFields: {
+    gap: 16,
+  },
+  inputContainer: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    color: '#374151',
+    marginBottom: 6,
+  },
+  required: {
+    color: '#EF4444',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    color: '#1F2937',
+    fontSize: 16,
+  },
+  inputError: {
+    borderColor: '#EF4444',
+    backgroundColor: '#FEF2F2',
+  },
+  rowInputs: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  halfInput: {
+    flex: 1,
+  },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    backgroundColor: '#FEF2F2',
+    padding: 8,
+    borderRadius: 4,
+  },
+  errorBoxText: {
+    color: '#DC2626',
+    fontSize: 12,
+    flex: 1,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 24,
+  },
+  cancelButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    paddingVertical: 12,
+  },
+  cancelButtonText: {
+    color: '#374151',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  saveButton: {
+    flex: 1,
+    backgroundColor: '#16A34A',
+    borderRadius: 8,
+    paddingVertical: 12,
+  },
+  saveButtonDisabled: {
+    backgroundColor: '#86EFAC',
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  infoCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  infoFields: {
+    gap: 12,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  infoContent: {
+    marginLeft: 12,
+  },
+  infoLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+  },
+  infoValue: {
+    fontSize: 14,
+    color: '#1F2937',
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  logoutButtonDisabled: {
+    backgroundColor: '#FEF2F2',
+  },
+  logoutButtonText: {
+    color: '#DC2626',
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+});
 
 export default Profile;

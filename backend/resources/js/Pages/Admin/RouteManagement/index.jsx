@@ -139,7 +139,7 @@ export default function RouteManagement() {
     const breadcrumbs = [
         {
             name: "Home",
-            href: route('dashboard'),
+            href: route('admin.dashboard'),
         },
         {
             name: "Route Management",

@@ -1,4 +1,4 @@
-import { View, Text, Pressable } from "react-native";
+import { View, Text, Pressable, StyleSheet } from "react-native";
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Feather from '@expo/vector-icons/Feather';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
@@ -23,37 +23,37 @@ const BinsCard = ({ bin, onPress }) => {
         }
     };
 
-    const getStatusColor = (status) => {
+    const binTypeIcon = getBinTypeIcon(bin.binType);
+    
+    const getStatusStyle = (status) => {
         const lowerStatus = status.toLowerCase();
         switch (lowerStatus) {
             case 'active':
-                return { bg: 'bg-green-100', text: 'text-green-700', dot: 'bg-green-500' };
+                return { bg: styles.statusActiveBg, text: styles.statusActiveText, dot: styles.statusActiveDot };
             case 'inactive':
-                return { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-500' };
+                return { bg: styles.statusInactiveBg, text: styles.statusInactiveText, dot: styles.statusInactiveDot };
             case 'full':
-                return { bg: 'bg-orange-100', text: 'text-orange-700', dot: 'bg-orange-500' };
+                return { bg: styles.statusFullBg, text: styles.statusFullText, dot: styles.statusFullDot };
             case 'damaged':
-                return { bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500' };
+                return { bg: styles.statusDamagedBg, text: styles.statusDamagedText, dot: styles.statusDamagedDot };
             case 'maintenance':
-                return { bg: 'bg-orange-100', text: 'text-orange-700', dot: 'bg-orange-500' };
+                return { bg: styles.statusMaintenanceBg, text: styles.statusMaintenanceText, dot: styles.statusMaintenanceDot };
             default:
-                return { bg: 'bg-gray-100', text: 'text-gray-700', dot: 'bg-gray-500' };
+                return { bg: styles.statusDefaultBg, text: styles.statusDefaultText, dot: styles.statusDefaultDot };
         }
     };
 
-    const binTypeIcon = getBinTypeIcon(bin.binType);
-    const statusColor = getStatusColor(bin.status);
-    
+    const statusStyle = getStatusStyle(bin.status);
+
     return (
         <Pressable 
             onPress={() => onPress(bin)}
-            className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-3 overflow-hidden active:bg-gray-50"
+            style={styles.card}
         >
-            <View className="flex-row items-start p-4">
+            <View style={styles.cardContent}>
                 {/* Icon */}
                 <View 
-                    className="w-12 h-12 rounded-xl items-center justify-center mr-3"
-                    style={{ backgroundColor: binTypeIcon.color + '15' }}
+                    style={[styles.iconContainer, { backgroundColor: binTypeIcon.color + '15' }]}
                 >
                     <MaterialCommunityIcons 
                         name={binTypeIcon.name} 
@@ -63,35 +63,35 @@ const BinsCard = ({ bin, onPress }) => {
                 </View>
 
                 {/* Content */}
-                <View className="flex-1">
+                <View style={styles.content}>
                     {/* Bin Name */}
-                    <Text className="text-lg font-bold text-gray-800 mb-1">
+                    <Text style={styles.binName}>
                         {bin.name}
                     </Text>
 
                     {/* Bin Type Badge */}
-                    <View className="flex-row items-center mb-2">
-                        <View className="px-2.5 py-1 rounded-md bg-blue-50">
-                            <Text className="text-xs font-semibold text-blue-700">
+                    <View style={styles.binTypeContainer}>
+                        <View style={styles.binTypeBadge}>
+                            <Text style={styles.binTypeText}>
                                 {bin.binType}
                             </Text>
                         </View>
                     </View>
 
                     {/* QR Code & Status Row */}
-                    <View className="flex-row items-center justify-between">
+                    <View style={styles.infoRow}>
                         {/* QR Code */}
-                        <View className="flex-row items-center flex-1">
+                        <View style={styles.qrContainer}>
                             <Feather name="maximize-2" size={12} color="#9CA3AF" />
-                            <Text className="text-xs text-gray-500 ml-1.5" numberOfLines={1}>
+                            <Text style={styles.qrText} numberOfLines={1}>
                                 {bin.qrCode}
                             </Text>
                         </View>
 
                         {/* Status */}
-                        <View className={`flex-row items-center px-2.5 py-1 rounded-full ${statusColor.bg} ml-2`}>
-                            <View className={`w-1.5 h-1.5 rounded-full ${statusColor.dot} mr-1.5`} />
-                            <Text className={`text-xs font-medium capitalize ${statusColor.text}`}>
+                        <View style={[styles.statusContainer, statusStyle.bg]}>
+                            <View style={[styles.statusDot, statusStyle.dot]} />
+                            <Text style={[styles.statusText, statusStyle.text]}>
                                 {bin.status}
                             </Text>
                         </View>
@@ -99,9 +99,9 @@ const BinsCard = ({ bin, onPress }) => {
 
                     {/* Last Collected */}
                     {bin.lastCollected !== 'Never' && (
-                        <View className="flex-row items-center mt-2 pt-2 border-t border-gray-100">
+                        <View style={styles.lastCollectedContainer}>
                             <Feather name="calendar" size={12} color="#9CA3AF" />
-                            <Text className="text-xs text-gray-500 ml-1.5">
+                            <Text style={styles.lastCollectedText}>
                                 Last collected: {bin.lastCollected}
                             </Text>
                         </View>
@@ -114,5 +114,119 @@ const BinsCard = ({ bin, onPress }) => {
         </Pressable>
     );
 }
+
+const styles = StyleSheet.create({
+    card: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 16,
+        borderWidth: 1,
+        borderColor: '#F3F4F6',
+        marginBottom: 12,
+        overflow: 'hidden',
+    },
+    cardContent: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        padding: 16,
+    },
+    iconContainer: {
+        width: 48,
+        height: 48,
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 12,
+    },
+    content: {
+        flex: 1,
+    },
+    binName: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#1F2937',
+        marginBottom: 4,
+    },
+    binTypeContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    binTypeBadge: {
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 6,
+        backgroundColor: '#EFF6FF',
+    },
+    binTypeText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#1E40AF',
+    },
+    infoRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    qrContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
+    },
+    qrText: {
+        fontSize: 12,
+        color: '#6B7280',
+        marginLeft: 6,
+    },
+    statusContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 9999,
+        marginLeft: 8,
+    },
+    statusDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 9999,
+        marginRight: 6,
+    },
+    statusText: {
+        fontSize: 12,
+        fontWeight: '500',
+        textTransform: 'capitalize',
+    },
+    statusActiveBg: { backgroundColor: '#D1FAE5' },
+    statusActiveText: { color: '#065F46' },
+    statusActiveDot: { backgroundColor: '#10B981' },
+    statusInactiveBg: { backgroundColor: '#F3F4F6' },
+    statusInactiveText: { color: '#374151' },
+    statusInactiveDot: { backgroundColor: '#6B7280' },
+    statusFullBg: { backgroundColor: '#FED7AA' },
+    statusFullText: { color: '#9A3412' },
+    statusFullDot: { backgroundColor: '#F97316' },
+    statusDamagedBg: { backgroundColor: '#FEE2E2' },
+    statusDamagedText: { color: '#991B1B' },
+    statusDamagedDot: { backgroundColor: '#EF4444' },
+    statusMaintenanceBg: { backgroundColor: '#FED7AA' },
+    statusMaintenanceText: { color: '#9A3412' },
+    statusMaintenanceDot: { backgroundColor: '#F97316' },
+    statusDefaultBg: { backgroundColor: '#F3F4F6' },
+    statusDefaultText: { color: '#374151' },
+    statusDefaultDot: { backgroundColor: '#6B7280' },
+    lastCollectedContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 8,
+        paddingTop: 8,
+        borderTopWidth: 1,
+        borderTopColor: '#F3F4F6',
+    },
+    lastCollectedText: {
+        fontSize: 12,
+        color: '#6B7280',
+        marginLeft: 6,
+    },
+});
 
 export default BinsCard;
