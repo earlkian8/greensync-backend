@@ -128,8 +128,6 @@ Route::prefix('v1')->group(function () {
             Route::post('/logout', [CollectorsController::class, 'logout']);
             // Update profile
             Route::put('/profile', [CollectorsController::class, 'update']);
-            // Serve images from private storage
-            Route::get('/images/{path}', [CollectorsController::class, 'getImage'])->where('path', '.+');
 
             // === Dashboard ===
             Route::get('/dashboard', [CollectorDashboardController::class, 'getDashboardData']);
@@ -173,6 +171,9 @@ Route::prefix('v1')->group(function () {
                 Route::post('/directions', [\App\Http\Controllers\Api\Collectors\GoogleMapsController::class, 'getDirections']);
             });
         });
+        
+        // Serve images from private storage (can be accessed with token in query param)
+        Route::get('/images/{path}', [CollectorsController::class, 'getImage'])->where('path', '.+');
     });
 
 });

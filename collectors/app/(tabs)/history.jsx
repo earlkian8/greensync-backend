@@ -9,7 +9,6 @@ export default function History() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
   const [refreshing, setRefreshing] = useState(false);
   const [selectedStop, setSelectedStop] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -21,11 +20,9 @@ export default function History() {
         setLoading(true);
       }
       
-      const statusParam = filterStatus === 'all' ? null : filterStatus;
       const searchParam = searchTerm.trim() || null;
       
       const response = await collectorRoutesService.getCollectionHistory({
-        status: statusParam,
         search: searchParam,
         per_page: 100,
       });
@@ -51,7 +48,7 @@ export default function History() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [filterStatus, searchTerm, refreshing]);
+  }, [searchTerm, refreshing]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -119,7 +116,7 @@ export default function History() {
         }
       >
 
-        {/* Search and Filter */}
+        {/* Search */}
         <View style={[styles.bgWhite, styles.p4, styles.borderB, styles.borderGray200]}>
           <View style={[styles.flexRow, styles.itemsCenter, styles.bgGray100, styles.roundedLg, styles.px3, styles.py2]}>
             <Ionicons name="search-outline" size={20} color="#6B7280" />
@@ -130,85 +127,6 @@ export default function History() {
               style={[styles.flex1, styles.ml2, styles.textBase]}
               placeholderTextColor="#9CA3AF"
             />
-          </View>
-
-          <View style={[styles.flexRow, styles.itemsCenter, styles.mt4]}>
-            <View style={[styles.flexRow, styles.itemsCenter, styles.mr2]}>
-              <Ionicons name="filter-outline" size={16} color="#6B7280" />
-              <Text style={[styles.textSm, styles.textGray500, styles.ml1]}>Filter:</Text>
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.flex1}>
-              <TouchableOpacity
-                style={[
-                  styles.px3,
-                  styles.py1,
-                  styles.roundedFull,
-                  styles.mr2,
-                  filterStatus === 'all' ? styles.bgGreen100 : styles.bgGray100
-                ]}
-                onPress={() => setFilterStatus('all')}
-              >
-                <Text style={[
-                  styles.textSm,
-                  filterStatus === 'all' ? [styles.textGreen700, styles.fontMedium] : styles.textGray600
-                ]}>
-                  All
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.px3,
-                  styles.py1,
-                  styles.roundedFull,
-                  styles.mr2,
-                  filterStatus === 'completed' ? styles.bgGreen100 : styles.bgGray100
-                ]}
-                onPress={() => setFilterStatus('completed')}
-              >
-                <Text style={[
-                  styles.textSm,
-                  filterStatus === 'completed' ? [styles.textGreen700, styles.fontMedium] : styles.textGray600
-                ]}>
-                  Completed
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.px3,
-                  styles.py1,
-                  styles.roundedFull,
-                  styles.mr2,
-                  filterStatus === 'pending' ? styles.bgYellow100 : styles.bgGray100
-                ]}
-                onPress={() => setFilterStatus('pending')}
-              >
-                <Text style={[
-                  styles.textSm,
-                  filterStatus === 'pending' ? [{ color: '#A16207' }, styles.fontMedium] : styles.textGray600
-                ]}>
-                  Pending
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[
-                  styles.px3,
-                  styles.py1,
-                  styles.roundedFull,
-                  filterStatus === 'skipped' ? styles.bgRed100 : styles.bgGray100
-                ]}
-                onPress={() => setFilterStatus('skipped')}
-              >
-                <Text style={[
-                  styles.textSm,
-                  filterStatus === 'skipped' ? [{ color: '#B91C1C' }, styles.fontMedium] : styles.textGray600
-                ]}>
-                  Skipped
-                </Text>
-              </TouchableOpacity>
-            </ScrollView>
           </View>
         </View>
 

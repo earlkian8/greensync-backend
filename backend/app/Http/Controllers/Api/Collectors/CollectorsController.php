@@ -7,6 +7,7 @@ use App\Models\Collector;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 
 class CollectorsController extends Controller
@@ -184,8 +185,39 @@ class CollectorsController extends Controller
     public function getImage(Request $request, $path)
     {
         try {
+            // Check authentication - either via header or query parameter (for React Native Image component)
+            $token = $request->bearerToken() ?? $request->query('token');
+            
+            if (!$token) {
+                return response()->json(['message' => 'Unauthorized'], 401);
+            }
+
+            // Verify token using Sanctum
+            // Try to authenticate with the token
+            $personalAccessToken = \Laravel\Sanctum\PersonalAccessToken::findToken($token);
+            
+            if (!$personalAccessToken) {
+                return response()->json(['message' => 'Invalid or expired token'], 401);
+            }
+
+            // Check if token is expired
+            if ($personalAccessToken->expires_at && $personalAccessToken->expires_at->isPast()) {
+                return response()->json(['message' => 'Token expired'], 401);
+            }
+
+            // Get the collector from the token
+            $collector = $personalAccessToken->tokenable;
+            if (!$collector || !($collector instanceof Collector)) {
+                return response()->json(['message' => 'Invalid token'], 401);
+            }
+
             // Decode the path in case it was URL encoded
             $decodedPath = urldecode($path);
+            
+            // Verify the image belongs to this collector (security check)
+            if (strpos($decodedPath, 'collectors/') !== 0) {
+                return response()->json(['message' => 'Invalid image path'], 403);
+            }
             
             if (!Storage::disk('private')->exists($decodedPath)) {
                 return response()->json(['message' => 'Image not found'], 404);
@@ -199,6 +231,10 @@ class CollectorsController extends Controller
                 ->header('Content-Type', $type)
                 ->header('Content-Disposition', 'inline; filename="' . $image . '"');
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Error serving collector image: ' . $e->getMessage(), [
+                'path' => $path ?? null,
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json(['message' => 'Error loading image'], 500);
         }
     }
