@@ -2,6 +2,11 @@ import { api } from "@/config/api";
 const normalizeResponse = (response) => response?.data?.data ?? response?.data ?? null;
 
 const collectorRoutesService = {
+  async getDashboardData() {
+    const response = await api.get('v1/collector/dashboard');
+    return normalizeResponse(response);
+  },
+
   async getTodayAssignments() {
     const response = await api.get('v1/collector/routes/today');
     return normalizeResponse(response);

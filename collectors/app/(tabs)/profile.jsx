@@ -1,11 +1,20 @@
 import React, { useState, useContext } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator, StyleSheet, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthContext } from '../_layout';
 
 export default function Profile() {
   const { user, logout } = useContext(AuthContext);
   const [isActive, setIsActive] = useState(user?.is_active || false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    // Refresh user data if needed
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -54,7 +63,12 @@ export default function Profile() {
   }
 
   return (
-    <ScrollView style={[styles.flex1, styles.bgGray50]}>
+    <ScrollView 
+      style={[styles.flex1, styles.bgGray50]}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+      }
+    >
       {/* Profile Info */}
       <View style={styles.p4}>
         <View style={[styles.bgWhite, styles.roundedLg, { padding: 24 }, styles.border, styles.borderGray200]}>

@@ -165,7 +165,15 @@ const Login = () => {
                 }}
                 keyboardType="email-address"
                 autoCapitalize="none"
-                className={`border ${errors.email ? 'border-red-500' : 'border-gray-300'} w-full rounded-lg p-3 text-base`}
+                style={{
+                  borderWidth: 1,
+                  borderColor: errors.email ? '#EF4444' : '#D1D5DB',
+                  width: '100%',
+                  borderRadius: 8,
+                  padding: 12,
+                  fontSize: 16,
+                  color: '#1F2937',
+                }}
               />
               {errors.email && (
                 <View className="flex-row items-center mt-1">
@@ -187,7 +195,16 @@ const Login = () => {
                     if (generalError) setGeneralError("");
                   }}
                   secureTextEntry={!showPassword}
-                  className={`border ${errors.password ? 'border-red-500' : 'border-gray-300'} w-full rounded-lg p-3 text-base pr-12`}
+                  style={{
+                    borderWidth: 1,
+                    borderColor: errors.password ? '#EF4444' : '#D1D5DB',
+                    width: '100%',
+                    borderRadius: 8,
+                    padding: 12,
+                    fontSize: 16,
+                    paddingRight: 48,
+                    color: '#1F2937',
+                  }}
                 />
                 <Pressable 
                   onPress={() => setShowPassword(!showPassword)}

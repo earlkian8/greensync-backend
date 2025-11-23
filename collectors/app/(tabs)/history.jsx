@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, StyleSheet, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import collectorRoutesService from '@/services/collectorRoutesService';
 
@@ -9,11 +9,14 @@ export default function History() {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [refreshing, setRefreshing] = useState(false);
 
   const fetchCollections = useCallback(async () => {
     try {
       setError(null);
-      setLoading(true);
+      if (!refreshing) {
+        setLoading(true);
+      }
       
       // When filter is 'all', don't pass status (API defaults to 'collected' and 'completed')
       // For other statuses, pass the status filter
@@ -45,8 +48,14 @@ export default function History() {
       setCollections([]);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  }, [filterStatus, searchTerm]);
+  }, [filterStatus, searchTerm, refreshing]);
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchCollections();
+  };
 
   useEffect(() => {
     // Debounce search to avoid too many API calls
@@ -102,7 +111,12 @@ export default function History() {
 
   return (
     <View style={[styles.flex1, styles.bgGray50]}>
-      <ScrollView style={styles.flex1}>
+      <ScrollView 
+        style={styles.flex1}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+        }
+      >
 
         {/* Search and Filter */}
         <View style={[styles.bgWhite, styles.p4, styles.borderB, styles.borderGray200]}>

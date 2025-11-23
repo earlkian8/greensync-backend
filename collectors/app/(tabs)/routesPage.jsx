@@ -148,7 +148,7 @@ export default function RoutesPage() {
   };
 
   return (
-    <SafeAreaView style={[styles.flex1, styles.bgGray50]} edges={['top']}>
+    <>
 
       {/* Search */}
       <View style={[styles.bgWhite, styles.p4, styles.shadowSm]}>
@@ -253,7 +253,7 @@ export default function RoutesPage() {
           </View>
         )}
       </ScrollView>
-    </SafeAreaView>
+      </>
   );
 };
 

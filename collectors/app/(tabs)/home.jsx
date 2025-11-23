@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useContext } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, StyleSheet, Modal, Pressable, Dimensions, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator, StyleSheet, Modal, Pressable, Dimensions, Alert, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -24,57 +24,67 @@ export default function Home() {
   const [scanProcessing, setScanProcessing] = useState(false);
   const [scanError, setScanError] = useState(null);
   const [scanSuccess, setScanSuccess] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const fetchHomeData = async () => {
     try {
       setError(null);
-      setLoading(true);
-      
-      // Fetch today's assignments and performance stats in parallel
-      const [assignmentsResponse, performanceResponse] = await Promise.all([
-        collectorRoutesService.getTodayAssignments(),
-        collectorRoutesService.getPerformanceSummary(),
-      ]);
-      
-      // Transform assignments to match the expected format
-      // Handle both array response and object with data property
-      let assignmentsData = assignmentsResponse;
-      if (assignmentsResponse && !Array.isArray(assignmentsResponse) && assignmentsResponse.data) {
-        assignmentsData = assignmentsResponse.data;
+      if (!refreshing) {
+        setLoading(true);
       }
       
-      const assignments = Array.isArray(assignmentsData) 
-        ? assignmentsData.map(assignment => ({
-            id: assignment.id,
-            route_id: assignment.route?.id,
-            assignment_date: assignment.assignment_date,
-            status: assignment.status,
-            route: {
-              id: assignment.route?.id,
-              route_name: assignment.route?.name || assignment.route?.route_name,
-              barangay: assignment.route?.barangay,
-              total_stops: assignment.route?.total_stops,
-              estimated_duration: assignment.route?.estimated_duration,
-            },
-          }))
-        : [];
+      // Fetch dashboard data (includes assignments and stats)
+      const dashboardData = await collectorRoutesService.getDashboardData();
       
-      setTodayAssignments(assignments);
+      // Extract today's assignments
+      if (dashboardData?.today_assignments) {
+        const assignments = Array.isArray(dashboardData.today_assignments)
+          ? dashboardData.today_assignments.map(assignment => ({
+              id: assignment.id,
+              route_id: assignment.route?.id,
+              assignment_date: assignment.assignment_date,
+              status: assignment.status,
+              route: {
+                id: assignment.route?.id,
+                route_name: assignment.route?.name || assignment.route?.route_name,
+                barangay: assignment.route?.barangay,
+                total_stops: assignment.route?.total_stops,
+                estimated_duration: assignment.route?.estimated_duration,
+              },
+            }))
+          : [];
+        setTodayAssignments(assignments);
+      } else {
+        setTodayAssignments([]);
+      }
       
-      // Extract stats from performance summary
-      if (performanceResponse?.recent_activity) {
+      // Extract collection stats
+      if (dashboardData?.collection_stats) {
         setCollectionStats({
-          today: performanceResponse.recent_activity.today || 0,
-          weekly: performanceResponse.recent_activity.this_week || 0,
+          today: dashboardData.collection_stats.today || 0,
+          weekly: dashboardData.collection_stats.weekly || 0,
+        });
+      } else {
+        setCollectionStats({
+          today: 0,
+          weekly: 0,
         });
       }
     } catch (err) {
       console.error('Error fetching home data:', err);
       const errorMessage = err?.response?.data?.message || err?.response?.data?.error || err?.message || 'Failed to load home data';
       setError(errorMessage);
+      setTodayAssignments([]);
+      setCollectionStats({ today: 0, weekly: 0 });
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchHomeData();
   };
 
   useEffect(() => {
@@ -172,7 +182,12 @@ export default function Home() {
   };
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView 
+      style={styles.container}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+      }
+    >
 
       {/* Date Banner */}
       <View style={[styles.bgWhite, styles.p4, styles.borderB, styles.borderGray200]}>
