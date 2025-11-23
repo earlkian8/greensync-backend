@@ -1,19 +1,26 @@
-import ApplicationLogo from '@/Components/ApplicationLogo';
 import { Link, usePage } from '@inertiajs/react';
 import { Toaster } from '@/Components/ui/sonner';
+import Logo from '../../assets/logo/whitebg.png';
 
 export default function GuestLayout({ children }) {
     return (
-        <div className="flex min-h-screen flex-col items-center bg-gray-100 pt-6 sm:justify-center sm:pt-0">
-            <div>
-                <Link href="/">
-                    <ApplicationLogo className="h-20 w-20 fill-current text-gray-500" />
-                </Link>
-            </div>
+        <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-green-50 to-emerald-50 pt-6 sm:pt-0">
+            <div className="w-full max-w-md">
+                <div className="mb-8 flex flex-col items-center">
+                    <img 
+                        src={Logo} 
+                        alt="GreenSync Logo" 
+                        className="h-32 w-auto object-contain"
+                    />
+                    <p className="mt-4 text-lg font-semibold text-gray-700">
+                        Admin Portal
+                    </p>
+                </div>
 
-            <div className="mt-6 w-full overflow-hidden bg-white px-6 py-4 shadow-md sm:max-w-md sm:rounded-lg">
-                {children}
-                <Toaster position="top-right"/>
+                <div className="w-full overflow-hidden bg-white px-8 py-8 shadow-xl sm:rounded-2xl">
+                    {children}
+                    <Toaster position="top-right"/>
+                </div>
             </div>
         </div>
     );
