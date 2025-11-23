@@ -126,4 +126,81 @@ class CollectorsController extends Controller
         ]);
     }
 
+    /** Update Profile */
+    public function update(Request $request)
+    {
+        $collector = $request->user();
+
+        $validated = $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'email' => 'sometimes|email|unique:collectors,email,' . $collector->id,
+            'phone_number' => 'nullable|string|max:20|unique:collectors,phone_number,' . $collector->id,
+            'license_number' => 'nullable|string|max:50',
+            'vehicle_plate_number' => 'nullable|string|max:20',
+            'vehicle_type' => 'nullable|string|max:50',
+            'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        $updateData = [];
+
+        if (isset($validated['name'])) {
+            $updateData['name'] = $validated['name'];
+        }
+        if (isset($validated['email'])) {
+            $updateData['email'] = $validated['email'];
+        }
+        if (isset($validated['phone_number'])) {
+            $updateData['phone_number'] = $validated['phone_number'];
+        }
+        if (isset($validated['license_number'])) {
+            $updateData['license_number'] = $validated['license_number'];
+        }
+        if (isset($validated['vehicle_plate_number'])) {
+            $updateData['vehicle_plate_number'] = $validated['vehicle_plate_number'];
+        }
+        if (isset($validated['vehicle_type'])) {
+            $updateData['vehicle_type'] = $validated['vehicle_type'];
+        }
+
+        // Handle profile image upload
+        if ($request->hasFile('profile_image')) {
+            // Delete old image if exists
+            if ($collector->profile_image) {
+                Storage::disk('private')->delete($collector->profile_image);
+            }
+            $path = $request->file('profile_image')->store('collectors/profiles', 'private');
+            $updateData['profile_image'] = $path;
+        }
+
+        $collector->update($updateData);
+
+        return response()->json([
+            'message' => 'Profile updated successfully.',
+            'collector' => $collector->fresh()
+        ]);
+    }
+
+    /** Serve profile image from private storage */
+    public function getImage(Request $request, $path)
+    {
+        try {
+            // Decode the path in case it was URL encoded
+            $decodedPath = urldecode($path);
+            
+            if (!Storage::disk('private')->exists($decodedPath)) {
+                return response()->json(['message' => 'Image not found'], 404);
+            }
+
+            $file = Storage::disk('private')->get($decodedPath);
+            $type = Storage::disk('private')->mimeType($decodedPath);
+            $image = basename($decodedPath);
+
+            return response($file, 200)
+                ->header('Content-Type', $type)
+                ->header('Content-Disposition', 'inline; filename="' . $image . '"');
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Error loading image'], 500);
+        }
+    }
+
 }

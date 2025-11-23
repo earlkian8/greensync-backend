@@ -126,6 +126,10 @@ Route::prefix('v1')->group(function () {
             // === Profile Management ===
             // Logout collector
             Route::post('/logout', [CollectorsController::class, 'logout']);
+            // Update profile
+            Route::put('/profile', [CollectorsController::class, 'update']);
+            // Serve images from private storage
+            Route::get('/images/{path}', [CollectorsController::class, 'getImage'])->where('path', '.+');
 
             // === Dashboard ===
             Route::get('/dashboard', [CollectorDashboardController::class, 'getDashboardData']);
