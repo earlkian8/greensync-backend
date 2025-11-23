@@ -57,11 +57,13 @@ export default function Dashboard() {
   };
 
   const formatWeight = (weight) => {
-    if (!weight || weight === 0) return '0 kg';
-    if (weight >= 1000) {
-      return `${(weight / 1000).toFixed(2)} tons`;
+    // Convert to number and handle null/undefined/empty values
+    const numWeight = Number(weight);
+    if (!numWeight || numWeight === 0 || isNaN(numWeight)) return '0 kg';
+    if (numWeight >= 1000) {
+      return `${(numWeight / 1000).toFixed(2)} tons`;
     }
-    return `${weight.toFixed(2)} kg`;
+    return `${numWeight.toFixed(2)} kg`;
   };
 
   const getStatusColor = (status) => {
