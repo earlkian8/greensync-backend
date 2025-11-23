@@ -401,28 +401,13 @@ class CollectionRequestController extends Controller
             'route_id' => 'required|exists:routes,id',
         ]);
 
-        // Verify the route exists and is active
-        $route = Route::where('id', $validated['route_id'])
-                     ->where('is_active', true)
-                     ->firstOrFail();
+        // Verify the route exists (removed active check - allow inactive routes too)
+        $route = Route::findOrFail($validated['route_id']);
 
-        // Verify the collection request has required coordinates
-        if (!$collectionRequest->latitude || !$collectionRequest->longitude) {
-            return back()->withErrors([
-                'error' => 'Collection request must have latitude and longitude coordinates before adding to a route.'
-            ]);
-        }
-
-        // Verify the collection request has a bin_id
-        if (!$collectionRequest->bin_id) {
-            return back()->withErrors([
-                'error' => 'Collection request must have a waste bin assigned before adding to a route.'
-            ]);
-        }
-
-        // Check if this collection request is already added to this route
+        // Check if this specific collection request is already added to this route
+        // Check by looking for a stop with notes containing this collection request ID
         $existingStop = RouteStop::where('route_id', $validated['route_id'])
-                                 ->where('bin_id', $collectionRequest->bin_id)
+                                 ->where('notes', 'like', '%Collection Request #' . $collectionRequest->id . '%')
                                  ->first();
 
         if ($existingStop) {
@@ -440,24 +425,30 @@ class CollectionRequestController extends Controller
 
             // Load relationships for logging
             $collectionRequest->load(['resident', 'wasteBin']);
+            
+            // Get stop address - use resident address, description, or default
             $stopAddress = $collectionRequest->resident->full_address ?? 
                           ($collectionRequest->description ?? 'Collection Request Location');
 
-            // Create the route stop
+            // Use coordinates from collection request, or set defaults if missing
+            $latitude = $collectionRequest->latitude ?? 0;
+            $longitude = $collectionRequest->longitude ?? 0;
+
+            // Create the route stop (bin_id is optional - allow null)
             $routeStop = RouteStop::create([
                 'route_id' => $validated['route_id'],
-                'bin_id' => $collectionRequest->bin_id,
+                'bin_id' => $collectionRequest->bin_id, // Can be null
                 'stop_order' => $nextStopOrder,
                 'stop_address' => $stopAddress,
-                'latitude' => $collectionRequest->latitude,
-                'longitude' => $collectionRequest->longitude,
+                'latitude' => $latitude,
+                'longitude' => $longitude,
                 'notes' => 'Added from Collection Request #' . $collectionRequest->id . ' - ' . $collectionRequest->request_type,
             ]);
 
             // Update the route's total_stops count
             $route->increment('total_stops');
 
-            // Optionally update collection request status to 'assigned' if it's still 'pending'
+            // Update collection request status to 'assigned' if it's still 'pending'
             if ($collectionRequest->status === 'pending') {
                 $collectionRequest->update(['status' => 'assigned']);
             }
@@ -481,6 +472,7 @@ class CollectionRequestController extends Controller
                 'request_id' => $collectionRequest->id,
                 'route_id' => $validated['route_id'],
                 'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
             
             return back()->withErrors([
