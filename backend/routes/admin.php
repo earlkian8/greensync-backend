@@ -13,6 +13,7 @@ use App\Http\Controllers\v1\Admin\CollectionRequestController;
 use App\Http\Controllers\v1\Admin\NotificationController;
 use App\Http\Controllers\v1\Admin\DashboardController;
 use App\Http\Controllers\v1\Admin\ReportingController;
+use App\Http\Controllers\v1\Admin\MarkModuleNotificationsReadController;
 use App\Http\Controllers\ActivityLogsController;
 
 Route::middleware('auth')->group(function () {
@@ -24,6 +25,9 @@ Route::middleware('auth')->group(function () {
         // Dashboard
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('/dashboard/data', [DashboardController::class, 'getData'])->name('dashboard.data');
+
+        // Mark module notifications as read
+        Route::post('/notifications/mark-read/{module}', [MarkModuleNotificationsReadController::class, 'markAsRead'])->name('notifications.mark-read');
 
         // Reporting Module
         Route::prefix('reporting')->name('reporting.')->group(function(){

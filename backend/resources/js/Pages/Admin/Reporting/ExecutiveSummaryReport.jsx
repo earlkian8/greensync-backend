@@ -47,11 +47,12 @@ export default function ExecutiveSummaryReport() {
   };
 
   const formatWeight = (weight) => {
-    if (!weight || weight === 0) return '0 kg';
-    if (weight >= 1000) {
-      return `${(weight / 1000).toFixed(2)} tons`;
+    const numWeight = parseFloat(weight) || 0;
+    if (!numWeight || numWeight === 0) return '0 kg';
+    if (numWeight >= 1000) {
+      return `${(numWeight / 1000).toFixed(2)} tons`;
     }
-    return `${weight.toFixed(2)} kg`;
+    return `${numWeight.toFixed(2)} kg`;
   };
 
   const breadcrumbs = [
@@ -117,7 +118,7 @@ export default function ExecutiveSummaryReport() {
                     <TrendingDown className="h-3 w-3 text-red-500" />
                   )}
                   <span className={collections_growth >= 0 ? 'text-green-500' : 'text-red-500'}>
-                    {Math.abs(collections_growth).toFixed(1)}% vs previous period
+                    {Math.abs(parseFloat(collections_growth) || 0).toFixed(1)}% vs previous period
                   </span>
                 </div>
               )}
@@ -139,7 +140,7 @@ export default function ExecutiveSummaryReport() {
                     <TrendingDown className="h-3 w-3 text-red-500" />
                   )}
                   <span className={weight_growth >= 0 ? 'text-green-500' : 'text-red-500'}>
-                    {Math.abs(weight_growth).toFixed(1)}% vs previous period
+                    {Math.abs(parseFloat(weight_growth) || 0).toFixed(1)}% vs previous period
                   </span>
                 </div>
               )}

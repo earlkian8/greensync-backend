@@ -12,18 +12,28 @@ use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use App\Trait\ActivityLogsTrait;
+use App\Trait\AdminNotificationTrait;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Illuminate\Support\Str;
 
 class WasteBinController extends Controller
 {
-    use ActivityLogsTrait;
+    use ActivityLogsTrait, AdminNotificationTrait;
 
     /**
      * Display a listing of waste bins.
      */
     public function index(Request $request): Response
     {
+        // Mark module notifications as read when viewing the page
+        \App\Models\Notification::where('recipient_id', Auth::id())
+            ->where('module', 'waste_bin_management')
+            ->where('is_read', false)
+            ->update([
+                'is_read' => true,
+                'read_at' => now(),
+            ]);
+
         $search = $request->get('search', '');
         $page = $request->get('page', 1);
         $binTypeFilter = $request->get('bin_type', ''); // all, biodegradable, non-biodegradable, recyclable, hazardous

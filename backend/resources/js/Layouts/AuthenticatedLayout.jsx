@@ -61,62 +61,72 @@ export default function AuthenticatedLayout({ breadcrumbs = [], children }) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [sidebarOpen]);
 
+  const { unreadCounts = {} } = usePage().props;
+
   const navigationItems = [
     {
       title: 'Dashboard',
       url: route('admin.dashboard'),
       routeName: 'admin.dashboard',
       icon: LayoutDashboard,
-      type: 'single'
+      type: 'single',
+      unreadKey: null
     },
     {
       title: 'Resident Management',
       url: route('admin.resident-management.index'),
       icon: Users,
       routeName: 'admin.resident-management.*',
-      type: 'single'
+      type: 'single',
+      unreadKey: 'resident_management'
     },
     {
       title: 'Collector Management',
       url: route('admin.collector-management.index'),
       icon: Truck,
       routeName: 'admin.collector-management.*',
-      type: 'single'
+      type: 'single',
+      unreadKey: 'collector_management'
     },
     {
       title: 'Waste Bin Management',
       url: route('admin.waste-bin-management.index'),
       icon: Trash2,
       routeName: 'admin.waste-bin-management.*',
-      type: 'single'
+      type: 'single',
+      unreadKey: 'waste_bin_management'
     },
     {
       title: 'Collection Schedule Management',
       url: route('admin.collection-schedule-management.index'),
       icon: Calendar,
       routeName: 'admin.collection-schedule-management.*',
-      type: 'single'
+      type: 'single',
+      unreadKey: 'collection_schedule_management'
     },
     {
       title: 'Route Management',
       url: route('admin.route-management.index'),
       icon: MapPin,
       routeName: 'admin.route-management.*',
-      type: 'single'
+      type: 'single',
+      unreadKey: 'route_management'
     },
     {
       title: 'Route Assignment',
       url: route('admin.route-assignment-management.index'),
       icon: Layers,
       routeName: 'admin.route-assignment-management.*',
-      type: 'single'
+      type: 'single',
+      unreadKey: 'route_assignment'
     },
     {
       title: 'Request Management',
       url: route('admin.collection-request-management.index'),
       icon: FileText,
       routeName: 'admin.collection-request-management.*',
-      type: 'single'
+      type: 'single',
+      unreadKey: 'request_management'
     },
     // {
     //   title: 'Notification & Announcement',
@@ -130,21 +140,24 @@ export default function AuthenticatedLayout({ breadcrumbs = [], children }) {
       url: route('admin.reporting.index'),
       icon: BarChart2,
       routeName: 'admin.reporting.*',
-      type: 'single'
+      type: 'single',
+      unreadKey: 'reporting'
     },
     {
       title: 'User Management',
       url: route('user-management.users.index'),
       icon: Users,
       routeName: 'user-management.users.*',
-      type: 'single'
+      type: 'single',
+      unreadKey: 'user_management'
     },
     {
       title: 'Activity Logs',
       url: route('user-management.activity-logs.index'),
       icon: FileText,
       routeName: 'user-management.activity-logs.*',
-      type: 'single'
+      type: 'single',
+      unreadKey: 'activity_logs'
     }
   ];
 
@@ -154,13 +167,15 @@ export default function AuthenticatedLayout({ breadcrumbs = [], children }) {
         ? item.routeName.some(routeName => route().current(routeName))
         : route().current(item.routeName);
       const Icon = item.icon;
+      const unreadCount = item.unreadKey ? (unreadCounts[item.unreadKey] || 0) : 0;
+      const showBadge = unreadCount > 0;
 
       return (
         <Link
           key={item.title}
           href={item.url}
           className={`
-            group flex items-center w-full px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200
+            group flex items-center w-full px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 relative
             ${isActive
               ? 'bg-green-600 text-white shadow-lg'
               : 'text-gray-700 hover:text-white hover:bg-green-600'
@@ -173,6 +188,21 @@ export default function AuthenticatedLayout({ breadcrumbs = [], children }) {
           <span className={`truncate transition-opacity duration-200 ${sidebarCollapsed ? 'lg:hidden' : ''}`}>
             {item.title}
           </span>
+          {showBadge && (
+            <span className={`
+              absolute flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-bold
+              ${isActive 
+                ? 'bg-white text-green-600' 
+                : 'bg-red-500 text-white'
+              }
+              ${sidebarCollapsed 
+                ? 'lg:top-1 lg:right-1' 
+                : 'right-3'
+              }
+            `}>
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
         </Link>
       );
     }

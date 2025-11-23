@@ -12,16 +12,26 @@ use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use App\Trait\ActivityLogsTrait;
+use App\Trait\AdminNotificationTrait;
 
 class RouteController extends Controller
 {
-    use ActivityLogsTrait;
+    use ActivityLogsTrait, AdminNotificationTrait;
 
     /**
      * Display a listing of routes.
      */
     public function index(Request $request): Response
     {
+        // Mark module notifications as read when viewing the page
+        \App\Models\Notification::where('recipient_id', Auth::id())
+            ->where('module', 'route_management')
+            ->where('is_read', false)
+            ->update([
+                'is_read' => true,
+                'read_at' => now(),
+            ]);
+
         $search = $request->get('search', '');
         $page = $request->get('page', 1);
         $statusFilter = $request->get('status', ''); // all, active, inactive
@@ -109,6 +119,16 @@ class RouteController extends Controller
                 'Route',
                 'Add',
                 'Created Route ' . $route->route_name . ' - ' . $route->barangay
+            );
+
+            // Notify all other admin users
+            $this->notifyAllAdmins(
+                'route_management',
+                'New Route Created',
+                Auth::user()->name . ' created a new route: ' . $route->route_name . ' (' . $route->barangay . ')',
+                route('admin.route-management.index'),
+                'medium',
+                'alert'
             );
 
             return redirect()->route('admin.route-management.index')

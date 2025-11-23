@@ -16,6 +16,7 @@ class Notification extends Model
         'title',
         'message',
         'notification_type',
+        'module',
         'priority',
         'is_read',
         'read_at',

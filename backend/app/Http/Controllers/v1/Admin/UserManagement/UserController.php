@@ -193,6 +193,12 @@ class UserController extends Controller
             return back()->withErrors(['error' => 'You cannot delete your own account.']);
         }
 
+        // Prevent deletion if there's only one user remaining
+        $totalUsers = User::count();
+        if ($totalUsers <= 1) {
+            return back()->withErrors(['error' => 'Cannot delete the last remaining account. At least one user account must exist.']);
+        }
+
         $this->adminActivityLogs(
             'User',
             'Delete',

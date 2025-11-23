@@ -28,6 +28,14 @@ class CollectionRequestController extends Controller
      */
     public function index(Request $request): Response
     {
+        // Mark module notifications as read when viewing the page
+        \App\Models\Notification::where('recipient_id', Auth::id())
+            ->where('module', 'request_management')
+            ->where('is_read', false)
+            ->update([
+                'is_read' => true,
+                'read_at' => now(),
+            ]);
         $search = $request->get('search', '');
         $page = $request->get('page', 1);
         $statusFilter = $request->get('status', '');

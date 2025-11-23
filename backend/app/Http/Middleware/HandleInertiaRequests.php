@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use Illuminate\Http\Request;
 use Inertia\Middleware;
+use App\Models\Notification;
 
 class HandleInertiaRequests extends Middleware
 {
@@ -29,6 +30,34 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        // Only calculate unread counts for authenticated admin users based on notifications
+        $unreadCounts = [];
+        if ($request->user()) {
+            $userId = $request->user()->id;
+            
+            // Get unread notification counts per module
+            $moduleCounts = Notification::where('recipient_id', $userId)
+                ->where('is_read', false)
+                ->whereNotNull('module')
+                ->selectRaw('module, COUNT(*) as count')
+                ->groupBy('module')
+                ->pluck('count', 'module')
+                ->toArray();
+
+            $unreadCounts = [
+                'resident_management' => $moduleCounts['resident_management'] ?? 0,
+                'collector_management' => $moduleCounts['collector_management'] ?? 0,
+                'waste_bin_management' => $moduleCounts['waste_bin_management'] ?? 0,
+                'collection_schedule_management' => $moduleCounts['collection_schedule_management'] ?? 0,
+                'route_management' => $moduleCounts['route_management'] ?? 0,
+                'route_assignment' => $moduleCounts['route_assignment'] ?? 0,
+                'request_management' => $moduleCounts['request_management'] ?? 0,
+                'reporting' => 0,
+                'user_management' => 0,
+                'activity_logs' => 0,
+            ];
+        }
+
         return [
             ...parent::share($request),
             'auth' => [
@@ -40,6 +69,7 @@ class HandleInertiaRequests extends Middleware
                 'warning' => $request->session()->get('warning'),
                 'info' => $request->session()->get('info'),
             ],
+            'unreadCounts' => $unreadCounts,
         ];
     }
 }

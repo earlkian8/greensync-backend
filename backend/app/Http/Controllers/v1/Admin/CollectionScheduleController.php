@@ -11,16 +11,26 @@ use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use App\Trait\ActivityLogsTrait;
+use App\Trait\AdminNotificationTrait;
 
 class CollectionScheduleController extends Controller
 {
-    use ActivityLogsTrait;
+    use ActivityLogsTrait, AdminNotificationTrait;
 
     /**
      * Display a listing of collection schedules.
      */
     public function index(Request $request): Response
     {
+        // Mark module notifications as read when viewing the page
+        \App\Models\Notification::where('recipient_id', Auth::id())
+            ->where('module', 'collection_schedule_management')
+            ->where('is_read', false)
+            ->update([
+                'is_read' => true,
+                'read_at' => now(),
+            ]);
+
         $search = $request->get('search', '');
         $page = $request->get('page', 1);
         $statusFilter = $request->get('status', ''); // all, active, inactive

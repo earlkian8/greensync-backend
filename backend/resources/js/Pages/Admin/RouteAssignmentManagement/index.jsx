@@ -8,7 +8,7 @@ import {
   TableRow,
 } from "@/Components/ui/table";
 import { toast } from 'sonner';
-import { Trash2, SquarePen, Eye, Filter, Play, CheckCircle2, XCircle } from 'lucide-react';
+import { Trash2, SquarePen, Eye, Filter, Play, XCircle } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -134,18 +134,6 @@ export default function RouteAssignmentManagement() {
         );
     };
 
-    const handleCompleteAssignment = (assignment) => {
-        router.post(
-            route('admin.route-assignment-management.complete', assignment.id),
-            {},
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    
-                },
-            }
-        );
-    };
 
     const handleCancelAssignment = (assignment) => {
         router.post(
@@ -425,17 +413,6 @@ export default function RouteAssignmentManagement() {
                                                 type="button"
                                             >
                                                 <Play size={18} />
-                                            </button>
-                                        )}
-                                        {assignment.status === 'in_progress' && (
-                                            <button
-                                                onClick={() => handleCompleteAssignment(assignment)}
-                                                className="p-2 rounded hover:bg-green-100 text-green-600 hover:text-green-700 transition"
-                                                title="Complete"
-                                                aria-label="Complete"
-                                                type="button"
-                                            >
-                                                <CheckCircle2 size={18} />
                                             </button>
                                         )}
                                         {(assignment.status === 'pending' || assignment.status === 'in_progress') && (

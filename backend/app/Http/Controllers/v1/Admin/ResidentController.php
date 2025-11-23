@@ -13,17 +13,27 @@ use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use App\Trait\ActivityLogsTrait;
+use App\Trait\AdminNotificationTrait;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ResidentController extends Controller
 {
-    use ActivityLogsTrait;
+    use ActivityLogsTrait, AdminNotificationTrait;
 
     /**
      * Display a listing of residents.
      */
     public function index(Request $request): Response
     {
+        // Mark module notifications as read when viewing the page
+        \App\Models\Notification::where('recipient_id', Auth::id())
+            ->where('module', 'resident_management')
+            ->where('is_read', false)
+            ->update([
+                'is_read' => true,
+                'read_at' => now(),
+            ]);
+
         $search = $request->get('search', '');
         $page = $request->get('page', 1);
         $verificationFilter = $request->get('verification', ''); // all, verified, unverified
@@ -145,6 +155,16 @@ class ResidentController extends Controller
                 'Resident',
                 'Add',
                 'Created Resident ' . $resident->name . ' (' . $resident->email . ') - ' . $resident->barangay
+            );
+
+            // Notify all other admin users
+            $this->notifyAllAdmins(
+                'resident_management',
+                'New Resident Added',
+                Auth::user()->name . ' added a new resident: ' . $resident->name . ' (' . $resident->email . ')',
+                route('admin.resident-management.index'),
+                'medium',
+                'alert'
             );
 
             return redirect()->route('admin.resident-management.index')

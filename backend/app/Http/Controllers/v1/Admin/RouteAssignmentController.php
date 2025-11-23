@@ -13,16 +13,26 @@ use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use App\Trait\ActivityLogsTrait;
+use App\Trait\AdminNotificationTrait;
 
 class RouteAssignmentController extends Controller
 {
-    use ActivityLogsTrait;
+    use ActivityLogsTrait, AdminNotificationTrait;
 
     /**
      * Display a listing of route assignments.
      */
     public function index(Request $request): Response
     {
+        // Mark module notifications as read when viewing the page
+        \App\Models\Notification::where('recipient_id', Auth::id())
+            ->where('module', 'route_assignment')
+            ->where('is_read', false)
+            ->update([
+                'is_read' => true,
+                'read_at' => now(),
+            ]);
+
         $search = $request->get('search', '');
         $page = $request->get('page', 1);
         $statusFilter = $request->get('status', ''); // all, pending, in_progress, completed, cancelled
@@ -189,6 +199,16 @@ class RouteAssignmentController extends Controller
             'Route Assignment',
             'Add',
             'Created Route Assignment: ' . $assignment->route->route_name . ' to ' . $assignment->collector->name
+        );
+
+        // Notify all other admin users
+        $this->notifyAllAdmins(
+            'route_assignment',
+            'New Route Assignment Created',
+            Auth::user()->name . ' assigned route "' . $assignment->route->route_name . '" to ' . $assignment->collector->name,
+            route('admin.route-assignment-management.index'),
+            'medium',
+            'route_assignment'
         );
 
         return redirect()->route('admin.route-assignment-management.index')
