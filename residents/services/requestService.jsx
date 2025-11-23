@@ -109,6 +109,26 @@ export const createCollectionRequest = async (requestData) => {
   }
 };
 
+/**
+ * Delete a collection request
+ */
+export const deleteCollectionRequest = async (requestId) => {
+  try {
+    await setAuthHeader();
+    const response = await api.delete(`v1/resident/collection-requests/${requestId}`);
+    return {
+      success: true,
+      message: response.data.message || 'Request deleted successfully',
+    };
+  } catch (error) {
+    console.error('Error deleting collection request:', error);
+    return {
+      success: false,
+      error: error.response?.data?.message || 'Failed to delete collection request',
+    };
+  }
+};
+
 
 // === OPTIONAL HELPERS ===
 

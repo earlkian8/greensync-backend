@@ -1,4 +1,5 @@
 import { View, Text, Modal, Pressable, TextInput, ScrollView, Platform, ActivityIndicator, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
 import Feather from "@expo/vector-icons/Feather";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -339,7 +340,8 @@ const RequestModal = ({ visible, onClose, onSubmit }) => {
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+        <SafeAreaView edges={['bottom']} style={styles.safeAreaContainer}>
+          <View style={styles.modalContent}>
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Create Collection Request</Text>
@@ -361,23 +363,32 @@ const RequestModal = ({ visible, onClose, onSubmit }) => {
                 <ActivityIndicator size="small" color="#16A34A" />
               ) : bins.length > 0 ? (
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.binsScrollView}>
-                  {bins.map((bin) => (
-                    <Pressable
-                      key={bin.id}
-                      onPress={() => setSelectedBin(bin)}
-                      style={[
-                        styles.binOption,
-                        selectedBin?.id === bin.id && styles.binOptionSelected
-                      ]}
-                    >
-                      <Text style={[
-                        styles.binOptionText,
-                        selectedBin?.id === bin.id && styles.binOptionTextSelected
-                      ]}>
-                        {bin.qr_code || "Bin"} - {bin.bin_type}
-                      </Text>
-                    </Pressable>
-                  ))}
+                  {bins.map((bin) => {
+                    // Format bin type for display
+                    const binTypeFormatted = bin.bin_type
+                      ? bin.bin_type.split('-').map(word => 
+                          word.charAt(0).toUpperCase() + word.slice(1)
+                        ).join(' ')
+                      : 'Unknown';
+                    
+                    return (
+                      <Pressable
+                        key={bin.id}
+                        onPress={() => setSelectedBin(bin)}
+                        style={[
+                          styles.binOption,
+                          selectedBin?.id === bin.id && styles.binOptionSelected
+                        ]}
+                      >
+                        <Text style={[
+                          styles.binOptionText,
+                          selectedBin?.id === bin.id && styles.binOptionTextSelected
+                        ]}>
+                          {bin.name || "Bin"} - {binTypeFormatted}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
                 </ScrollView>
               ) : (
                 <Text style={styles.helperText}>No bins available.</Text>
@@ -675,7 +686,8 @@ const RequestModal = ({ visible, onClose, onSubmit }) => {
               )}
             </Pressable>
           </View>
-        </View>
+          </View>
+        </SafeAreaView>
       </View>
     </Modal>
   );
@@ -687,11 +699,14 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
+  safeAreaContainer: {
+    maxHeight: '90%',
+  },
   modalContent: {
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '90%',
+    maxHeight: '100%',
   },
   header: {
     flexDirection: 'row',
@@ -918,7 +933,8 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingTop: 16,
+    paddingBottom: 32, // Extra padding to avoid bottom navigation
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
     flexDirection: 'row',

@@ -1,15 +1,16 @@
-import { View, Text, ScrollView, KeyboardAvoidingView, TextInput, Pressable, ActivityIndicator, StyleSheet } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { View, Text, ScrollView, KeyboardAvoidingView, TextInput, Pressable, ActivityIndicator, RefreshControl, StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useState, useEffect, useCallback } from "react";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import Feather from '@expo/vector-icons/Feather';
 import RequestCard from "@/components/RequestCard";
 import RequestModal from "@/components/RequestModal";
 import Toast from "react-native-toast-message";
-import { fetchCollectionRequests, createCollectionRequest } from "@/services/requestService";
+import { fetchCollectionRequests, createCollectionRequest, deleteCollectionRequest } from "@/services/requestService";
 import RequestDetailModal from "@/components/RequestDetailModal";
 
 const Request = () => {
+  const insets = useSafeAreaInsets();
   const [search, setSearch] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
   const [requests, setRequests] = useState([]);
@@ -77,72 +78,76 @@ const Request = () => {
   );
 
   const handleViewDetails = (requestId) => {
-  setSelectedRequestId(requestId);
-  setDetailModalVisible(true);
-};
+    setSelectedRequestId(requestId);
+    setDetailModalVisible(true);
+  };
+
+  const handleDeleteRequest = (requestId) => {
+    setRequests(prev => prev.filter(req => req.id !== requestId));
+    setDetailModalVisible(false);
+  };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+    <View style={styles.safeArea}>
       <KeyboardAvoidingView behavior="padding" style={styles.keyboardView}>
-        {/* Header Section */}
-        <View style={styles.header}>
-          <View style={styles.headerContent}>
-            {/* Search Input */}
-            <View style={styles.searchContainer}>
-              <Feather
-                name="search"
-                size={18}
-                color="#9CA3AF"
-                style={styles.searchIcon}
-              />
-              <TextInput
-                placeholder="Search requests..."
-                value={search}
-                onChangeText={setSearch}
-                style={styles.searchInput}
-                placeholderTextColor="#9CA3AF"
-              />
-            </View>
-
-            {/* Add Button */}
-            <Pressable
-              onPress={() => setModalVisible(true)}
-              style={styles.addButton}
-            >
-              <AntDesign name="plus" size={18} color="white" />
-              <Text style={styles.addButtonText}>Add</Text>
-            </Pressable>
-          </View>
-        </View>
-
         {/* Content Section */}
         <ScrollView
           style={styles.scrollView}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingTop: 16, paddingBottom: 20 }}
+          contentContainerStyle={{ paddingBottom: 20 }}
           refreshControl={
-            <></> // (You can replace with <RefreshControl> if you want pull-to-refresh)
+            <RefreshControl 
+              refreshing={refreshing} 
+              onRefresh={async () => {
+                setRefreshing(true);
+                await loadRequests();
+                setRefreshing(false);
+              }} 
+            />
           }
         >
-          {loading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#16a34a" />
-              <Text style={styles.loadingText}>Loading requests...</Text>
+          {/* Header Section */}
+          <View style={styles.header}>
+            <View style={styles.headerContent}>
+              {/* Search Input */}
+              <View style={styles.searchContainer}>
+                <Feather
+                  name="search"
+                  size={18}
+                  color="#9CA3AF"
+                  style={styles.searchIcon}
+                />
+                <TextInput
+                  placeholder="Search requests..."
+                  value={search}
+                  onChangeText={setSearch}
+                  style={styles.searchInput}
+                  placeholderTextColor="#9CA3AF"
+                />
+              </View>
             </View>
-          ) : filteredRequests.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <Feather name="inbox" size={40} color="#9CA3AF" />
-              <Text style={styles.emptyText}>No collection requests found.</Text>
-            </View>
-          ) : (
-            filteredRequests.map((request) => (
-              <RequestCard
-                key={request.id}
-                request={request}
-                onViewDetails={handleViewDetails}  // Updated handler
-              />
-            ))
-          )}
+          </View>
+          <View style={styles.contentContainer}>
+            {loading && !refreshing ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#16a34a" />
+                <Text style={styles.loadingText}>Loading requests...</Text>
+              </View>
+            ) : filteredRequests.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Feather name="inbox" size={40} color="#9CA3AF" />
+                <Text style={styles.emptyText}>No collection requests found.</Text>
+              </View>
+            ) : (
+              filteredRequests.map((request) => (
+                <RequestCard
+                  key={request.id}
+                  request={request}
+                  onViewDetails={handleViewDetails}
+                />
+              ))
+            )}
+          </View>
         </ScrollView>
 
         {/* Modal */}
@@ -155,12 +160,21 @@ const Request = () => {
           visible={detailModalVisible}
           onClose={() => setDetailModalVisible(false)}
           requestId={selectedRequestId}
+          onDelete={handleDeleteRequest}
         />
       </KeyboardAvoidingView>
 
+      {/* Floating Action Button (FAB) */}
+      <Pressable
+        onPress={() => setModalVisible(true)}
+        style={[styles.fab, { bottom: insets.bottom + 0 }]}
+      >
+        <AntDesign name="plus" size={24} color="white" />
+      </Pressable>
+
       {/* Toast Container */}
       <Toast position="bottom" visibilityTime={2500} />
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -175,7 +189,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#FFFFFF',
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 16,
     paddingBottom: 16,
   },
   headerContent: {
@@ -203,28 +217,33 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
     color: '#1F2937',
   },
-  addButton: {
-    backgroundColor: '#16A34A',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  addButtonText: {
-    color: '#FFFFFF',
-    marginLeft: 6,
-    fontWeight: '600',
-  },
   scrollView: {
     flex: 1,
-    paddingHorizontal: 20,
   },
-  loadingContainer: {
-    flex: 1,
+  contentContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#16A34A',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 40,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    zIndex: 1000,
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 40,
   },
   loadingText: {
     color: '#6B7280',

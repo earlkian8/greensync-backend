@@ -1,15 +1,23 @@
-import { View, Text, ScrollView, Pressable, TextInput, Image, ActivityIndicator, Animated, StyleSheet } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { View, Text, ScrollView, Pressable, TextInput, Image, ActivityIndicator, Animated, RefreshControl, StyleSheet } from "react-native";
 import { useState, useContext, useRef, useEffect } from "react";
 import Feather from '@expo/vector-icons/Feather';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { AuthContext } from "../_layout";
 import { api } from '@/config/api';
+import AddressDropdown from '@/components/AddressDropdown';
+import { fetchResidentProfile } from '@/services/profileService';
+import {
+  fetchRegions,
+  fetchProvincesByRegion,
+  fetchCitiesByProvince,
+  fetchBarangaysByCity
+} from '@/services/philippineAddressService';
 
 const Profile = () => {
   const { user, logout } = useContext(AuthContext);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [successMessage, setSuccessMessage] = useState("");
@@ -23,12 +31,23 @@ const Profile = () => {
     phone_number: user?.phone_number || '',
     house_no: user?.house_no || '',
     street: user?.street || '',
-    barangay: user?.barangay || '',
-    city: user?.city || '',
-    province: user?.province || '',
+    region_id: user?.region_id || null,
+    province_id: user?.province_id || null,
+    city_id: user?.city_id || null,
+    barangay_id: user?.barangay_id || null,
     country: user?.country || '',
     postal_code: user?.postal_code || ''
   });
+
+  // Address dropdown states
+  const [regions, setRegions] = useState([]);
+  const [provinces, setProvinces] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [barangays, setBarangays] = useState([]);
+  const [loadingRegions, setLoadingRegions] = useState(false);
+  const [loadingProvinces, setLoadingProvinces] = useState(false);
+  const [loadingCities, setLoadingCities] = useState(false);
+  const [loadingBarangays, setLoadingBarangays] = useState(false);
 
   useEffect(() => {
     if (successMessage || errorMessage) {
@@ -41,6 +60,165 @@ const Profile = () => {
       fadeAnim.setValue(0);
     }
   }, [successMessage, errorMessage]);
+
+  // Load regions on mount
+  useEffect(() => {
+    const loadRegions = async () => {
+      setLoadingRegions(true);
+      const result = await fetchRegions();
+      if (result.success) {
+        setRegions(result.data);
+      }
+      setLoadingRegions(false);
+    };
+    loadRegions();
+  }, []);
+
+  // Load user profile data when editing starts
+  useEffect(() => {
+    if (isEditing) {
+      loadUserProfile();
+    } else {
+      // Reset dropdowns when not editing
+      setProvinces([]);
+      setCities([]);
+      setBarangays([]);
+    }
+  }, [isEditing]);
+
+
+  // Track previous region to detect changes
+  const prevRegionIdRef = useRef(user?.region_id || null);
+  const prevProvinceIdRef = useRef(user?.province_id || null);
+  const prevCityIdRef = useRef(user?.city_id || null);
+  
+  // Fetch provinces when region is selected
+  useEffect(() => {
+    if (formData.region_id && isEditing) {
+      const regionChanged = prevRegionIdRef.current !== null && prevRegionIdRef.current !== formData.region_id;
+      prevRegionIdRef.current = formData.region_id;
+      
+      const loadProvinces = async () => {
+        setLoadingProvinces(true);
+        const result = await fetchProvincesByRegion(formData.region_id);
+        if (result.success) {
+          setProvinces(result.data);
+          // Only reset if region actually changed
+          if (regionChanged) {
+            setFormData(prev => ({ ...prev, province_id: null, city_id: null, barangay_id: null }));
+            setCities([]);
+            setBarangays([]);
+          }
+        }
+        setLoadingProvinces(false);
+      };
+      loadProvinces();
+    } else if (!formData.region_id) {
+      setProvinces([]);
+    }
+  }, [formData.region_id, isEditing]);
+
+  // Fetch cities when province is selected
+  useEffect(() => {
+    if (formData.province_id && isEditing) {
+      const provinceChanged = prevProvinceIdRef.current !== null && prevProvinceIdRef.current !== formData.province_id;
+      prevProvinceIdRef.current = formData.province_id;
+      
+      const loadCities = async () => {
+        setLoadingCities(true);
+        const result = await fetchCitiesByProvince(formData.province_id);
+        if (result.success) {
+          setCities(result.data);
+          // Only reset if province actually changed
+          if (provinceChanged) {
+            setFormData(prev => ({ ...prev, city_id: null, barangay_id: null }));
+            setBarangays([]);
+          }
+        }
+        setLoadingCities(false);
+      };
+      loadCities();
+    } else if (!formData.province_id) {
+      setCities([]);
+    }
+  }, [formData.province_id, isEditing]);
+
+  // Fetch barangays when city is selected
+  useEffect(() => {
+    if (formData.city_id && isEditing) {
+      const cityChanged = prevCityIdRef.current !== null && prevCityIdRef.current !== formData.city_id;
+      prevCityIdRef.current = formData.city_id;
+      
+      const loadBarangays = async () => {
+        setLoadingBarangays(true);
+        const result = await fetchBarangaysByCity(formData.city_id);
+        if (result.success) {
+          setBarangays(result.data);
+          // Only reset if city actually changed
+          if (cityChanged) {
+            setFormData(prev => ({ ...prev, barangay_id: null }));
+          }
+        }
+        setLoadingBarangays(false);
+      };
+      loadBarangays();
+    } else if (!formData.city_id) {
+      setBarangays([]);
+    }
+  }, [formData.city_id, isEditing]);
+
+  const loadUserProfile = async () => {
+    const result = await fetchResidentProfile();
+    if (result.success && result.data) {
+      const profile = result.data;
+      const newRegionId = profile.region_id || null;
+      const newProvinceId = profile.province_id || null;
+      const newCityId = profile.city_id || null;
+      const newBarangayId = profile.barangay_id || null;
+      
+      setFormData(prev => ({
+        ...prev,
+        name: profile.name || '',
+        email: profile.email || '',
+        phone_number: profile.phone_number || '',
+        house_no: profile.house_no || '',
+        street: profile.street || '',
+        region_id: newRegionId,
+        province_id: newProvinceId,
+        city_id: newCityId,
+        barangay_id: newBarangayId,
+        country: profile.country || '',
+        postal_code: profile.postal_code || ''
+      }));
+
+      // Reset refs for change detection
+      prevRegionIdRef.current = newRegionId;
+      prevProvinceIdRef.current = newProvinceId;
+      prevCityIdRef.current = newCityId;
+
+      // Load dropdowns based on existing IDs
+      if (newRegionId) {
+        const provincesResult = await fetchProvincesByRegion(newRegionId);
+        if (provincesResult.success) {
+          setProvinces(provincesResult.data);
+          
+          if (newProvinceId) {
+            const citiesResult = await fetchCitiesByProvince(newProvinceId);
+            if (citiesResult.success) {
+              setCities(citiesResult.data);
+              
+              if (newCityId) {
+                const barangaysResult = await fetchBarangaysByCity(newCityId);
+                if (barangaysResult.success) {
+                  setBarangays(barangaysResult.data);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  };
 
   const handleLogout = async () => {
     setLogoutLoading(true);
@@ -76,8 +254,10 @@ const Profile = () => {
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = "Email is invalid";
     }
-    if (!formData.barangay.trim()) newErrors.barangay = "Barangay is required";
-    if (!formData.city.trim()) newErrors.city = "City is required";
+    if (!formData.region_id) newErrors.region_id = "Region is required";
+    if (!formData.province_id) newErrors.province_id = "Province is required";
+    if (!formData.city_id) newErrors.city_id = "City is required";
+    if (!formData.barangay_id) newErrors.barangay_id = "Barangay is required";
 
     if (formData.phone_number.trim() && formData.phone_number.length > 20) {
       newErrors.phone_number = "Phone number must not exceed 20 characters";
@@ -105,9 +285,10 @@ const Profile = () => {
         phone_number: formData.phone_number.trim() || null,
         house_no: formData.house_no.trim() || null,
         street: formData.street.trim() || null,
-        barangay: formData.barangay.trim(),
-        city: formData.city.trim(),
-        province: formData.province.trim() || null,
+        region_id: formData.region_id || null,
+        province_id: formData.province_id || null,
+        city_id: formData.city_id || null,
+        barangay_id: formData.barangay_id || null,
         country: formData.country.trim() || null,
         postal_code: formData.postal_code.trim() || null
       };
@@ -154,19 +335,57 @@ const Profile = () => {
       phone_number: user?.phone_number || '',
       house_no: user?.house_no || '',
       street: user?.street || '',
-      barangay: user?.barangay || '',
-      city: user?.city || '',
-      province: user?.province || '',
+      region_id: user?.region_id || null,
+      province_id: user?.province_id || null,
+      city_id: user?.city_id || null,
+      barangay_id: user?.barangay_id || null,
       country: user?.country || '',
       postal_code: user?.postal_code || ''
     });
+    // Reset dropdowns
+    setProvinces([]);
+    setCities([]);
+    setBarangays([]);
+    // Reset refs
+    prevRegionIdRef.current = user?.region_id || null;
+    prevProvinceIdRef.current = user?.province_id || null;
+    prevCityIdRef.current = user?.city_id || null;
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    const result = await fetchResidentProfile();
+    if (result.success && result.data) {
+      const profile = result.data;
+      setFormData(prev => ({
+        ...prev,
+        name: profile.name || '',
+        email: profile.email || '',
+        phone_number: profile.phone_number || '',
+        house_no: profile.house_no || '',
+        street: profile.street || '',
+        region_id: profile.region_id || null,
+        province_id: profile.province_id || null,
+        city_id: profile.city_id || null,
+        barangay_id: profile.barangay_id || null,
+        country: profile.country || '',
+        postal_code: profile.postal_code || ''
+      }));
+    }
+    setRefreshing(false);
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['bottom']}>
+    <View style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 20 }}
+        refreshControl={
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={handleRefresh} 
+          />
+        }
       >
         {/* Profile Header */}
         <View style={styles.profileHeader}>
@@ -190,7 +409,9 @@ const Profile = () => {
           </View>
           <Text style={styles.profileName}>{formData.name || 'User'}</Text>
           <Text style={styles.profileLocation}>
-            {formData.barangay ? `${formData.barangay}, ${formData.city}` : 'No address set'}
+            {user?.barangay_relation?.name || user?.barangay 
+              ? `${user?.barangay_relation?.name || user?.barangay}, ${user?.city_relation?.name || user?.city}` 
+              : 'No address set'}
           </Text>
           {!isEditing && (
             <Pressable
@@ -340,58 +561,76 @@ const Profile = () => {
                   </View>
                 </View>
 
-                {/* Barangay */}
-                <View style={styles.inputContainer}>
-                  <Text style={styles.label}>
-                    Barangay <Text style={styles.required}>*</Text>
-                  </Text>
-                  <TextInput
-                    value={formData.barangay}
-                    onChangeText={(value) => handleChange('barangay', value)}
-                    style={[
-                      styles.input,
-                      errors.barangay && styles.inputError
-                    ]}
-                  />
-                  {errors.barangay && (
-                    <View style={styles.errorBox}>
-                      <Ionicons name="alert-circle-outline" size={14} color="#EF4444" style={{ marginRight: 4 }} />
-                      <Text style={styles.errorBoxText}>{errors.barangay}</Text>
-                    </View>
-                  )}
-                </View>
+                {/* Region Dropdown */}
+                <AddressDropdown
+                  label="Region"
+                  value={formData.region_id}
+                  options={regions}
+                  onSelect={(id) => {
+                    handleChange('region_id', id);
+                    if (errors.region_id) {
+                      setErrors(prev => ({ ...prev, region_id: null }));
+                    }
+                  }}
+                  placeholder="Select region"
+                  error={errors.region_id}
+                  loading={loadingRegions}
+                  required
+                />
 
-                {/* City & Province */}
-                <View style={styles.rowInputs}>
-                  <View style={styles.halfInput}>
-                    <Text style={styles.label}>
-                      City <Text style={styles.required}>*</Text>
-                    </Text>
-                    <TextInput
-                      value={formData.city}
-                      onChangeText={(value) => handleChange('city', value)}
-                      style={[
-                        styles.input,
-                        errors.city && styles.inputError
-                      ]}
-                    />
-                    {errors.city && (
-                      <View style={styles.errorBox}>
-                        <Ionicons name="alert-circle-outline" size={14} color="#EF4444" style={{ marginRight: 4 }} />
-                        <Text style={styles.errorBoxText}>{errors.city}</Text>
-                      </View>
-                    )}
-                  </View>
-                  <View style={styles.halfInput}>
-                    <Text style={styles.label}>Province</Text>
-                    <TextInput
-                      value={formData.province}
-                      onChangeText={(value) => handleChange('province', value)}
-                      placeholder="Optional"
-                      style={styles.input}
-                    />
-                  </View>
-                </View>
+                {/* Province Dropdown */}
+                <AddressDropdown
+                  label="Province"
+                  value={formData.province_id}
+                  options={provinces}
+                  onSelect={(id) => {
+                    handleChange('province_id', id);
+                    if (errors.province_id) {
+                      setErrors(prev => ({ ...prev, province_id: null }));
+                    }
+                  }}
+                  placeholder={formData.region_id ? "Select province" : "Select region first"}
+                  error={errors.province_id}
+                  loading={loadingProvinces}
+                  required
+                  disabled={!formData.region_id}
+                />
+
+                {/* City Dropdown */}
+                <AddressDropdown
+                  label="City/Municipality"
+                  value={formData.city_id}
+                  options={cities}
+                  onSelect={(id) => {
+                    handleChange('city_id', id);
+                    if (errors.city_id) {
+                      setErrors(prev => ({ ...prev, city_id: null }));
+                    }
+                  }}
+                  placeholder={formData.province_id ? "Select city" : "Select province first"}
+                  error={errors.city_id}
+                  loading={loadingCities}
+                  required
+                  disabled={!formData.province_id}
+                />
+
+                {/* Barangay Dropdown */}
+                <AddressDropdown
+                  label="Barangay"
+                  value={formData.barangay_id}
+                  options={barangays}
+                  onSelect={(id) => {
+                    handleChange('barangay_id', id);
+                    if (errors.barangay_id) {
+                      setErrors(prev => ({ ...prev, barangay_id: null }));
+                    }
+                  }}
+                  placeholder={formData.city_id ? "Select barangay" : "Select city first"}
+                  error={errors.barangay_id}
+                  loading={loadingBarangays}
+                  required
+                  disabled={!formData.city_id}
+                />
 
                 {/* Country & Postal Code */}
                 <View style={styles.rowInputs}>
@@ -475,7 +714,13 @@ const Profile = () => {
                   <View style={styles.infoContent}>
                     <Text style={styles.infoLabel}>Address</Text>
                     <Text style={styles.infoValue}>
-                      {[formData.house_no, formData.street, formData.barangay, formData.city]
+                      {[
+                        formData.house_no,
+                        formData.street,
+                        user?.barangay_relation?.name || user?.barangay,
+                        user?.city_relation?.name || user?.city,
+                        user?.province_relation?.name || user?.province
+                      ]
                         .filter(Boolean)
                         .join(', ') || 'Not set'}
                     </Text>
@@ -508,7 +753,7 @@ const Profile = () => {
           </Pressable>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

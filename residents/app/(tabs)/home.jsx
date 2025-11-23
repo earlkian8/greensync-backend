@@ -1,5 +1,4 @@
 import { View, Text, ScrollView, Pressable, ActivityIndicator, RefreshControl, StyleSheet } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { useContext, useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import Feather from '@expo/vector-icons/Feather';
@@ -14,6 +13,8 @@ const Home = () => {
   const router = useRouter();
   const [upcomingSchedules, setUpcomingSchedules] = useState([]);
   const [wasteBins, setWasteBins] = useState([]);
+  const [binCounts, setBinCounts] = useState({});
+  const [fullBinsCount, setFullBinsCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -39,10 +40,12 @@ const Home = () => {
       const response = await api.get(`v1/resident/home/${user.id}`);
 
       if (response.data && response.data.data) {
-        const { upcoming_schedules, waste_bins } = response.data.data;
+        const { upcoming_schedules, waste_bins, bin_counts, full_bins_count } = response.data.data;
         
         setUpcomingSchedules(upcoming_schedules || []);
         setWasteBins(waste_bins || []);
+        setBinCounts(bin_counts || {});
+        setFullBinsCount(full_bins_count || 0);
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -61,17 +64,17 @@ const Home = () => {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+      <View style={styles.safeArea}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#16A34A" />
           <Text style={styles.loadingText}>Loading dashboard...</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+    <View style={styles.safeArea}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 20 }}
@@ -106,6 +109,16 @@ const Home = () => {
               Let's keep our community clean together.
             </Text>
           </View>
+
+          {/* Full Bins Alert */}
+          {fullBinsCount > 0 && (
+            <View style={styles.alertContainer}>
+              <MaterialIcons name="warning" size={20} color="#D97706" />
+              <Text style={styles.alertText}>
+                You have {fullBinsCount} {fullBinsCount === 1 ? 'bin' : 'bins'} that {fullBinsCount === 1 ? 'is' : 'are'} full and needs collection
+              </Text>
+            </View>
+          )}
 
           {/* Quick Actions */}
           <View style={styles.quickActions}>
@@ -172,39 +185,121 @@ const Home = () => {
             </View>
 
             <View style={styles.binsContainer}>
-              <View style={styles.binsGrid}>
-                {wasteBins.map((bin) => {
-                  const isActive = bin.status && bin.status.toLowerCase() === 'active';
-                  return (
-                    <Pressable
-                      key={bin.id}
-                      onPress={() => console.log("Bin details:", bin.id)}
-                      style={[
-                        styles.binCard,
-                        isActive ? styles.binCardActive : styles.binCardInactive
-                      ]}
-                    >
-                      <Text style={[
-                        styles.binTypeText,
-                        isActive ? styles.binTypeTextActive : styles.binTypeTextInactive
+              {/* Bin Counts by Type */}
+              {Object.keys(binCounts).length > 0 && (
+                <View style={styles.binCountsSection}>
+                  {Object.entries(binCounts).map(([binType, counts]) => {
+                    const binTypeFormatted = binType.split('-').map(word => 
+                      word.charAt(0).toUpperCase() + word.slice(1)
+                    ).join(' ');
+                    const hasFullBins = counts.full > 0;
+                    
+                    return (
+                      <View key={binType} style={[
+                        styles.binCountCard,
+                        hasFullBins && styles.binCountCardFull
                       ]}>
-                        {bin.bin_type.split(' ')[0]}
-                      </Text>
-                      <Text style={[
-                        styles.binStatusText,
-                        isActive ? styles.binStatusTextActive : styles.binStatusTextInactive
-                      ]}>
-                        {bin.status || 'Inactive'}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
+                        <View style={styles.binCountHeader}>
+                          <Text style={[
+                            styles.binCountType,
+                            hasFullBins && styles.binCountTypeFull
+                          ]}>
+                            {binTypeFormatted}
+                          </Text>
+                          {hasFullBins && (
+                            <View style={styles.fullBadge}>
+                              <MaterialIcons name="warning" size={14} color="#D97706" />
+                              <Text style={styles.fullBadgeText}>{counts.full} Full</Text>
+                            </View>
+                          )}
+                        </View>
+                        <View style={styles.binCountStats}>
+                          <View style={styles.binCountStat}>
+                            <Text style={styles.binCountLabel}>Total</Text>
+                            <Text style={styles.binCountValue}>{counts.total}</Text>
+                          </View>
+                          <View style={styles.binCountStat}>
+                            <Text style={[styles.binCountLabel, styles.binCountLabelActive]}>Active</Text>
+                            <Text style={[styles.binCountValue, styles.binCountValueActive]}>{counts.active}</Text>
+                          </View>
+                          {counts.full > 0 && (
+                            <View style={styles.binCountStat}>
+                              <Text style={[styles.binCountLabel, styles.binCountLabelFull]}>Full</Text>
+                              <Text style={[styles.binCountValue, styles.binCountValueFull]}>{counts.full}</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+
+              {/* Individual Bins Grid */}
+              {wasteBins.length > 0 && (
+                <View style={styles.binsGrid}>
+                  {wasteBins.map((bin) => {
+                    const statusLower = (bin.status || 'Active').toLowerCase();
+                    const isFull = statusLower === 'full';
+                    const isActive = statusLower === 'active';
+                    const isDamaged = statusLower === 'damaged';
+                    const isInactive = statusLower === 'inactive';
+                    
+                    let cardStyle = styles.binCard;
+                    let typeStyle = styles.binTypeText;
+                    let statusStyle = styles.binStatusText;
+                    
+                    if (isFull) {
+                      cardStyle = styles.binCardFull;
+                      typeStyle = styles.binTypeTextFull;
+                      statusStyle = styles.binStatusTextFull;
+                    } else if (isActive) {
+                      cardStyle = styles.binCardActive;
+                      typeStyle = styles.binTypeTextActive;
+                      statusStyle = styles.binStatusTextActive;
+                    } else if (isDamaged) {
+                      cardStyle = styles.binCardDamaged;
+                      typeStyle = styles.binTypeTextDamaged;
+                      statusStyle = styles.binStatusTextDamaged;
+                    } else {
+                      cardStyle = styles.binCardInactive;
+                      typeStyle = styles.binTypeTextInactive;
+                      statusStyle = styles.binStatusTextInactive;
+                    }
+                    
+                    return (
+                      <Pressable
+                        key={bin.id}
+                        onPress={() => console.log("Bin details:", bin.id)}
+                        style={[styles.binCard, cardStyle]}
+                      >
+                        <Text style={[styles.binTypeText, typeStyle]}>
+                          {bin.bin_type}
+                        </Text>
+                        <Text style={[styles.binStatusText, statusStyle]}>
+                          {bin.status || 'Inactive'}
+                        </Text>
+                        {isFull && (
+                          <View style={styles.fullIndicator}>
+                            <MaterialIcons name="warning" size={12} color="#D97706" />
+                          </View>
+                        )}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              )}
+              
+              {wasteBins.length === 0 && (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyStateText}>No waste bins registered</Text>
+                </View>
+              )}
             </View>
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -308,11 +403,29 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1F2937',
     marginLeft: 8,
+    textTransform: 'capitalize',
   },
   viewAllLink: {
     fontSize: 14,
     color: '#16A34A',
     fontWeight: '600',
+  },
+  alertContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 24,
+    gap: 10,
+  },
+  alertText: {
+    flex: 1,
+    color: '#92400E',
+    fontSize: 14,
+    fontWeight: '500',
   },
   emptyState: {
     backgroundColor: '#F3F4F6',
@@ -322,11 +435,87 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     color: '#6B7280',
+    textTransform: 'capitalize',
   },
   binsContainer: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 16,
+  },
+  binCountsSection: {
+    marginBottom: 16,
+    gap: 12,
+  },
+  binCountCard: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 10,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  binCountCardFull: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#FCD34D',
+  },
+  binCountHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  binCountType: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1F2937',
+    textTransform: 'capitalize',
+  },
+  binCountTypeFull: {
+    color: '#92400E',
+  },
+  fullBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  fullBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#D97706',
+  },
+  binCountStats: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  binCountStat: {
+    alignItems: 'flex-start',
+  },
+  binCountLabel: {
+    fontSize: 11,
+    color: '#6B7280',
+    marginBottom: 2,
+    textTransform: 'uppercase',
+    fontWeight: '500',
+  },
+  binCountLabelActive: {
+    color: '#059669',
+  },
+  binCountLabelFull: {
+    color: '#D97706',
+  },
+  binCountValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  binCountValueActive: {
+    color: '#059669',
+  },
+  binCountValueFull: {
+    color: '#D97706',
   },
   binsGrid: {
     flexDirection: 'row',
@@ -339,32 +528,67 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     alignItems: 'center',
+    position: 'relative',
   },
   binCardActive: {
     backgroundColor: '#D1FAE5',
+    borderWidth: 1,
+    borderColor: '#A7F3D0',
+  },
+  binCardFull: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 2,
+    borderColor: '#FCD34D',
+  },
+  binCardDamaged: {
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
   },
   binCardInactive: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
   binTypeText: {
     fontSize: 12,
     marginBottom: 4,
+    fontWeight: '600',
+    textTransform: 'capitalize',
   },
   binTypeTextActive: {
     color: '#166534',
   },
-  binTypeTextInactive: {
+  binTypeTextFull: {
+    color: '#92400E',
+  },
+  binTypeTextDamaged: {
     color: '#991B1B',
+  },
+  binTypeTextInactive: {
+    color: '#6B7280',
   },
   binStatusText: {
     fontWeight: '600',
-    fontSize: 14,
+    fontSize: 13,
+    textTransform: 'capitalize',
   },
   binStatusTextActive: {
     color: '#166534',
   },
-  binStatusTextInactive: {
+  binStatusTextFull: {
+    color: '#D97706',
+  },
+  binStatusTextDamaged: {
     color: '#991B1B',
+  },
+  binStatusTextInactive: {
+    color: '#6B7280',
+  },
+  fullIndicator: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
   },
 });
 

@@ -1,12 +1,15 @@
-import { View, Text, Modal, Pressable, ScrollView, ActivityIndicator, StyleSheet } from "react-native";
+import { View, Text, Modal, Pressable, ScrollView, ActivityIndicator, Alert, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
 import Feather from '@expo/vector-icons/Feather';
 import AntDesign from "@expo/vector-icons/AntDesign";
-import { fetchCollectionRequestDetails } from "@/services/requestService";
+import { MapPin } from "lucide-react-native";
+import { fetchCollectionRequestDetails, deleteCollectionRequest } from "@/services/requestService";
 
-const RequestDetailModal = ({ visible, onClose, requestId }) => {
+const RequestDetailModal = ({ visible, onClose, requestId, onDelete }) => {
   const [request, setRequest] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (visible && requestId) {
@@ -23,6 +26,20 @@ const RequestDetailModal = ({ visible, onClose, requestId }) => {
     setLoading(false);
   };
 
+  // Capitalize helper
+  const capitalize = (str) => {
+    if (!str) return '';
+    return str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+  };
+
+  // Format status - handle in_progress
+  const formatStatus = (status) => {
+    if (!status) return 'Unknown';
+    const statusLower = status.toLowerCase();
+    if (statusLower === 'in_progress') return 'In Progress';
+    return capitalize(status);
+  };
+
   const getStatusStyle = (status) => {
     switch (status?.toLowerCase()) {
       case 'pending':
@@ -30,6 +47,7 @@ const RequestDetailModal = ({ visible, onClose, requestId }) => {
       case 'assigned':
         return { bg: styles.statusAssignedBg, text: styles.statusAssignedText, border: styles.statusAssignedBorder };
       case 'in_progress':
+      case 'in progress':
         return { bg: styles.statusInProgressBg, text: styles.statusInProgressText, border: styles.statusInProgressBorder };
       case 'completed':
         return { bg: styles.statusCompletedBg, text: styles.statusCompletedText, border: styles.statusCompletedBorder };
@@ -43,16 +61,57 @@ const RequestDetailModal = ({ visible, onClose, requestId }) => {
   const getPriorityStyle = (priority) => {
     switch (priority?.toLowerCase()) {
       case 'urgent':
-        return { bg: styles.priorityUrgentBg, text: styles.priorityUrgentText, icon: '🔥' };
+        return { bg: styles.priorityUrgentBg, text: styles.priorityUrgentText };
       case 'high':
-        return { bg: styles.priorityHighBg, text: styles.priorityHighText, icon: '⚠️' };
+        return { bg: styles.priorityHighBg, text: styles.priorityHighText };
       case 'medium':
-        return { bg: styles.priorityMediumBg, text: styles.priorityMediumText, icon: '📌' };
+        return { bg: styles.priorityMediumBg, text: styles.priorityMediumText };
       case 'low':
-        return { bg: styles.priorityLowBg, text: styles.priorityLowText, icon: '📋' };
+        return { bg: styles.priorityLowBg, text: styles.priorityLowText };
       default:
-        return { bg: styles.priorityDefaultBg, text: styles.priorityDefaultText, icon: '📄' };
+        return { bg: styles.priorityDefaultBg, text: styles.priorityDefaultText };
     }
+  };
+
+  // Check if request can be deleted
+  const canDelete = () => {
+    if (!request) return false;
+    const status = request.status?.toLowerCase();
+    return ['pending', 'cancelled', 'completed'].includes(status);
+  };
+
+  const handleDelete = () => {
+    if (!request) return;
+    
+    Alert.alert(
+      "Delete Request",
+      `Are you sure you want to delete this ${formatStatus(request.status).toLowerCase()} request? This action cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            setDeleting(true);
+            try {
+              const result = await deleteCollectionRequest(request.id);
+              if (result.success) {
+                if (onDelete) {
+                  onDelete(request.id);
+                }
+                onClose();
+              } else {
+                Alert.alert("Error", result.error || "Failed to delete request");
+              }
+            } catch (error) {
+              Alert.alert("Error", "Failed to delete request");
+            } finally {
+              setDeleting(false);
+            }
+          }
+        }
+      ]
+    );
   };
 
   const formatRequestType = (type) => {
@@ -113,7 +172,8 @@ const RequestDetailModal = ({ visible, onClose, requestId }) => {
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+        <SafeAreaView edges={['bottom']} style={styles.safeAreaContainer}>
+          <View style={styles.modalContent}>
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Request Details</Text>
@@ -134,13 +194,13 @@ const RequestDetailModal = ({ visible, onClose, requestId }) => {
             <ScrollView 
               style={styles.scrollView}
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 24 }}
+              contentContainerStyle={{ paddingBottom: 32 }}
             >
               {/* Status Badge */}
               <View style={styles.statusContainer}>
                 <View style={[styles.statusBadge, statusStyles.bg, statusStyles.border]}>
                   <Text style={[styles.statusText, statusStyles.text]}>
-                    {request.status}
+                    {formatStatus(request.status)}
                   </Text>
                 </View>
               </View>
@@ -150,15 +210,15 @@ const RequestDetailModal = ({ visible, onClose, requestId }) => {
                 <View style={styles.requestTypeRow}>
                   <Feather name={requestType.icon} size={20} color="#16a34a" />
                   <Text style={styles.requestTypeLabel}>
-                    {requestType.label}
+                    {capitalize(requestType.label)}
                   </Text>
                 </View>
                 
                 <View style={styles.priorityRow}>
-                  <Text style={styles.priorityIcon}>{priorityStyles.icon}</Text>
+                  <MapPin size={20} color="#6B7280" style={{ marginRight: 8 }} />
                   <View style={[styles.priorityBadge, priorityStyles.bg]}>
                     <Text style={[styles.priorityText, priorityStyles.text]}>
-                      {request.priority} Priority
+                      {capitalize(request.priority)} Priority
                     </Text>
                   </View>
                 </View>
@@ -177,7 +237,7 @@ const RequestDetailModal = ({ visible, onClose, requestId }) => {
                     <View style={styles.infoContent}>
                       <Text style={styles.infoLabel}>Waste Type</Text>
                       <Text style={styles.infoValue}>
-                        {formatWasteType(request.waste_type)}
+                        {capitalize(formatWasteType(request.waste_type))}
                       </Text>
                     </View>
                   </View>
@@ -293,12 +353,23 @@ const RequestDetailModal = ({ visible, onClose, requestId }) => {
             </View>
           )}
 
-          {/* Footer Button */}
+          {/* Footer Buttons */}
           {!loading && request && (
             <View style={styles.footer}>
+              {canDelete() && (
+                <Pressable
+                  onPress={handleDelete}
+                  disabled={deleting}
+                  style={[styles.deleteButton, deleting && styles.deleteButtonDisabled]}
+                >
+                  <Text style={styles.deleteButtonText}>
+                    {deleting ? 'Deleting...' : 'Delete Request'}
+                  </Text>
+                </Pressable>
+              )}
               <Pressable
                 onPress={onClose}
-                style={styles.closeFooterButton}
+                style={[styles.closeFooterButton, canDelete() && styles.closeFooterButtonWithDelete]}
               >
                 <Text style={styles.closeFooterButtonText}>
                   Close
@@ -306,7 +377,8 @@ const RequestDetailModal = ({ visible, onClose, requestId }) => {
               </Pressable>
             </View>
           )}
-        </View>
+          </View>
+        </SafeAreaView>
       </View>
     </Modal>
   );
@@ -318,11 +390,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
+  safeAreaContainer: {
+    maxHeight: '90%',
+  },
   modalContent: {
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '90%',
+    maxHeight: '100%',
   },
   header: {
     flexDirection: 'row',
@@ -412,10 +487,6 @@ const styles = StyleSheet.create({
   priorityRow: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  priorityIcon: {
-    fontSize: 24,
-    marginRight: 8,
   },
   priorityBadge: {
     paddingHorizontal: 12,
@@ -529,14 +600,38 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingTop: 16,
+    paddingBottom: 32, // Extra padding to avoid bottom navigation
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
+    flexDirection: 'row',
+    gap: 12,
+  },
+  deleteButton: {
+    flex: 1,
+    borderWidth: 2,
+    borderColor: '#EF4444',
+    borderRadius: 12,
+    paddingVertical: 14,
+    backgroundColor: '#FFFFFF',
+  },
+  deleteButtonDisabled: {
+    opacity: 0.5,
+  },
+  deleteButtonText: {
+    color: '#EF4444',
+    textAlign: 'center',
+    fontWeight: '600',
+    fontSize: 16,
   },
   closeFooterButton: {
+    flex: 1,
     backgroundColor: '#16A34A',
     paddingVertical: 14,
     borderRadius: 12,
+  },
+  closeFooterButtonWithDelete: {
+    flex: 1,
   },
   closeFooterButtonText: {
     color: '#FFFFFF',

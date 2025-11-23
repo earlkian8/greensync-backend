@@ -7,6 +7,7 @@ use App\Models\Resident;
 use App\Models\CollectionRequest;
 use App\Models\WasteBin;
 use App\Models\Notification;
+use App\Models\RouteStop;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -158,6 +159,51 @@ class ResidentsController extends Controller
 
         return response()->json([
             'message' => 'Logged out successfully.'
+        ]);
+    }
+
+    /** Verify Email Exists */
+    public function verifyEmail(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ]);
+
+        $resident = Resident::where('email', $request->email)->first();
+
+        return response()->json([
+            'exists' => $resident !== null,
+            'message' => $resident ? 'Email found' : 'Email not found',
+        ]);
+    }
+
+    /** Reset Password */
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'verification_code' => 'required|string|size:6',
+            'password' => 'required|string|min:6|confirmed',
+        ]);
+
+        $resident = Resident::where('email', $request->email)->first();
+
+        if (!$resident) {
+            throw ValidationException::withMessages([
+                'email' => ['Email not found'],
+            ]);
+        }
+
+        // In a real implementation, you would verify the code from your storage/cache
+        // For now, we'll accept any 6-digit code (you should implement proper code verification)
+        // You can store codes in cache/database with expiry
+        
+        // Update password
+        $resident->password = Hash::make($request->password);
+        $resident->save();
+
+        return response()->json([
+            'message' => 'Password reset successfully. You can now login with your new password.',
         ]);
     }
 
@@ -368,7 +414,7 @@ class ResidentsController extends Controller
         }
 
         // Get upcoming schedules (collection requests that are scheduled/assigned and future dated)
-        $upcomingSchedules = CollectionRequest::with('wasteBin.resident')
+        $upcomingSchedules = CollectionRequest::with(['wasteBin.resident', 'wasteBin'])
             ->where('user_id', $resident_id)
             ->whereIn('status', ['assigned', 'in_progress', 'pending'])
             ->whereDate('preferred_date', '>=', Carbon::today())
@@ -381,26 +427,66 @@ class ResidentsController extends Controller
                     ? Carbon::parse($request->preferred_time)->format('H:i:s') 
                     : '08:00:00';
                 
+                // Get route information from RouteStop
+                // First try to find by collection request ID in notes (more accurate)
+                $routeStop = RouteStop::where('notes', 'like', '%Collection Request #' . $request->id . '%')
+                    ->with('route')
+                    ->first();
+                
+                // If not found, try by bin_id
+                if (!$routeStop && $request->bin_id) {
+                    $routeStop = RouteStop::where('bin_id', $request->bin_id)
+                        ->with('route')
+                        ->orderBy('created_at', 'desc')
+                        ->first();
+                }
+                
+                $routeName = $routeStop && $routeStop->route 
+                    ? $routeStop->route->route_name 
+                    : null;
+                
+                // Get bin name
+                $binName = $request->wasteBin ? $request->wasteBin->name : 'N/A';
+                
                 return [
                     'id' => $request->id,
                     'collection_date' => $request->preferred_date->format('Y-m-d'),
                     'collection_time' => $time,
                     'waste_type' => ucfirst(str_replace('-', ' ', $request->waste_type ?? 'General Waste')),
+                    'request_type' => ucfirst(str_replace('_', ' ', $request->request_type ?? 'Collection')),
                     'status' => ucfirst(str_replace('_', ' ', $request->status ?? 'Scheduled')),
+                    'bin_name' => $binName,
                     'bin_location' => $resident->barangayRelation?->name ?? $resident->barangay ?? 'N/A',
+                    'route_name' => $routeName,
                 ];
             });
 
-        // Get waste bins for the resident
-        $wasteBins = WasteBin::where('resident_id', $resident_id)
-            ->get()
-            ->map(function ($bin) {
-                return [
-                    'id' => $bin->id,
-                    'bin_type' => ucfirst(str_replace('-', ' ', $bin->bin_type)),
-                    'status' => $bin->status ?? 'Active',
-                ];
-            });
+        // Get waste bins for the resident with counts by type
+        $allBins = WasteBin::where('resident_id', $resident_id)->get();
+        
+        // Count bins by type
+        $binCounts = $allBins->groupBy('bin_type')->map(function ($bins) {
+            return [
+                'total' => $bins->count(),
+                'full' => $bins->where('status', 'full')->count(),
+                'active' => $bins->where('status', 'active')->count(),
+                'inactive' => $bins->where('status', 'inactive')->count(),
+                'damaged' => $bins->where('status', 'damaged')->count(),
+            ];
+        });
+        
+        // Get all bins with details
+        $wasteBins = $allBins->map(function ($bin) {
+            return [
+                'id' => $bin->id,
+                'name' => $bin->name,
+                'bin_type' => ucfirst(str_replace('-', ' ', $bin->bin_type)),
+                'status' => ucfirst($bin->status ?? 'Active'),
+            ];
+        });
+        
+        // Get full bins count for notification
+        $fullBinsCount = $allBins->where('status', 'full')->count();
 
         // Get recent notifications (limit 2)
         $notifications = Notification::where(function ($query) use ($resident_id) {
@@ -435,6 +521,8 @@ class ResidentsController extends Controller
             'data' => [
                 'upcoming_schedules' => $upcomingSchedules,
                 'waste_bins' => $wasteBins,
+                'bin_counts' => $binCounts,
+                'full_bins_count' => $fullBinsCount,
                 'notifications' => $notifications,
                 'unread_notifications_count' => $unreadNotifications,
             ]

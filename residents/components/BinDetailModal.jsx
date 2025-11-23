@@ -1,4 +1,5 @@
 import { View, Text, Modal, Pressable, TextInput, ScrollView, Alert, ActivityIndicator, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
 import Feather from '@expo/vector-icons/Feather';
 import AntDesign from '@expo/vector-icons/AntDesign';
@@ -172,7 +173,8 @@ const BinDetailModal = ({ visible, onClose, binId, onUpdate, onDelete }) => {
       onRequestClose={onClose}
     >
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+        <SafeAreaView edges={['bottom']} style={styles.safeAreaContainer}>
+          <View style={styles.modalContent}>
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Bin Details</Text>
@@ -193,7 +195,7 @@ const BinDetailModal = ({ visible, onClose, binId, onUpdate, onDelete }) => {
             <ScrollView 
               style={styles.scrollView}
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 24 }}
+              contentContainerStyle={{ paddingBottom: 32 }}
             >
               {/* Edit Button */}
               {!isEditing && (
@@ -414,7 +416,8 @@ const BinDetailModal = ({ visible, onClose, binId, onUpdate, onDelete }) => {
           )}
 
           {/* Footer Button */}
-        </View>
+          </View>
+        </SafeAreaView>
       </View>
     </Modal>
   );
@@ -426,11 +429,14 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
+  safeAreaContainer: {
+    maxHeight: '90%',
+  },
   modalContent: {
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '90%',
+    maxHeight: '100%',
   },
   header: {
     flexDirection: 'row',

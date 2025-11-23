@@ -43,6 +43,8 @@ Route::prefix('v1')->group(function () {
 
         Route::post('/register', [ResidentsController::class, 'store']);
         Route::post('/login', [ResidentsController::class, 'login']);
+        Route::post('/verify-email', [ResidentsController::class, 'verifyEmail']);
+        Route::post('/reset-password', [ResidentsController::class, 'resetPassword']);
         Route::get('/profile-image/{resident}', [ResidentsController::class, 'profileImage'])
             ->name('resident.profile-image');
 
@@ -73,6 +75,7 @@ Route::prefix('v1')->group(function () {
                 Route::post('/', [CollectionRequestController::class, 'store']);
                 Route::get('/', [CollectionRequestController::class, 'index']);
                 Route::get('/{id}', [CollectionRequestController::class, 'show']);
+                Route::delete('/{id}', [CollectionRequestController::class, 'destroy']);
             });
 
             // === Notifications ===

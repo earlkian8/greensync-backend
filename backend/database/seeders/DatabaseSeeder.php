@@ -30,5 +30,10 @@ class DatabaseSeeder extends Seeder
             CollectorSeeder::class,
             CollectionScheduleSeeder::class,
         ]);
+
+        // Comprehensive seeder with all tables, focused on earlkian8
+        $this->call([
+            ComprehensiveSeeder::class,
+        ]);
     }
 }

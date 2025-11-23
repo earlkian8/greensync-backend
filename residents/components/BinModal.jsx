@@ -1,4 +1,5 @@
 import { View, Text, Modal, Pressable, TextInput, ScrollView, StyleSheet } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
 import Feather from '@expo/vector-icons/Feather';
 
@@ -119,7 +120,8 @@ const BinModal = ({ visible, onClose, onSubmit }) => {
       onRequestClose={handleClose}
     >
       <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
+        <SafeAreaView edges={['bottom']} style={styles.safeAreaContainer}>
+          <View style={styles.modalContent}>
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Register New Bin</Text>
@@ -281,7 +283,8 @@ const BinModal = ({ visible, onClose, onSubmit }) => {
               </Text>
             </Pressable>
           </View>
-        </View>
+          </View>
+        </SafeAreaView>
       </View>
     </Modal>
   );
@@ -293,11 +296,14 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
+  safeAreaContainer: {
+    maxHeight: '90%',
+  },
   modalContent: {
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    maxHeight: '90%',
+    maxHeight: '100%',
   },
   header: {
     flexDirection: 'row',
@@ -429,7 +435,8 @@ const styles = StyleSheet.create({
   },
   footer: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingTop: 16,
+    paddingBottom: 32, // Extra padding to avoid bottom navigation
     borderTopWidth: 1,
     borderTopColor: '#E5E7EB',
     flexDirection: 'row',

@@ -118,4 +118,55 @@ class CollectionRequestController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Delete a collection request (only for pending, cancelled, or completed requests).
+     */
+    public function destroy(Request $request, $id)
+    {
+        $resident = $request->user();
+
+        $collectionRequest = CollectionRequest::where('user_id', $resident->id)
+            ->find($id);
+
+        if (!$collectionRequest) {
+            return response()->json([
+                'message' => 'Collection request not found or does not belong to you.'
+            ], 404);
+        }
+
+        // Only allow deletion of pending, cancelled, or completed requests
+        $allowedStatuses = ['pending', 'cancelled', 'completed'];
+        if (!in_array(strtolower($collectionRequest->status), $allowedStatuses)) {
+            return response()->json([
+                'message' => 'This request cannot be deleted. Only pending, cancelled, or completed requests can be deleted.'
+            ], 403);
+        }
+
+        try {
+            // Delete associated image if exists
+            if ($collectionRequest->image_url) {
+                $imagePath = str_replace('/storage/', '', $collectionRequest->image_url);
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($imagePath);
+            }
+
+            $collectionRequest->delete();
+
+            return response()->json([
+                'message' => 'Collection request deleted successfully.'
+            ], 200);
+        } catch (\Exception $e) {
+            Log::error('Failed to delete collection request', [
+                'resident_id' => $resident->id,
+                'request_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'message' => 'Failed to delete collection request. Please try again.',
+                'error' => config('app.debug') ? $e->getMessage() : 'An error occurred'
+            ], 500);
+        }
+    }
 }

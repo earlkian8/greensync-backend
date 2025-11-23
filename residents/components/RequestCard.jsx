@@ -2,14 +2,43 @@ import { View, Text, Pressable, StyleSheet } from "react-native";
 import Feather from '@expo/vector-icons/Feather';
 
 const RequestCard = ({ request, onViewDetails }) => {
+  // Capitalize helper function
+  const capitalize = (str) => {
+    if (!str) return '';
+    return str.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()).join(' ');
+  };
+
+  // Format status - handle in_progress
+  const formatStatus = (status) => {
+    if (!status) return 'Unknown';
+    const statusLower = status.toLowerCase();
+    if (statusLower === 'in_progress') return 'In Progress';
+    return capitalize(status);
+  };
+
+  // Format time to AM/PM
+  const formatTime = (time) => {
+    if (!time) return '--:--';
+    const [hours, minutes] = time.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minutes} ${ampm}`;
+  };
+
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
       case 'pending':
         return { bg: styles.statusPendingBg, text: styles.statusPendingText };
       case 'assigned':
         return { bg: styles.statusAssignedBg, text: styles.statusAssignedText };
+      case 'in_progress':
+      case 'in progress':
+        return { bg: styles.statusInProgressBg, text: styles.statusInProgressText };
       case 'completed':
         return { bg: styles.statusCompletedBg, text: styles.statusCompletedText };
+      case 'cancelled':
+        return { bg: styles.statusCancelledBg, text: styles.statusCancelledText };
       default:
         return { bg: styles.statusDefaultBg, text: styles.statusDefaultText };
     }
@@ -39,9 +68,7 @@ const RequestCard = ({ request, onViewDetails }) => {
       })
     : 'No date set';
 
-  const formattedTime = request.preferred_time
-    ? request.preferred_time.substring(0, 5)
-    : '--:--';
+  const formattedTime = formatTime(request.preferred_time);
 
   return (
     <Pressable
@@ -51,21 +78,21 @@ const RequestCard = ({ request, onViewDetails }) => {
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.requestType} numberOfLines={1}>
-          {request.request_type || 'Unnamed Request'}
+          {capitalize(request.request_type || 'Unnamed Request')}
         </Text>
         <View style={[styles.statusBadge, statusColors.bg]}>
           <Text style={[styles.statusText, statusColors.text]}>
-            {request.status || 'Unknown'}
+            {formatStatus(request.status)}
           </Text>
         </View>
       </View>
 
       {/* Waste Type & Priority */}
       <View style={styles.infoRow}>
-        <Text style={styles.wasteType}>{request.waste_type || 'N/A'}</Text>
+        <Text style={styles.wasteType}>{capitalize(request.waste_type?.replace(/-/g, ' ') || 'N/A')}</Text>
         <View style={[styles.priorityBadge, priorityColors.bg]}>
           <Text style={[styles.priorityText, priorityColors.text]}>
-            {request.priority || 'Normal'}
+            {capitalize(request.priority || 'Normal')}
           </Text>
         </View>
       </View>
@@ -128,8 +155,12 @@ const styles = StyleSheet.create({
   statusPendingText: { color: '#92400E' },
   statusAssignedBg: { backgroundColor: '#DBEAFE' },
   statusAssignedText: { color: '#1E40AF' },
+  statusInProgressBg: { backgroundColor: '#E9D5FF' },
+  statusInProgressText: { color: '#6B21A8' },
   statusCompletedBg: { backgroundColor: '#D1FAE5' },
   statusCompletedText: { color: '#065F46' },
+  statusCancelledBg: { backgroundColor: '#FEE2E2' },
+  statusCancelledText: { color: '#991B1B' },
   statusDefaultBg: { backgroundColor: '#F3F4F6' },
   statusDefaultText: { color: '#374151' },
   infoRow: {
