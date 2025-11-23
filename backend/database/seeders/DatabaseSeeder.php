@@ -22,7 +22,7 @@ class DatabaseSeeder extends Seeder
             'email' => 'dev@unisync.com',
             'password' => Hash::make('password')
         ]);
-        Artisan::call('philippines:run');
+        // Artisan::call('philippines:run');
 
         // Seed residents, collectors, and collection schedules
         $this->call([

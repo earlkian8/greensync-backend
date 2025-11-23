@@ -28,36 +28,36 @@ class ResidentSeeder extends Seeder
             'is_verified' => true,
         ]);
 
-        // Create additional sample residents
-        Resident::create([
-            'email' => 'juan.delacruz@example.com',
-            'phone_number' => '+639234567890',
-            'password' => Hash::make('password'),
-            'name' => 'Juan dela Cruz',
-            'house_no' => '456',
-            'street' => 'Rizal Avenue',
-            'barangay' => 'Barangay 2',
-            'city' => 'Quezon City',
-            'province' => 'Metro Manila',
-            'country' => 'Philippines',
-            'postal_code' => '1100',
-            'is_verified' => true,
-        ]);
+        // // Create additional sample residents
+        // Resident::create([
+        //     'email' => 'juan.delacruz@example.com',
+        //     'phone_number' => '+639234567890',
+        //     'password' => Hash::make('password'),
+        //     'name' => 'Juan dela Cruz',
+        //     'house_no' => '456',
+        //     'street' => 'Rizal Avenue',
+        //     'barangay' => 'Barangay 2',
+        //     'city' => 'Quezon City',
+        //     'province' => 'Metro Manila',
+        //     'country' => 'Philippines',
+        //     'postal_code' => '1100',
+        //     'is_verified' => true,
+        // ]);
 
-        Resident::create([
-            'email' => 'maria.santos@example.com',
-            'phone_number' => '+639345678901',
-            'password' => Hash::make('password'),
-            'name' => 'Maria Santos',
-            'house_no' => '789',
-            'street' => 'EDSA',
-            'barangay' => 'Barangay 3',
-            'city' => 'Makati',
-            'province' => 'Metro Manila',
-            'country' => 'Philippines',
-            'postal_code' => '1200',
-            'is_verified' => true,
-        ]);
+        // Resident::create([
+        //     'email' => 'maria.santos@example.com',
+        //     'phone_number' => '+639345678901',
+        //     'password' => Hash::make('password'),
+        //     'name' => 'Maria Santos',
+        //     'house_no' => '789',
+        //     'street' => 'EDSA',
+        //     'barangay' => 'Barangay 3',
+        //     'city' => 'Makati',
+        //     'province' => 'Metro Manila',
+        //     'country' => 'Philippines',
+        //     'postal_code' => '1200',
+        //     'is_verified' => true,
+        // ]);
     }
 }
 

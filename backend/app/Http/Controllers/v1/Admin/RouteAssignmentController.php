@@ -156,16 +156,8 @@ class RouteAssignmentController extends Controller
             return back()->withErrors(['route_id' => 'Selected route has no stops. Please add stops to the route first.']);
         }
 
-        // Validate route barangay matches schedule barangay
-        if ($route->barangay !== $schedule->barangay) {
-            return back()->withErrors(['schedule_id' => 'Schedule barangay (' . $schedule->barangay . ') does not match route barangay (' . $route->barangay . ')']);
-        }
-
-        // Validate assignment date matches schedule's collection day
-        $assignmentDay = date('l', strtotime($validated['assignment_date']));
-        if ($assignmentDay !== $schedule->collection_day) {
-            return back()->withErrors(['assignment_date' => 'Assignment date (' . $assignmentDay . ') does not match schedule collection day (' . $schedule->collection_day . ')']);
-        }
+        // Removed: Validate route barangay matches schedule barangay - constraint removed
+        // Removed: Validate assignment date matches schedule's collection day - constraint removed
 
         // Check for duplicate assignment (same route, collector, and date)
         $existingAssignment = RouteAssignment::where('route_id', $validated['route_id'])
@@ -303,16 +295,8 @@ class RouteAssignmentController extends Controller
             return back()->withErrors(['route_id' => 'Selected route has no stops. Please add stops to the route first.']);
         }
 
-        // Validate route barangay matches schedule barangay
-        if ($route->barangay !== $schedule->barangay) {
-            return back()->withErrors(['schedule_id' => 'Schedule barangay (' . $schedule->barangay . ') does not match route barangay (' . $route->barangay . ')']);
-        }
-
-        // Validate assignment date matches schedule's collection day
-        $assignmentDay = date('l', strtotime($validated['assignment_date']));
-        if ($assignmentDay !== $schedule->collection_day) {
-            return back()->withErrors(['assignment_date' => 'Assignment date (' . $assignmentDay . ') does not match schedule collection day (' . $schedule->collection_day . ')']);
-        }
+        // Removed: Validate route barangay matches schedule barangay - constraint removed
+        // Removed: Validate assignment date matches schedule's collection day - constraint removed
 
         // Check for duplicate assignment (excluding current assignment)
         $existingAssignment = RouteAssignment::where('route_id', $validated['route_id'])
