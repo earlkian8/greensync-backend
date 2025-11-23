@@ -21,25 +21,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/Components/ui/select"
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 
 const EditRoute = ({ route: routeData, setShowEditModal }) => {
-  const { residents } = usePage().props;
-
   const { data, setData, post, errors, processing } = useForm({
     route_name: routeData?.route_name || '',
     barangay: routeData?.barangay || '',
     estimated_duration: routeData?.estimated_duration || '',
     route_map_data: routeData?.route_map_data || '',
     is_active: routeData?.is_active ?? true,
-    created_by: routeData?.created_by?.toString() || '',
     _method: 'PUT'
   });
-
-  // Get selected resident to show barangay info
-  const selectedResident = useMemo(() => {
-    return residents?.find(r => r.id.toString() === data.created_by) || null;
-  }, [data.created_by, residents]);
 
   useEffect(() => {
     if (routeData) {
@@ -49,7 +41,6 @@ const EditRoute = ({ route: routeData, setShowEditModal }) => {
         estimated_duration: routeData.estimated_duration || '',
         route_map_data: routeData.route_map_data || '',
         is_active: routeData.is_active ?? true,
-        created_by: routeData.created_by?.toString() || '',
         _method: 'PUT'
       });
     }
@@ -124,42 +115,6 @@ const EditRoute = ({ route: routeData, setShowEditModal }) => {
             <InputError message={errors.estimated_duration} />
           </div>
 
-          {/* Created By */}
-          <div>
-            <Label className="text-zinc-800">Created By </Label>
-            <Select 
-              value={data.created_by} 
-              onValueChange={(value) => {
-                setData('created_by', value);
-                // Auto-fill barangay from selected resident if barangay is empty
-                const resident = residents.find(r => r.id.toString() === value);
-                if (resident && resident.barangay && !data.barangay) {
-                  setData('barangay', resident.barangay);
-                }
-              }}
-            >
-              <SelectTrigger className={inputClass(errors.created_by)}>
-                <SelectValue placeholder="Select resident" />
-              </SelectTrigger>
-              <SelectContent>
-                {residents && residents.length > 0 ? (
-                  residents.map((resident) => (
-                    <SelectItem key={resident.id} value={resident.id.toString()}>
-                      {resident.name} ({resident.email}) - {resident.barangay}
-                    </SelectItem>
-                  ))
-                ) : (
-                  <SelectItem value="none" disabled>No residents available</SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-            <InputError message={errors.created_by} />
-            {selectedResident && (
-              <p className="text-xs text-zinc-500 mt-1">
-                Resident barangay: {selectedResident.barangay}
-              </p>
-            )}
-          </div>
 
           {/* Route Map Data */}
           <div className="md:col-span-2">

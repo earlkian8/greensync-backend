@@ -119,6 +119,10 @@ Route::prefix('v1')->group(function () {
         
         // Login collector user
         Route::post('/login', [CollectorsController::class, 'login']);
+        
+        // Password reset (public routes)
+        Route::post('/verify-email', [CollectorsController::class, 'verifyEmail']);
+        Route::post('/reset-password', [CollectorsController::class, 'resetPassword']);
 
         // -------------------- Protected Routes (Requires Authentication) --------------------
         Route::middleware('auth:sanctum')->group(function () {

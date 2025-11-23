@@ -21,24 +21,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/Components/ui/select"
-import { useMemo } from 'react';
 
 const AddRoute = ({ setShowAddModal }) => {
-  const { residents } = usePage().props;
-
   const { data, setData, post, errors, processing } = useForm({
     route_name: '',
     barangay: '',
     estimated_duration: '',
     route_map_data: '',
     is_active: true,
-    created_by: '',
   });
-
-  // Get selected resident to auto-fill barangay
-  const selectedResident = useMemo(() => {
-    return residents?.find(r => r.id.toString() === data.created_by) || null;
-  }, [data.created_by, residents]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -109,42 +100,6 @@ const AddRoute = ({ setShowAddModal }) => {
             <InputError message={errors.estimated_duration} />
           </div>
 
-          {/* Created By */}
-          <div>
-            <Label className="text-zinc-800">Created By </Label>
-            <Select 
-              value={data.created_by} 
-              onValueChange={(value) => {
-                setData('created_by', value);
-                // Auto-fill barangay from selected resident
-                const resident = residents.find(r => r.id.toString() === value);
-                if (resident && resident.barangay && !data.barangay) {
-                  setData('barangay', resident.barangay);
-                }
-              }}
-            >
-              <SelectTrigger className={inputClass(errors.created_by)}>
-                <SelectValue placeholder="Select resident" />
-              </SelectTrigger>
-              <SelectContent>
-                {residents && residents.length > 0 ? (
-                  residents.map((resident) => (
-                    <SelectItem key={resident.id} value={resident.id.toString()}>
-                      {resident.name} ({resident.email}) - {resident.barangay}
-                    </SelectItem>
-                  ))
-                ) : (
-                  <SelectItem value="none" disabled>No residents available</SelectItem>
-                )}
-              </SelectContent>
-            </Select>
-            <InputError message={errors.created_by} />
-            {selectedResident && (
-              <p className="text-xs text-zinc-500 mt-1">
-                Resident barangay: {selectedResident.barangay}
-              </p>
-            )}
-          </div>
 
           {/* Route Map Data
           <div className="md:col-span-2">

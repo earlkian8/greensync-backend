@@ -4,7 +4,6 @@ namespace App\Http\Controllers\v1\Admin;
 
 use App\Models\Route;
 use App\Models\RouteStop;
-use App\Models\Resident;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -60,16 +59,9 @@ class RouteController extends Controller
                          ->orderBy('barangay')
                          ->pluck('barangay');
 
-        // Get verified residents for the dropdown in add/edit modals
-        $residents = Resident::select('id', 'name', 'email', 'barangay')
-                            ->where('is_verified', true)
-                            ->orderBy('name')
-                            ->get();
-
         return Inertia::render('Admin/RouteManagement/index', [
             'routes' => $routes,
             'barangays' => $barangays,
-            'residents' => $residents,
             'search' => $search,
             'statusFilter' => $statusFilter,
             'barangayFilter' => $barangayFilter,
@@ -81,15 +73,7 @@ class RouteController extends Controller
      */
     public function create(): Response
     {
-        // Get verified residents for the created_by dropdown
-        $residents = Resident::select('id', 'name', 'email', 'barangay')
-                            ->where('is_verified', true)
-                            ->orderBy('name')
-                            ->get();
-
-        return Inertia::render('Admin/RouteManagement/add', [
-            'residents' => $residents,
-        ]);
+        return Inertia::render('Admin/RouteManagement/add');
     }
 
     /**
@@ -103,7 +87,6 @@ class RouteController extends Controller
             'estimated_duration' => 'nullable|integer|min:1',
             'route_map_data' => 'nullable|string',
             'is_active' => 'nullable|boolean',
-            'created_by' => 'required|exists:residents,id',
         ]);
 
         DB::beginTransaction();
@@ -115,7 +98,7 @@ class RouteController extends Controller
                 'total_stops' => 0,
                 'route_map_data' => $validated['route_map_data'] ?? null,
                 'is_active' => $validated['is_active'] ?? true,
-                'created_by' => $validated['created_by'],
+                'created_by' => Auth::id(),
             ];
 
             $route = Route::create($routeData);
@@ -174,12 +157,6 @@ class RouteController extends Controller
             $query->orderBy('stop_order');
         }]);
 
-        // Get verified residents for the created_by dropdown
-        $residents = Resident::select('id', 'name', 'email', 'barangay')
-                            ->where('is_verified', true)
-                            ->orderBy('name')
-                            ->get();
-
         $this->adminActivityLogs(
             'Route',
             'Edit',
@@ -188,7 +165,6 @@ class RouteController extends Controller
 
         return Inertia::render('Admin/RouteManagement/edit', [
             'route' => $route,
-            'residents' => $residents,
         ]);
     }
 
@@ -203,7 +179,6 @@ class RouteController extends Controller
             'estimated_duration' => 'nullable|integer|min:1',
             'route_map_data' => 'nullable|string',
             'is_active' => 'nullable|boolean',
-            'created_by' => 'required|exists:residents,id',
         ]);
 
         DB::beginTransaction();
@@ -214,7 +189,7 @@ class RouteController extends Controller
                 'estimated_duration' => $validated['estimated_duration'] ?? null,
                 'route_map_data' => $validated['route_map_data'] ?? null,
                 'is_active' => $validated['is_active'] ?? $route->is_active,
-                'created_by' => $validated['created_by'],
+                // Keep the original created_by when updating
             ];
 
             $route->update($updateData);

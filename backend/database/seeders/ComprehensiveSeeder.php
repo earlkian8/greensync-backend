@@ -261,7 +261,7 @@ class ComprehensiveSeeder extends Seeder
             );
         }
 
-        // Create routes (focus on Earl Kian as creator)
+        // Create routes (focus on Earl Kian as creator - using admin user)
         $routes = [];
         for ($i = 0; $i < 5; $i++) {
             $barangay = $zamboangaBarangays[$i % count($zamboangaBarangays)];
@@ -271,7 +271,7 @@ class ComprehensiveSeeder extends Seeder
                 'estimated_duration' => rand(60, 180), // minutes
                 'total_stops' => rand(5, 15),
                 'is_active' => $i < 4,
-                'created_by' => $earlResident->id, // Earl creates routes
+                'created_by' => $adminUser->id, // Admin user creates routes
             ]);
             $routes[] = $route;
 
