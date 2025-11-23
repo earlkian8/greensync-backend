@@ -41,16 +41,15 @@ const AddRouteAssignment = ({ setShowAddModal }) => {
     return routes?.find(r => r.id.toString() === data.route_id) || null;
   }, [data.route_id, routes]);
 
-  // Filter schedules based on selected route's barangay
-  const filteredSchedules = useMemo(() => {
-    if (!selectedRoute || !schedules) return schedules || [];
-    return schedules.filter(s => s.barangay === selectedRoute.barangay);
-  }, [selectedRoute, schedules]);
+  // Get all schedules (no filtering by barangay)
+  const allSchedules = useMemo(() => {
+    return schedules || [];
+  }, [schedules]);
 
   // Get selected schedule
   const selectedSchedule = useMemo(() => {
-    return filteredSchedules?.find(s => s.id.toString() === data.schedule_id) || null;
-  }, [data.schedule_id, filteredSchedules]);
+    return allSchedules?.find(s => s.id.toString() === data.schedule_id) || null;
+  }, [data.schedule_id, allSchedules]);
 
   // Calculate next date for the schedule's collection day
   const getNextDateForDay = (dayName) => {
@@ -113,10 +112,6 @@ const AddRouteAssignment = ({ setShowAddModal }) => {
               value={data.route_id} 
               onValueChange={(value) => {
                 setData('route_id', value);
-                // Clear schedule when route changes (barangay mismatch)
-                if (selectedRoute && selectedRoute.barangay !== routes.find(r => r.id.toString() === value)?.barangay) {
-                  setData('schedule_id', '');
-                }
               }}
             >
               <SelectTrigger className={inputClass(errors.route_id)}>
@@ -175,7 +170,7 @@ const AddRouteAssignment = ({ setShowAddModal }) => {
               onValueChange={(value) => {
                 setData('schedule_id', value);
                 // Auto-fill assignment date based on schedule's collection day
-                const schedule = filteredSchedules.find(s => s.id.toString() === value);
+                const schedule = allSchedules.find(s => s.id.toString() === value);
                 if (schedule && !data.assignment_date) {
                   const nextDate = getNextDateForDay(schedule.collection_day);
                   if (nextDate) {
@@ -188,27 +183,20 @@ const AddRouteAssignment = ({ setShowAddModal }) => {
                 <SelectValue placeholder="Select schedule" />
               </SelectTrigger>
               <SelectContent>
-                {filteredSchedules && filteredSchedules.length > 0 ? (
-                  filteredSchedules.map((schedule) => (
+                {allSchedules && allSchedules.length > 0 ? (
+                  allSchedules.map((schedule) => (
                     <SelectItem key={schedule.id} value={schedule.id.toString()}>
                       {schedule.barangay} - {schedule.collection_day} at {schedule.collection_time} ({schedule.frequency})
                     </SelectItem>
                   ))
                 ) : (
                   <SelectItem value="none" disabled>
-                    {selectedRoute 
-                      ? `No schedules available for ${selectedRoute.barangay}` 
-                      : 'Select a route first'}
+                    No schedules available
                   </SelectItem>
                 )}
               </SelectContent>
             </Select>
             <InputError message={errors.schedule_id} />
-            {selectedRoute && filteredSchedules.length === 0 && (
-              <p className="text-xs text-yellow-600 mt-1">
-                No active schedules found for {selectedRoute.barangay}. Please create a schedule first.
-              </p>
-            )}
             {selectedSchedule && (
               <p className="text-xs text-zinc-500 mt-1">
                 Collection Day: {selectedSchedule.collection_day} | Time: {selectedSchedule.collection_time}
