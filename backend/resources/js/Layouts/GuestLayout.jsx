@@ -4,13 +4,13 @@ import Logo from '../../assets/logo/whitebg.png';
 
 export default function GuestLayout({ children }) {
     return (
-        <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-green-50 to-emerald-50 pt-6 sm:pt-0">
+        <div className="flex min-h-screen flex-col items-center justify-center bg-white pt-6 sm:pt-0">
             <div className="w-full max-w-md">
                 <div className="mb-8 flex flex-col items-center">
                     <img 
                         src={Logo} 
                         alt="GreenSync Logo" 
-                        className="h-32 w-auto object-contain"
+                        className="h-56 w-auto object-contain"
                     />
                     <p className="mt-4 text-lg font-semibold text-gray-700">
                         Admin Portal
