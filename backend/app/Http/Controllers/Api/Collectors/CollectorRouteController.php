@@ -255,12 +255,10 @@ class CollectorRouteController extends Controller
             
             $query = RouteAssignment::with('route:id,route_name,barangay,total_stops,estimated_duration')
                 ->where('collector_id', $collectorId)
+                ->where('status', 'in_progress')
                 ->whereHas('route');
 
-            // Apply filters
-            if ($request->has('status')) {
-                $query->where('status', $request->status);
-            }
+            // Apply filters (status filter removed - only in_progress assignments are returned)
             if ($request->has('start_date')) {
                 $query->whereDate('assignment_date', '>=', $request->start_date);
             }
