@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Collectors\CollectorPerformanceController;
+use App\Http\Controllers\Api\Collectors\CollectorDashboardController;
 use App\Http\Controllers\Api\Collectors\CollectorRouteController;
 use App\Http\Controllers\Api\Collectors\CollectorsController;
 use App\Http\Controllers\Api\Collectors\QRCollectionController;
@@ -125,6 +126,9 @@ Route::prefix('v1')->group(function () {
             // === Profile Management ===
             // Logout collector
             Route::post('/logout', [CollectorsController::class, 'logout']);
+
+            // === Dashboard ===
+            Route::get('/dashboard', [CollectorDashboardController::class, 'getDashboardData']);
 
             // === Route Assignment & Schedule ===
             Route::prefix('routes')->group(function () {
