@@ -1,51 +1,52 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, StyleSheet, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, StyleSheet, RefreshControl, Modal, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { MapPin } from 'lucide-react-native';
 import collectorRoutesService from '@/services/collectorRoutesService';
 
 export default function History() {
-  const [collections, setCollections] = useState([]);
+  const [routeStops, setRouteStops] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [refreshing, setRefreshing] = useState(false);
+  const [selectedStop, setSelectedStop] = useState(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
-  const fetchCollections = useCallback(async () => {
+  const fetchRouteStops = useCallback(async () => {
     try {
       setError(null);
       if (!refreshing) {
         setLoading(true);
       }
       
-      // When filter is 'all', don't pass status (API defaults to 'collected' and 'completed')
-      // For other statuses, pass the status filter
       const statusParam = filterStatus === 'all' ? null : filterStatus;
       const searchParam = searchTerm.trim() || null;
       
       const response = await collectorRoutesService.getCollectionHistory({
         status: statusParam,
         search: searchParam,
-        per_page: 100, // Get more items for better history view
+        per_page: 100,
       });
       
-      // Handle paginated response - extract data array from pagination object
-      let collectionsData = [];
+      // Handle paginated response
+      let stopsData = [];
       if (response) {
         if (Array.isArray(response)) {
-          collectionsData = response;
+          stopsData = response;
         } else if (response.data && Array.isArray(response.data)) {
-          collectionsData = response.data;
+          stopsData = response.data;
         } else if (response.data?.data && Array.isArray(response.data.data)) {
-          collectionsData = response.data.data;
+          stopsData = response.data.data;
         }
       }
       
-      setCollections(collectionsData);
+      setRouteStops(stopsData);
     } catch (err) {
-      console.error('Error fetching collections:', err);
-      setError(err?.response?.data?.message || 'Failed to load collection history');
-      setCollections([]);
+      console.error('Error fetching route stops:', err);
+      setError(err?.response?.data?.message || 'Failed to load route stops history');
+      setRouteStops([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -54,17 +55,17 @@ export default function History() {
 
   const handleRefresh = () => {
     setRefreshing(true);
-    fetchCollections();
+    fetchRouteStops();
   };
 
   useEffect(() => {
     // Debounce search to avoid too many API calls
     const timeoutId = setTimeout(() => {
-      fetchCollections();
+      fetchRouteStops();
     }, searchTerm ? 500 : 0);
 
     return () => clearTimeout(timeoutId);
-  }, [fetchCollections]);
+  }, [fetchRouteStops]);
 
   const formatDate = (dateString) => {
     if (!dateString) return '';
@@ -123,7 +124,7 @@ export default function History() {
           <View style={[styles.flexRow, styles.itemsCenter, styles.bgGray100, styles.roundedLg, styles.px3, styles.py2]}>
             <Ionicons name="search-outline" size={20} color="#6B7280" />
             <TextInput
-              placeholder="Search by waste type or QR code..."
+              placeholder="Search by route, address, or bin name..."
               value={searchTerm}
               onChangeText={setSearchTerm}
               style={[styles.flex1, styles.ml2, styles.textBase]}
@@ -223,88 +224,341 @@ export default function History() {
               <Text style={[styles.textRed600, styles.mt3, styles.textBase]}>{error}</Text>
               <TouchableOpacity 
                 style={[styles.mt4, styles.px6, styles.py2, styles.bgRed600, styles.roundedLg]}
-                onPress={fetchCollections}
+                onPress={fetchRouteStops}
                 activeOpacity={0.8}
               >
                 <Text style={[styles.textWhite, styles.fontMedium]}>Retry</Text>
               </TouchableOpacity>
             </View>
-          ) : collections.length === 0 ? (
+          ) : routeStops.length === 0 ? (
             <View style={[styles.itemsCenter, styles.py12, styles.bgWhite, styles.roundedLg, styles.border, styles.borderGray200]}>
               <Ionicons name="file-tray-outline" size={48} color="#9CA3AF" />
-              <Text style={[styles.textGray500, styles.mt3, styles.textBase]}>No collection history found</Text>
+              <Text style={[styles.textGray500, styles.mt3, styles.textBase]}>No completed route stops found</Text>
             </View>
           ) : (
             <View>
-              {collections.map((collection, index) => (
-                <View
-                  key={collection.id}
+              {routeStops.map((stop, index) => (
+                <TouchableOpacity
+                  key={stop.id}
                   style={[styles.bgWhite, styles.border, styles.borderGray200, styles.roundedLg, styles.p4, index > 0 && styles.mt3]}
+                  onPress={() => {
+                    setSelectedStop(stop);
+                    setShowDetailsModal(true);
+                  }}
+                  activeOpacity={0.7}
                 >
                   <View style={[styles.flexRow, styles.justifyBetween]}>
                     <View style={styles.flex1}>
                       <View style={[styles.flexRow, styles.itemsCenter]}>
                         <View style={[styles.p2, styles.roundedFull, styles.bgGreen100]}>
-                          <Ionicons name="trash-outline" size={18} color="#16A34A" />
+                          <Ionicons name="location-outline" size={18} color="#16A34A" />
                         </View>
                         <View style={[styles.ml3, styles.flex1]}>
                           <Text style={[styles.fontSemibold, styles.textGray900, styles.textBase]}>
-                            {collection.waste_type || 'Mixed Waste'}
+                            Stop #{stop.stop_order}
                           </Text>
-                          <Text style={[styles.textSm, styles.textGray600, { marginTop: 2 }]}>
-                            QR: {collection.qr_code}
-                          </Text>
+                          {stop.route?.route_name && (
+                            <Text style={[styles.textSm, styles.textGray700, { marginTop: 2 }]}>
+                              {stop.route.route_name}
+                            </Text>
+                          )}
+                          {stop.stop_address && (
+                            <Text style={[styles.textXs, styles.textGray500, { marginTop: 2 }]} numberOfLines={1}>
+                              {stop.stop_address}
+                            </Text>
+                          )}
+                          {stop.bin?.name && (
+                            <Text style={[styles.textXs, styles.textGray500, { marginTop: 2 }]}>
+                              Bin: {stop.bin.name}
+                            </Text>
+                          )}
                         </View>
                       </View>
 
-                      <View style={[styles.flexRow, styles.mt3, { gap: 16 }]}>
-                        <View style={[styles.flexRow, styles.itemsCenter]}>
-                          <Ionicons name="calendar-outline" size={14} color="#9CA3AF" />
-                          <Text style={[styles.textSm, styles.textGray500, styles.ml1]}>
-                            {collection.collection_date || formatDate(collection.collection_timestamp)}
-                          </Text>
+                      {stop.collection && (
+                        <View style={[styles.flexRow, styles.mt3, { gap: 16 }]}>
+                          <View style={[styles.flexRow, styles.itemsCenter]}>
+                            <Ionicons name="calendar-outline" size={14} color="#9CA3AF" />
+                            <Text style={[styles.textSm, styles.textGray500, styles.ml1]}>
+                              {stop.collection.collection_date}
+                            </Text>
+                          </View>
+                          <View style={[styles.flexRow, styles.itemsCenter]}>
+                            <Ionicons name="time-outline" size={14} color="#9CA3AF" />
+                            <Text style={[styles.textSm, styles.textGray500, styles.ml1]}>
+                              {stop.collection.collection_time}
+                            </Text>
+                          </View>
                         </View>
-                        <View style={[styles.flexRow, styles.itemsCenter]}>
-                          <Ionicons name="time-outline" size={14} color="#9CA3AF" />
-                          <Text style={[styles.textSm, styles.textGray500, styles.ml1]}>
-                            {collection.collection_time || formatTime(collection.collection_timestamp)}
-                          </Text>
-                        </View>
-                      </View>
+                      )}
                     </View>
 
                     <View style={[styles.itemsEnd, styles.ml2]}>
-                      <View style={[styles.px3, styles.py1, styles.roundedFull, ...getStatusStyle(collection.collection_status)]}>
-                        <Text style={[styles.textXs, styles.fontSemibold, styles.uppercase]}>
-                          {collection.collection_status}
-                        </Text>
-                      </View>
-                      
-                      <Text style={[styles.textSm, styles.textGray700, styles.mt2, styles.fontMedium]}>
-                        {collection.waste_weight} kg
-                      </Text>
+                      {stop.collection && (
+                        <>
+                          <View style={[styles.px3, styles.py1, styles.roundedFull, ...getStatusStyle(stop.collection.collection_status)]}>
+                            <Text style={[styles.textXs, styles.fontSemibold, styles.uppercase]}>
+                              {stop.collection.collection_status}
+                            </Text>
+                          </View>
+                          
+                          {stop.collection.waste_weight != null && (
+                            <Text style={[styles.textSm, styles.textGray700, styles.mt2, styles.fontMedium]}>
+                              {stop.collection.waste_weight} kg
+                            </Text>
+                          )}
 
-                      <View style={styles.mt2}>
-                        {collection.is_verified ? (
-                          <View style={[styles.flexRow, styles.itemsCenter]}>
-                            <Ionicons name="checkmark-circle" size={14} color="#16A34A" />
-                            <Text style={[styles.textXs, styles.textGreen600, styles.ml1]}>Verified</Text>
+                          <View style={styles.mt2}>
+                            {stop.collection.is_verified ? (
+                              <View style={[styles.flexRow, styles.itemsCenter]}>
+                                <Ionicons name="checkmark-circle" size={14} color="#16A34A" />
+                                <Text style={[styles.textXs, styles.textGreen600, styles.ml1]}>Verified</Text>
+                              </View>
+                            ) : (
+                              <View style={[styles.flexRow, styles.itemsCenter]}>
+                                <Ionicons name="time-outline" size={14} color="#6B7280" />
+                                <Text style={[styles.textXs, styles.textGray500, styles.ml1]}>Pending</Text>
+                              </View>
+                            )}
                           </View>
-                        ) : (
-                          <View style={[styles.flexRow, styles.itemsCenter]}>
-                            <Ionicons name="time-outline" size={14} color="#6B7280" />
-                            <Text style={[styles.textXs, styles.textGray500, styles.ml1]}>Pending</Text>
-                          </View>
-                        )}
-                      </View>
+                        </>
+                      )}
                     </View>
                   </View>
-                </View>
+                </TouchableOpacity>
               ))}
             </View>
           )}
         </View>
       </ScrollView>
+
+      {/* Details Modal */}
+      <Modal
+        visible={showDetailsModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowDetailsModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={[styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.mb4]}>
+              <Text style={[styles.textXl, styles.fontBold, styles.textGray900]}>Route Stop Details</Text>
+              <TouchableOpacity
+                onPress={() => setShowDetailsModal(false)}
+                style={[styles.p2]}
+              >
+                <Ionicons name="close" size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            {selectedStop && (
+              <ScrollView showsVerticalScrollIndicator={false}>
+                {/* Route Stop Details (Primary) */}
+                <View style={[styles.mb4]}>
+                  <Text style={[styles.textSm, styles.fontSemibold, styles.textGray700, styles.mb2]}>Stop Information</Text>
+                  <View style={[styles.bgGray50, styles.p3, styles.roundedLg]}>
+                    <View style={[styles.flexRow, styles.itemsCenter, styles.mb2]}>
+                      <Ionicons name="location-outline" size={16} color="#6B7280" />
+                      <Text style={[styles.textBase, styles.fontMedium, styles.textGray900, styles.ml2]}>
+                        Stop #{selectedStop.stop_order}
+                      </Text>
+                    </View>
+                    {selectedStop.stop_address && (
+                      <View style={[styles.flexRow, styles.mt2]}>
+                        <MapPin size={14} color="#6B7280" style={styles.mt1} />
+                        <Text style={[styles.textSm, styles.textGray600, styles.ml2, styles.flex1]}>
+                          {selectedStop.stop_address}
+                        </Text>
+                      </View>
+                    )}
+                    {selectedStop.estimated_time && (
+                      <Text style={[styles.textSm, styles.textGray600, styles.mt2, styles.ml6]}>
+                        Estimated Time: {selectedStop.estimated_time}
+                      </Text>
+                    )}
+                    {selectedStop.notes && (
+                      <Text style={[styles.textSm, styles.textGray600, styles.mt2, styles.ml6]}>
+                        {selectedStop.notes}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+
+                {/* Route Information */}
+                {selectedStop.route ? (
+                  <View style={[styles.mb4]}>
+                    <Text style={[styles.textSm, styles.fontSemibold, styles.textGray700, styles.mb2]}>Route Information</Text>
+                    <View style={[styles.bgGray50, styles.p3, styles.roundedLg]}>
+                      <View style={[styles.flexRow, styles.itemsCenter, styles.mb2]}>
+                        <Ionicons name="map-outline" size={16} color="#6B7280" />
+                        <Text style={[styles.textBase, styles.fontMedium, styles.textGray900, styles.ml2]}>
+                          {selectedStop.route.route_name || 'N/A'}
+                        </Text>
+                      </View>
+                      {selectedStop.route.barangay && (
+                        <Text style={[styles.textSm, styles.textGray600, styles.ml6]}>
+                          {selectedStop.route.barangay}
+                        </Text>
+                      )}
+                      {selectedStop.route.total_stops != null && (
+                        <Text style={[styles.textSm, styles.textGray600, styles.ml6, styles.mt1]}>
+                          Total Stops: {selectedStop.route.total_stops}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                ) : null}
+
+                {/* Bin Information */}
+                {selectedStop.bin && (
+                  <View style={[styles.mb4]}>
+                    <Text style={[styles.textSm, styles.fontSemibold, styles.textGray700, styles.mb2]}>Bin Information</Text>
+                    <View style={[styles.bgGray50, styles.p3, styles.roundedLg]}>
+                      <View style={[styles.flexRow, styles.itemsCenter, styles.mb2]}>
+                        <Ionicons name="trash-outline" size={16} color="#6B7280" />
+                        <Text style={[styles.textBase, styles.fontMedium, styles.textGray900, styles.ml2]}>
+                          {selectedStop.bin.name || 'N/A'}
+                        </Text>
+                      </View>
+                      <Text style={[styles.textSm, styles.textGray600, styles.ml6]}>
+                        Type: {selectedStop.bin.bin_type || 'N/A'}
+                      </Text>
+                      <Text style={[styles.textSm, styles.textGray600, styles.ml6]}>
+                        QR Code: {selectedStop.bin.qr_code}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Resident Information */}
+                {selectedStop.resident && (
+                  <View style={[styles.mb4]}>
+                    <Text style={[styles.textSm, styles.fontSemibold, styles.textGray700, styles.mb2]}>Resident Information</Text>
+                    <View style={[styles.bgGray50, styles.p3, styles.roundedLg]}>
+                      <View style={[styles.flexRow, styles.itemsCenter, styles.mb2]}>
+                        <Ionicons name="person-outline" size={16} color="#6B7280" />
+                        <Text style={[styles.textBase, styles.fontMedium, styles.textGray900, styles.ml2]}>
+                          {selectedStop.resident.name}
+                        </Text>
+                      </View>
+                      {selectedStop.resident.address && (
+                        <Text style={[styles.textSm, styles.textGray600, styles.ml6]}>
+                          {selectedStop.resident.address}
+                        </Text>
+                      )}
+                      {selectedStop.resident.phone && (
+                        <Text style={[styles.textSm, styles.textGray600, styles.ml6, styles.mt1]}>
+                          Phone: {selectedStop.resident.phone}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                )}
+
+                {/* Collection Details */}
+                {selectedStop.collection ? (
+                  <View style={[styles.mb4]}>
+                    <Text style={[styles.textSm, styles.fontSemibold, styles.textGray700, styles.mb2]}>Collection Details</Text>
+                    <View style={[styles.bgGray50, styles.p3, styles.roundedLg]}>
+                      <View style={[styles.flexRow, styles.justifyBetween, styles.mb2]}>
+                        <Text style={[styles.textSm, styles.textGray600]}>Date & Time</Text>
+                        <Text style={[styles.textSm, styles.fontMedium, styles.textGray900]}>
+                          {selectedStop.collection.collection_date} at {selectedStop.collection.collection_time}
+                        </Text>
+                      </View>
+                      <View style={[styles.flexRow, styles.justifyBetween, styles.mb2]}>
+                        <Text style={[styles.textSm, styles.textGray600]}>Waste Type</Text>
+                        <Text style={[styles.textSm, styles.fontMedium, styles.textGray900]}>
+                          {selectedStop.collection.waste_type ? selectedStop.collection.waste_type.charAt(0).toUpperCase() + selectedStop.collection.waste_type.slice(1) : 'Mixed'}
+                        </Text>
+                      </View>
+                      {selectedStop.collection.waste_weight != null && (
+                        <View style={[styles.flexRow, styles.justifyBetween, styles.mb2]}>
+                          <Text style={[styles.textSm, styles.textGray600]}>Weight</Text>
+                          <Text style={[styles.textSm, styles.fontMedium, styles.textGray900]}>
+                            {selectedStop.collection.waste_weight} kg
+                          </Text>
+                        </View>
+                      )}
+                      <View style={[styles.flexRow, styles.justifyBetween, styles.mb2]}>
+                        <Text style={[styles.textSm, styles.textGray600]}>Status</Text>
+                        <View style={[styles.px3, styles.py1, styles.roundedFull, ...getStatusStyle(selectedStop.collection.collection_status)]}>
+                          <Text style={[styles.textXs, styles.fontSemibold, styles.uppercase]}>
+                            {selectedStop.collection.collection_status || 'Unknown'}
+                          </Text>
+                        </View>
+                      </View>
+                      <View style={[styles.flexRow, styles.justifyBetween]}>
+                        <Text style={[styles.textSm, styles.textGray600]}>Verified</Text>
+                        <View style={[styles.flexRow, styles.itemsCenter]}>
+                          {selectedStop.collection.is_verified ? (
+                            <>
+                              <Ionicons name="checkmark-circle" size={16} color="#16A34A" />
+                              <Text style={[styles.textSm, styles.textGreen600, styles.ml1]}>Yes</Text>
+                            </>
+                          ) : (
+                            <>
+                              <Ionicons name="time-outline" size={16} color="#6B7280" />
+                              <Text style={[styles.textSm, styles.textGray500, styles.ml1]}>Pending</Text>
+                            </>
+                          )}
+                        </View>
+                      </View>
+                      {selectedStop.collection.notes && (
+                        <View style={[styles.mt2, styles.pt2, styles.borderT, styles.borderGray200]}>
+                          <Text style={[styles.textSm, styles.textGray600, styles.mb1]}>Notes</Text>
+                          <Text style={[styles.textSm, styles.textGray900]}>
+                            {selectedStop.collection.notes}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                ) : null}
+
+                {/* Assignment Details */}
+                {selectedStop.assignment && (
+                  <View style={[styles.mb4]}>
+                    <Text style={[styles.textSm, styles.fontSemibold, styles.textGray700, styles.mb2]}>Assignment Details</Text>
+                    <View style={[styles.bgGray50, styles.p3, styles.roundedLg]}>
+                      <View style={[styles.flexRow, styles.justifyBetween, styles.mb2]}>
+                        <Text style={[styles.textSm, styles.textGray600]}>Assignment Date</Text>
+                        <Text style={[styles.textSm, styles.fontMedium, styles.textGray900]}>
+                          {selectedStop.assignment.assignment_date}
+                        </Text>
+                      </View>
+                      {selectedStop.assignment.start_time && (
+                        <View style={[styles.flexRow, styles.justifyBetween, styles.mb2]}>
+                          <Text style={[styles.textSm, styles.textGray600]}>Start Time</Text>
+                          <Text style={[styles.textSm, styles.fontMedium, styles.textGray900]}>
+                            {new Date(selectedStop.assignment.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                          </Text>
+                        </View>
+                      )}
+                      {selectedStop.assignment.end_time && (
+                        <View style={[styles.flexRow, styles.justifyBetween]}>
+                          <Text style={[styles.textSm, styles.textGray600]}>End Time</Text>
+                          <Text style={[styles.textSm, styles.fontMedium, styles.textGray900]}>
+                            {new Date(selectedStop.assignment.end_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                          </Text>
+                        </View>
+                      )}
+                      {selectedStop.assignment.status && (
+                        <View style={[styles.flexRow, styles.justifyBetween, styles.mt2]}>
+                          <Text style={[styles.textSm, styles.textGray600]}>Status</Text>
+                          <Text style={[styles.textSm, styles.fontMedium, styles.textGray900]}>
+                            {selectedStop.assignment.status === 'completed' ? 'Completed' : selectedStop.assignment.status === 'in_progress' ? 'In Progress' : selectedStop.assignment.status}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                )}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -450,5 +704,42 @@ const styles = StyleSheet.create({
   },
   uppercase: {
     textTransform: 'uppercase',
+  },
+  justifyBetween: {
+    justifyContent: 'space-between',
+  },
+  textXl: {
+    fontSize: 20,
+  },
+  fontBold: {
+    fontWeight: '700',
+  },
+  mb4: {
+    marginBottom: 16,
+  },
+  mt1: {
+    marginTop: 4,
+  },
+  p3: {
+    padding: 12,
+  },
+  ml6: {
+    marginLeft: 24,
+  },
+  borderT: {
+    borderTopWidth: 1,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '90%',
+    padding: 20,
+    paddingBottom: 40,
   },
 });

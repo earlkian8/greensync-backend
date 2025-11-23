@@ -477,13 +477,13 @@ class ResidentsController extends Controller
         
         // Get all bins with details
         $wasteBins = $allBins->map(function ($bin) {
-            return [
-                'id' => $bin->id,
+                return [
+                    'id' => $bin->id,
                 'name' => $bin->name,
-                'bin_type' => ucfirst(str_replace('-', ' ', $bin->bin_type)),
+                    'bin_type' => ucfirst(str_replace('-', ' ', $bin->bin_type)),
                 'status' => ucfirst($bin->status ?? 'Active'),
-            ];
-        });
+                ];
+            });
         
         // Get full bins count for notification
         $fullBinsCount = $allBins->where('status', 'full')->count();

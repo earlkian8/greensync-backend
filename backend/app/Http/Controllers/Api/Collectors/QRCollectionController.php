@@ -19,6 +19,63 @@ use Carbon\Carbon;
 class QRCollectionController extends Controller
 {
     /**
+     * Check if all stops are collected and update assignment status to completed
+     * 
+     * @param int $assignmentId
+     * @return void
+     */
+    private function checkAndUpdateAssignmentCompletion($assignmentId)
+    {
+        try {
+            $assignment = RouteAssignment::with('route')->find($assignmentId);
+            
+            if (!$assignment || !$assignment->route) {
+                return;
+            }
+
+            // Only check if assignment is still in_progress
+            if ($assignment->status !== 'in_progress') {
+                return;
+            }
+
+            // Get total stops for this route
+            $totalStops = RouteStop::where('route_id', $assignment->route_id)
+                ->whereNotNull('bin_id')
+                ->count();
+
+            // If no stops, don't mark as completed
+            if ($totalStops === 0) {
+                return;
+            }
+
+            // Get unique collected bins for this assignment
+            $collectedBins = QrCollection::where('assignment_id', $assignmentId)
+                ->whereIn('collection_status', ['collected', 'completed', 'manual', 'successful'])
+                ->distinct('bin_id')
+                ->count('bin_id');
+
+            // If all stops are collected, mark assignment as completed
+            if ($collectedBins >= $totalStops) {
+                $assignment->update([
+                    'status' => 'completed',
+                    'end_time' => Carbon::now(),
+                ]);
+
+                Log::info('Route assignment auto-completed', [
+                    'assignment_id' => $assignmentId,
+                    'total_stops' => $totalStops,
+                    'collected_bins' => $collectedBins,
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Error checking assignment completion', [
+                'assignment_id' => $assignmentId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
      * Scan and validate QR code
      * 
      * @param Request $request
@@ -166,6 +223,9 @@ class QRCollectionController extends Controller
 
                 DB::commit();
 
+                // Check if assignment is complete after successful collection
+                $this->checkAndUpdateAssignmentCompletion($request->assignment_id);
+
                 return response()->json([
                     'success' => true,
                     'message' => 'Collection recorded successfully',
@@ -294,6 +354,9 @@ class QRCollectionController extends Controller
 
             // Update waste bin's last_collected timestamp
             WasteBin::where('id', $binId)->update(['last_collected' => Carbon::now()]);
+
+            // Check if assignment is complete after successful collection
+            $this->checkAndUpdateAssignmentCompletion($request->assignment_id);
 
             return response()->json([
                 'success' => true,
