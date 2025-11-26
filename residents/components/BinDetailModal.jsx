@@ -1,10 +1,12 @@
 import { View, Text, Modal, Pressable, TextInput, ScrollView, Alert, ActivityIndicator, StyleSheet } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Feather from '@expo/vector-icons/Feather';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import QRCode from 'react-native-qrcode-svg';
 import { fetchBinDetails, formatBinData } from "@/services/binsService";
+import { captureRef } from 'react-native-view-shot';
+import * as MediaLibrary from 'expo-media-library';
 
 const BinDetailModal = ({ visible, onClose, binId, onUpdate, onDelete }) => {
   const [bin, setBin] = useState(null);
@@ -17,6 +19,8 @@ const BinDetailModal = ({ visible, onClose, binId, onUpdate, onDelete }) => {
   });
   const [isUpdating, setIsUpdating] = useState(false);
   const [errors, setErrors] = useState({});
+  const [isDownloading, setIsDownloading] = useState(false);
+  const qrCodeRef = useRef(null);
 
   useEffect(() => {
     if (visible && binId) {
@@ -134,6 +138,51 @@ const BinDetailModal = ({ visible, onClose, binId, onUpdate, onDelete }) => {
     );
   };
 
+  const handleDownloadQRCode = async () => {
+    if (!bin || !qrCodeRef.current) return;
+
+    try {
+      setIsDownloading(true);
+
+      // Request media library permissions
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          "Permission Required",
+          "Please grant permission to save images to your photo library.",
+          [{ text: "OK" }]
+        );
+        setIsDownloading(false);
+        return;
+      }
+
+      // Capture the QR code view as an image
+      const uri = await captureRef(qrCodeRef, {
+        format: 'png',
+        quality: 1.0,
+      });
+
+      // Save to media library
+      const asset = await MediaLibrary.createAssetAsync(uri);
+      await MediaLibrary.createAlbumAsync('GreenSync', asset, false);
+
+      Alert.alert(
+        "Success",
+        "QR code saved to your photo library!",
+        [{ text: "OK" }]
+      );
+    } catch (error) {
+      console.error('Error downloading QR code:', error);
+      Alert.alert(
+        "Error",
+        "Failed to save QR code. Please try again.",
+        [{ text: "OK" }]
+      );
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   // Map frontend to backend bin types
   const binTypes = [
     { label: "Organic", value: "Organic", backend: "biodegradable" },
@@ -213,7 +262,7 @@ const BinDetailModal = ({ visible, onClose, binId, onUpdate, onDelete }) => {
               )}
             {/* QR Code Display */}
             <View style={styles.qrSection}>
-              <View style={styles.qrCard}>
+              <View style={styles.qrCard} ref={qrCodeRef} collapsable={false}>
                 <QRCode
                   value={bin.qrCode}
                   size={200}
@@ -223,6 +272,27 @@ const BinDetailModal = ({ visible, onClose, binId, onUpdate, onDelete }) => {
               </View>
               <Text style={styles.qrCodeText}>{bin.qrCode}</Text>
               <Text style={styles.qrHelperText}>Scan to access bin</Text>
+              {!isEditing && (
+                <Pressable
+                  onPress={handleDownloadQRCode}
+                  disabled={isDownloading}
+                  style={[
+                    styles.downloadButton,
+                    isDownloading && styles.downloadButtonDisabled
+                  ]}
+                >
+                  <View style={styles.downloadButtonContent}>
+                    {isDownloading ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Feather name="download" size={18} color="#FFFFFF" />
+                    )}
+                    <Text style={styles.downloadButtonText}>
+                      {isDownloading ? 'Downloading...' : 'Download QR Code'}
+                    </Text>
+                  </View>
+                </Pressable>
+              )}
             </View>
 
             {/* Bin Name */}
@@ -699,6 +769,28 @@ const styles = StyleSheet.create({
   errorStateText: {
     color: '#6B7280',
     marginTop: 12,
+  },
+  downloadButton: {
+    marginTop: 16,
+    backgroundColor: '#16A34A',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    alignSelf: 'center',
+  },
+  downloadButtonDisabled: {
+    backgroundColor: '#86EFAC',
+  },
+  downloadButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  downloadButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    marginLeft: 8,
+    fontSize: 14,
   },
 });
 

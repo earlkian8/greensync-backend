@@ -103,9 +103,9 @@ class ResidentsController extends Controller
             $validated['country'] = 'Philippines';
         }
 
-        // Handle profile image upload using private storage
+        // Handle profile image upload using public storage
         if ($request->hasFile('profile_image')) {
-            $path = $request->file('profile_image')->store('residents/profiles', 'private');
+            $path = $request->file('profile_image')->store('residents/profiles', 'public');
             $validated['profile_image'] = $path;
         }
 
@@ -291,9 +291,9 @@ class ResidentsController extends Controller
             if ($request->hasFile('profile_image')) {
                 // Delete old image if exists
                 if ($resident->profile_image) {
-                    Storage::disk('private')->delete($resident->profile_image);
+                    Storage::disk('public')->delete($resident->profile_image);
                 }
-                $imagePath = $request->file('profile_image')->store('residents/profiles', 'private');
+                $imagePath = $request->file('profile_image')->store('residents/profiles', 'public');
                 $validated['profile_image'] = $imagePath;
             }
 
@@ -318,7 +318,7 @@ class ResidentsController extends Controller
             
             // Delete uploaded image if transaction failed
             if (isset($imagePath)) {
-                Storage::disk('private')->delete($imagePath);
+                Storage::disk('public')->delete($imagePath);
             }
             
             Log::error('Failed to update resident profile', [
@@ -343,7 +343,7 @@ class ResidentsController extends Controller
         try {
             // Delete profile image if exists
             if ($resident->profile_image) {
-                Storage::disk('private')->delete($resident->profile_image);
+                Storage::disk('public')->delete($resident->profile_image);
             }
             
             $resident->delete();
@@ -384,17 +384,17 @@ class ResidentsController extends Controller
     }
 
     /**
-     * Serve the resident's profile image from private storage.
+     * Serve the resident's profile image from public storage.
      */
     public function profileImage(Resident $resident)
     {
-        if (!$resident->profile_image || !Storage::disk('private')->exists($resident->profile_image)) {
+        if (!$resident->profile_image || !Storage::disk('public')->exists($resident->profile_image)) {
             return response()->json([
                 'message' => 'Profile image not found.',
             ], 404);
         }
 
-        return Storage::disk('private')->response(
+        return Storage::disk('public')->response(
             $resident->profile_image,
             null,
             ['Cache-Control' => 'public, max-age=86400']

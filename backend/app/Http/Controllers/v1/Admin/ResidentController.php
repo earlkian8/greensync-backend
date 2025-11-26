@@ -498,15 +498,15 @@ class ResidentController extends Controller
     }
 
     /**
-     * Serve resident profile image stored in private disk.
+     * Serve resident profile image stored in public disk.
      */
     public function serveProfileImage(Resident $resident)
     {
-        if (!$resident->profile_image || !Storage::disk('private')->exists($resident->profile_image)) {
+        if (!$resident->profile_image || !Storage::disk('public')->exists($resident->profile_image)) {
             abort(404);
         }
 
-        return Storage::disk('private')->response($resident->profile_image);
+        return Storage::disk('public')->response($resident->profile_image);
     }
 
     /**

@@ -379,6 +379,7 @@ const RouteDetailScreen = () => {
 
   const fetchDetails = useCallback(async () => {
     if (!assignmentId) return;
+    
     try {
       setError(null);
       setLoading(true);
@@ -395,7 +396,15 @@ const RouteDetailScreen = () => {
   }, [assignmentId]);
 
   useEffect(() => {
-    fetchDetails();
+    let isMounted = true;
+    
+    fetchDetails().catch(() => {
+      // Error already handled in fetchDetails
+    });
+    
+    return () => {
+      isMounted = false;
+    };
   }, [fetchDetails]);
 
   useEffect(() => {
@@ -411,9 +420,22 @@ const RouteDetailScreen = () => {
     if (needsMap && !RouteMapViewComponent && isNavigationReady) {
       if (assignmentId) {
         import('@/components/RouteMapView')
-          .then((module) => setRouteMapViewComponent(() => module.default))
+          .then((module) => {
+            // Only set if component is still mounted and map is still needed
+            setRouteMapViewComponent(() => module.default);
+          })
           .catch((err) => console.error('Failed to load RouteMapView:', err));
       }
+    }
+    
+    // Cleanup: unload map component when not needed to free memory
+    if (!needsMap && RouteMapViewComponent) {
+      // Use a small delay to prevent rapid load/unload cycles
+      const timer = setTimeout(() => {
+        setRouteMapViewComponent(null);
+      }, 2000); // Keep in memory for 2 seconds after view change
+      
+      return () => clearTimeout(timer);
     }
   }, [activeView, detailModalVisible, RouteMapViewComponent, assignmentId, isNavigationReady]);
 

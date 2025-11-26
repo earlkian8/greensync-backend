@@ -136,7 +136,7 @@ class CollectorController extends Controller
 
             // Handle profile image upload
             if ($request->hasFile('profile_image')) {
-                $path = $request->file('profile_image')->store('collectors/profiles', 'private');
+                $path = $request->file('profile_image')->store('collectors/profiles', 'public');
                 $collectorData['profile_image'] = $path;
                 $imagePaths[] = $path;
             }
@@ -189,7 +189,7 @@ class CollectorController extends Controller
             
             // Delete uploaded images if transaction failed
             foreach ($imagePaths as $imagePath) {
-                Storage::disk('private')->delete($imagePath);
+                Storage::disk('public')->delete($imagePath);
             }
             
             return back()->withErrors(['error' => 'Failed to create collector: ' . $e->getMessage()])
@@ -281,9 +281,9 @@ class CollectorController extends Controller
         if ($request->hasFile('profile_image')) {
             // Delete old image if exists
             if ($collector->profile_image) {
-                Storage::disk('private')->delete($collector->profile_image);
+                Storage::disk('public')->delete($collector->profile_image);
             }
-            $path = $request->file('profile_image')->store('collectors/profiles', 'private');
+            $path = $request->file('profile_image')->store('collectors/profiles', 'public');
             $updateData['profile_image'] = $path;
         }
 
@@ -426,7 +426,7 @@ class CollectorController extends Controller
 
         // Delete all images if they exist
         if ($collector->profile_image) {
-            Storage::disk('private')->delete($collector->profile_image);
+            Storage::disk('public')->delete($collector->profile_image);
         }
         if ($collector->license_number_image) {
             Storage::disk('private')->delete($collector->license_number_image);
@@ -481,11 +481,11 @@ class CollectorController extends Controller
      */
     public function serveProfileImage(Collector $collector)
     {
-        if (!$collector->profile_image || !Storage::disk('private')->exists($collector->profile_image)) {
+        if (!$collector->profile_image || !Storage::disk('public')->exists($collector->profile_image)) {
             abort(404);
         }
 
-        return Storage::disk('private')->response($collector->profile_image);
+        return Storage::disk('public')->response($collector->profile_image);
     }
 
     /**

@@ -23,8 +23,11 @@ import {
   ExternalLink,
   Copy
 } from 'lucide-react';
+import { usePage } from '@inertiajs/react';
+import GoogleMap from '@/Components/GoogleMap';
 
 const ShowCollectionRequest = ({ setShowViewModal, request }) => {
+  const { googleMapsApiKey } = usePage().props;
   const InfoRow = ({ icon: Icon, label, value }) => (
     <div className="flex items-start gap-3 py-2">
       <Icon className="h-5 w-5 text-zinc-600 mt-0.5" />
@@ -338,33 +341,45 @@ const ShowCollectionRequest = ({ setShowViewModal, request }) => {
               </div>
 
               {hasCoordinates ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="border rounded-md p-3 bg-white">
-                    <p className="text-xs text-zinc-500 uppercase tracking-wide">Latitude</p>
-                    <p className="text-base font-semibold text-zinc-900">{Number(request.latitude).toFixed(6)}</p>
+                <>
+                  {/* Google Map */}
+                  <div className="w-full mb-4">
+                    <GoogleMap
+                      latitude={request.latitude}
+                      longitude={request.longitude}
+                      apiKey={googleMapsApiKey}
+                      className="h-64"
+                    />
                   </div>
-                  <div className="border rounded-md p-3 bg-white">
-                    <p className="text-xs text-zinc-500 uppercase tracking-wide">Longitude</p>
-                    <p className="text-base font-semibold text-zinc-900">{Number(request.longitude).toFixed(6)}</p>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="border rounded-md p-3 bg-white">
+                      <p className="text-xs text-zinc-500 uppercase tracking-wide">Latitude</p>
+                      <p className="text-base font-semibold text-zinc-900">{Number(request.latitude).toFixed(6)}</p>
+                    </div>
+                    <div className="border rounded-md p-3 bg-white">
+                      <p className="text-xs text-zinc-500 uppercase tracking-wide">Longitude</p>
+                      <p className="text-base font-semibold text-zinc-900">{Number(request.longitude).toFixed(6)}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={copyCoordinates}
+                      className="flex items-center justify-center gap-2 border rounded-md p-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition"
+                    >
+                      <Copy className="h-4 w-4" />
+                      Copy Coordinates
+                    </button>
+                    <a
+                      href={`https://www.google.com/maps?q=${request.latitude},${request.longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 border rounded-md p-3 text-sm font-medium text-blue-600 hover:bg-blue-50 transition"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      Open in Google Maps
+                    </a>
                   </div>
-                  <button
-                    type="button"
-                    onClick={copyCoordinates}
-                    className="flex items-center justify-center gap-2 border rounded-md p-3 text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition"
-                  >
-                    <Copy className="h-4 w-4" />
-                    Copy Coordinates
-                  </button>
-                  <a
-                    href={`https://www.google.com/maps?q=${request.latitude},${request.longitude}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 border rounded-md p-3 text-sm font-medium text-blue-600 hover:bg-blue-50 transition"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    Open in Google Maps
-                  </a>
-                </div>
+                </>
               ) : (
                 <p className="text-sm text-red-700 bg-red-50 border border-red-100 rounded-md p-3">
                   This request does not include latitude/longitude. Encourage the resident to refresh their location so routing can proceed.

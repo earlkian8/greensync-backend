@@ -1,15 +1,14 @@
-import Checkbox from '@/Components/Checkbox';
 import InputError from '@/Components/InputError';
 import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
-import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import { toast } from 'sonner';
 import { useEffect, useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 
-export default function Login({ status, canResetPassword }) {
+export default function Login({ status }) {
     const { flash } = usePage().props;
     const [showPassword, setShowPassword] = useState(false);
     
@@ -22,7 +21,6 @@ export default function Login({ status, canResetPassword }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         email: '',
         password: '',
-        remember: false,
     });
 
     const submit = (e) => {
@@ -111,28 +109,6 @@ export default function Login({ status, canResetPassword }) {
                         </div>
 
                         <InputError message={errors.password} className="mt-1" />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                        <label className="flex items-center">
-                            <Checkbox
-                                name="remember"
-                                checked={data.remember}
-                                onChange={(e) => setData('remember', e.target.checked)}
-                            />
-                            <span className="ms-2 text-sm text-gray-600">
-                                Remember me
-                            </span>
-                        </label>
-
-                        {canResetPassword && (
-                            <Link
-                                href={route('password.request')}
-                                className="text-sm font-medium text-green-600 hover:text-green-700 hover:underline"
-                            >
-                                Forgot password?
-                            </Link>
-                        )}
                     </div>
 
                     <div className="pt-2">

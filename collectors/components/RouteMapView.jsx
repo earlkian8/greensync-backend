@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { View, Text, ActivityIndicator, Dimensions, TouchableOpacity, Platform, StyleSheet } from 'react-native';
 import { MapIcon, NavigationIcon } from 'lucide-react-native';
 import collectorRoutesService from '@/services/collectorRoutesService';
@@ -21,16 +21,23 @@ const RouteMapView = ({
   const [roadRouteCoordinates, setRoadRouteCoordinates] = useState([]);
   const [loadingRoute, setLoadingRoute] = useState(false);
   const mapRef = useRef(null);
+  const isMountedRef = useRef(true);
+  const fitToStopsCalledRef = useRef(false);
+  const lastRouteCoordinatesRef = useRef(null);
+  const animationTimeoutRef = useRef(null);
+  const routeFetchTimeoutRef = useRef(null);
+  const abortControllerRef = useRef(null);
 
+  // Load map components on mount
   useEffect(() => {
-    let mounted = true;
+    isMountedRef.current = true;
     
     const loadMap = async () => {
       try {
         // Dynamic import only when this component is rendered
         const mapModule = await import('react-native-maps');
         
-        if (mounted && mapModule && mapModule.default) {
+        if (isMountedRef.current && mapModule && mapModule.default) {
           setMapComponents({
             MapView: mapModule.default,
             Marker: mapModule.Marker,
@@ -41,7 +48,7 @@ const RouteMapView = ({
         }
       } catch (err) {
         console.error('Failed to load map:', err);
-        if (mounted) {
+        if (isMountedRef.current) {
           const isDevClientIssue =
             err?.message?.includes('Native component for "AIRMap" does not exist') ||
             err?.message?.includes('Expo Go') ||
@@ -59,7 +66,7 @@ const RouteMapView = ({
           }
         }
       } finally {
-        if (mounted) {
+        if (isMountedRef.current) {
           setLoading(false);
         }
       }
@@ -71,42 +78,91 @@ const RouteMapView = ({
     }, 300);
 
     return () => {
-      mounted = false;
+      isMountedRef.current = false;
       clearTimeout(timer);
     };
   }, []);
 
-  // Focus on selected stop
+  // Focus on selected stop with debouncing and guards
   useEffect(() => {
-    if (mapRef.current && selectedStop?.latitude && selectedStop?.longitude) {
-      const coordinate = {
-        latitude: parseFloat(selectedStop.latitude),
-        longitude: parseFloat(selectedStop.longitude),
-      };
-      mapRef.current.animateToRegion(
-        {
-          ...coordinate,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        },
-        500
-      );
+    if (!mapRef.current || !mapComponents || !selectedStop?.latitude || !selectedStop?.longitude) {
+      return;
     }
-  }, [selectedStop]);
 
-  // Fetch road-following route from Google Directions API
-  useEffect(() => {
-    const fetchRoadRoute = async () => {
-      // Need at least 2 points for a route
-      if (routeCoordinates.length < 2) {
-        setRoadRouteCoordinates([]);
-        return;
+    // Clear any pending animation
+    if (animationTimeoutRef.current) {
+      clearTimeout(animationTimeoutRef.current);
+    }
+
+    animationTimeoutRef.current = setTimeout(() => {
+      if (!isMountedRef.current || !mapRef.current) return;
+      
+      try {
+        const lat = parseFloat(selectedStop.latitude);
+        const lng = parseFloat(selectedStop.longitude);
+        
+        if (isNaN(lat) || isNaN(lng)) return;
+        
+        mapRef.current.animateToRegion(
+          {
+            latitude: lat,
+            longitude: lng,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          },
+          500
+        );
+      } catch (err) {
+        console.warn('Error animating to region:', err);
       }
+    }, 200); // Increased debounce to prevent rapid animations
+
+    return () => {
+      if (animationTimeoutRef.current) {
+        clearTimeout(animationTimeoutRef.current);
+        animationTimeoutRef.current = null;
+      }
+    };
+  }, [selectedStop?.id, selectedStop?.latitude, selectedStop?.longitude, mapComponents]);
+
+  // Fetch road-following route from Google Directions API with proper cancellation
+  useEffect(() => {
+    // Check if coordinates actually changed
+    const coordinatesKey = JSON.stringify(routeCoordinates);
+    if (lastRouteCoordinatesRef.current === coordinatesKey) {
+      return;
+    }
+    lastRouteCoordinatesRef.current = coordinatesKey;
+
+    // Need at least 2 points for a route
+    if (routeCoordinates.length < 2) {
+      if (isMountedRef.current) {
+        setRoadRouteCoordinates([]);
+      }
+      return;
+    }
+
+    // Cancel previous request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
+    // Clear previous timeout
+    if (routeFetchTimeoutRef.current) {
+      clearTimeout(routeFetchTimeoutRef.current);
+    }
+
+    const fetchRoadRoute = async () => {
+      if (!isMountedRef.current) return;
 
       setLoadingRoute(true);
+
       try {
         const response = await collectorRoutesService.getDirections(routeCoordinates);
         
+        if (!isMountedRef.current) return;
+
         if (response && response.coordinates && response.coordinates.length > 0) {
           // Convert to format expected by react-native-maps
           const coordinates = response.coordinates.map(coord => ({
@@ -119,38 +175,102 @@ const RouteMapView = ({
           setRoadRouteCoordinates(routeCoordinates);
         }
       } catch (err) {
-        console.warn('Failed to fetch road route, using straight line:', err);
+        if (!isMountedRef.current) return;
+        
+        // Only log if it's not an abort error
+        if (err.name !== 'AbortError' && err.name !== 'CanceledError') {
+          console.warn('Failed to fetch road route, using straight line:', err);
+        }
         // Fallback to straight line route if API fails
         setRoadRouteCoordinates(routeCoordinates);
       } finally {
-        setLoadingRoute(false);
+        if (isMountedRef.current) {
+          setLoadingRoute(false);
+        }
       }
     };
 
-    fetchRoadRoute();
+    // Debounce the API call to prevent excessive requests
+    routeFetchTimeoutRef.current = setTimeout(() => {
+      fetchRoadRoute();
+    }, 500); // Increased debounce time
+
+    return () => {
+      if (routeFetchTimeoutRef.current) {
+        clearTimeout(routeFetchTimeoutRef.current);
+        routeFetchTimeoutRef.current = null;
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
   }, [routeCoordinates]);
 
-  // Fit to stops when map is ready
+  // Fit to stops when map is ready (only once when map loads)
   useEffect(() => {
-    const coordsToFit = roadRouteCoordinates.length > 0 ? roadRouteCoordinates : routeCoordinates;
-    if (mapRef.current && mapComponents && coordsToFit.length > 0) {
-      mapRef.current.fitToCoordinates(coordsToFit, {
-        edgePadding: {
-          top: 50,
-          right: 50,
-          bottom: 50,
-          left: 50,
-        },
-        animated: true,
-      });
-    }
-  }, [mapComponents, roadRouteCoordinates, routeCoordinates]);
+    if (!mapRef.current || !mapComponents || fitToStopsCalledRef.current) return;
 
-  const validStops = stops.filter(
-    (stop) => stop.latitude && stop.longitude && 
-    !isNaN(parseFloat(stop.latitude)) && 
-    !isNaN(parseFloat(stop.longitude))
-  );
+    const fitToCoordinates = () => {
+      if (!isMountedRef.current || !mapRef.current || fitToStopsCalledRef.current) return;
+
+      const coordsToFit = roadRouteCoordinates.length > 0 ? roadRouteCoordinates : routeCoordinates;
+      if (coordsToFit.length > 0) {
+        try {
+          mapRef.current.fitToCoordinates(coordsToFit, {
+            edgePadding: {
+              top: 50,
+              right: 50,
+              bottom: 50,
+              left: 50,
+            },
+            animated: true,
+          });
+          fitToStopsCalledRef.current = true;
+        } catch (err) {
+          console.warn('Error fitting to coordinates:', err);
+        }
+      }
+    };
+
+    // Delay to ensure map is fully rendered
+    const timeoutId = setTimeout(fitToCoordinates, 800);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [mapComponents, routeCoordinates, roadRouteCoordinates]);
+
+  // Handle fitToStops callback - optimized version
+  const handleFitToStops = useCallback(() => {
+    if (!mapRef.current || !mapComponents) return;
+
+    const coordsToFit = roadRouteCoordinates.length > 0 ? roadRouteCoordinates : routeCoordinates;
+    if (coordsToFit.length > 0) {
+      try {
+        mapRef.current.fitToCoordinates(coordsToFit, {
+          edgePadding: {
+            top: 50,
+            right: 50,
+            bottom: 50,
+            left: 50,
+          },
+          animated: true,
+        });
+      } catch (err) {
+        console.warn('Error fitting to coordinates:', err);
+      }
+    }
+  }, [mapComponents, routeCoordinates, roadRouteCoordinates]);
+
+  // Memoize valid stops to prevent unnecessary recalculations
+  const validStops = useMemo(() => {
+    return stops.filter(
+      (stop) => stop.latitude && stop.longitude && 
+      !isNaN(parseFloat(stop.latitude)) && 
+      !isNaN(parseFloat(stop.longitude))
+    );
+  }, [stops]);
 
   if (loading) {
     return (
@@ -199,6 +319,25 @@ const RouteMapView = ({
   const { MapView, Marker, Polyline, PROVIDER_GOOGLE, PROVIDER_DEFAULT } = mapComponents;
   const mapProvider = Platform.OS === 'android' ? PROVIDER_GOOGLE : PROVIDER_DEFAULT;
 
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      if (animationTimeoutRef.current) {
+        clearTimeout(animationTimeoutRef.current);
+      }
+      if (routeFetchTimeoutRef.current) {
+        clearTimeout(routeFetchTimeoutRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      if (mapRef.current) {
+        mapRef.current = null;
+      }
+    };
+  }, []);
+
   return (
     <View style={[styles.mt4, styles.rounded2xl, styles.overflowHidden, styles.border, styles.borderGray200]}>
       <MapView
@@ -212,18 +351,35 @@ const RouteMapView = ({
         loadingEnabled={true}
         loadingIndicatorColor="#16A34A"
         toolbarEnabled={false}
+        cacheEnabled={true}
+        maxZoomLevel={20}
+        minZoomLevel={5}
+        moveOnMarkerPress={false}
+        pitchEnabled={false}
+        rotateEnabled={false}
+        scrollEnabled={true}
+        zoomEnabled={true}
+        onMapReady={() => {
+          // Map is ready, can perform operations
+        }}
       >
         {/* Route polyline - use road-following route if available, otherwise fallback to straight line */}
-        {(roadRouteCoordinates.length > 1 || routeCoordinates.length > 1) && (
-          <Polyline
-            coordinates={roadRouteCoordinates.length > 1 ? roadRouteCoordinates : routeCoordinates}
-            strokeColor="#16A34A"
-            strokeWidth={5}
-            lineCap="round"
-            lineJoin="round"
-            miterLimit={10}
-          />
-        )}
+        {useMemo(() => {
+          const coords = roadRouteCoordinates.length > 1 ? roadRouteCoordinates : routeCoordinates;
+          if (coords.length < 2) return null;
+          
+          return (
+            <Polyline
+              coordinates={coords}
+              strokeColor="#16A34A"
+              strokeWidth={5}
+              lineCap="round"
+              lineJoin="round"
+              miterLimit={10}
+              tappable={false}
+            />
+          );
+        }, [roadRouteCoordinates, routeCoordinates])}
         
         {/* Show loading indicator while fetching route */}
         {loadingRoute && (
@@ -235,40 +391,54 @@ const RouteMapView = ({
           </View>
         )}
 
-        {/* Markers for each stop */}
-        {validStops.map((stop, index) => {
-          const isSelected = selectedStop?.id === stop.id;
-          const coordinate = {
-            latitude: parseFloat(stop.latitude),
-            longitude: parseFloat(stop.longitude),
-          };
+        {/* Markers for each stop - memoized to prevent unnecessary re-renders */}
+        {useMemo(() => {
+          const selectedStopId = selectedStop?.id;
+          return validStops.map((stop) => {
+            const isSelected = selectedStopId === stop.id;
+            const lat = parseFloat(stop.latitude);
+            const lng = parseFloat(stop.longitude);
+            
+            if (isNaN(lat) || isNaN(lng)) return null;
 
-          let markerColor = '#FACC15'; // Yellow for pending
-          if (stop.is_completed) {
-            markerColor = '#22C55E'; // Green for completed
-          } else if (isSelected) {
-            markerColor = '#3B82F6'; // Blue for selected
-          }
+            const coordinate = {
+              latitude: lat,
+              longitude: lng,
+            };
 
-          return (
-            <Marker
-              key={`stop-${stop.id}-${index}`}
-              coordinate={coordinate}
-              title={`Stop #${stop.stop_order}`}
-              description={stop.address}
-              onPress={() => onStopSelect?.(stop)}
-              pinColor={markerColor}
-              tracksViewChanges={false}
-            />
-          );
-        })}
+            let markerColor = '#FACC15'; // Yellow for pending
+            if (stop.is_completed) {
+              markerColor = '#22C55E'; // Green for completed
+            } else if (isSelected) {
+              markerColor = '#3B82F6'; // Blue for selected
+            }
+
+            return (
+              <Marker
+                key={`stop-${stop.id}`}
+                coordinate={coordinate}
+                title={`Stop #${stop.stop_order}`}
+                description={stop.address || ''}
+                onPress={() => {
+                  if (onStopSelect) {
+                    onStopSelect(stop);
+                  }
+                }}
+                pinColor={markerColor}
+                tracksViewChanges={false}
+                zIndex={isSelected ? 1000 : stop.is_completed ? 500 : 0}
+              />
+            );
+          }).filter(Boolean);
+        }, [validStops, selectedStop?.id, onStopSelect])}
       </MapView>
 
       {/* Map controls */}
       <View style={[styles.absolute, { top: 16, right: 16 }, styles.flexCol, styles.gap2]}>
         <TouchableOpacity
           style={[styles.bgWhite, styles.roundedFull, { padding: 12 }, styles.shadowLg]}
-          onPress={onFitToStops}
+          onPress={handleFitToStops}
+          activeOpacity={0.7}
         >
           <NavigationIcon size={20} color="#16A34A" />
         </TouchableOpacity>
@@ -364,5 +534,6 @@ const styles = StyleSheet.create({
   },
 });
 
-export default RouteMapView;
+// Memoize component to prevent unnecessary re-renders
+export default React.memo(RouteMapView);
 

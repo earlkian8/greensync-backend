@@ -46,7 +46,7 @@ class CollectorsController extends Controller
 
         // Handle profile image upload
         if ($request->hasFile('profile_image')) {
-            $path = $request->file('profile_image')->store('collectors/profiles', 'private');
+            $path = $request->file('profile_image')->store('collectors/profiles', 'public');
             $collectorData['profile_image'] = $path;
         }
 
@@ -167,9 +167,9 @@ class CollectorsController extends Controller
         if ($request->hasFile('profile_image')) {
             // Delete old image if exists
             if ($collector->profile_image) {
-                Storage::disk('private')->delete($collector->profile_image);
+                Storage::disk('public')->delete($collector->profile_image);
             }
-            $path = $request->file('profile_image')->store('collectors/profiles', 'private');
+            $path = $request->file('profile_image')->store('collectors/profiles', 'public');
             $updateData['profile_image'] = $path;
         }
 
@@ -229,7 +229,7 @@ class CollectorsController extends Controller
         ]);
     }
 
-    /** Serve profile image from private storage */
+    /** Serve profile image from public storage */
     public function getImage(Request $request, $path)
     {
         try {
@@ -267,12 +267,12 @@ class CollectorsController extends Controller
                 return response()->json(['message' => 'Invalid image path'], 403);
             }
             
-            if (!Storage::disk('private')->exists($decodedPath)) {
+            if (!Storage::disk('public')->exists($decodedPath)) {
                 return response()->json(['message' => 'Image not found'], 404);
             }
 
-            $file = Storage::disk('private')->get($decodedPath);
-            $type = Storage::disk('private')->mimeType($decodedPath);
+            $file = Storage::disk('public')->get($decodedPath);
+            $type = Storage::disk('public')->mimeType($decodedPath);
             $image = basename($decodedPath);
 
             return response($file, 200)

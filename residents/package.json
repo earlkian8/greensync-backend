@@ -19,6 +19,7 @@
     "expo": "~54.0.25",
     "expo-image-picker": "~17.0.8",
     "expo-location": "~19.0.7",
+    "expo-media-library": "^18.2.0",
     "expo-router": "~6.0.15",
     "expo-splash-screen": "~31.0.11",
     "expo-web-browser": "~15.0.9",
@@ -34,6 +35,7 @@
     "react-native-screens": "~4.16.0",
     "react-native-svg": "15.12.1",
     "react-native-toast-message": "^2.1.6",
+    "react-native-view-shot": "^4.0.3",
     "react-native-web": "~0.21.0"
   },
   "devDependencies": {

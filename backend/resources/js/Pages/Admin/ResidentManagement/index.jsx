@@ -199,15 +199,6 @@ export default function ResidentManagement() {
                                 </Select>
                             </div>
 
-                            {/* Add Resident Button */}
-                            <div className="w-full sm:w-auto">
-                                <Button 
-                                    className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white" 
-                                    onClick={() => setShowAddModal(true)}
-                                >
-                                    Add Resident
-                                </Button>
-                            </div>
                         </div>
                     </div>
 
@@ -225,7 +216,25 @@ export default function ResidentManagement() {
                             <TableRow key={resident.id}>
                                 
                                 <TableCell className='text-left px-2 py-2 sm:px-4 md:px-6 text-xs sm:text-sm'>
-                                    {resident.name}
+                                    <div className="flex items-center gap-2">
+                                        {resident.profile_image_url ? (
+                                            <img 
+                                                src={resident.profile_image_url} 
+                                                alt={resident.name}
+                                                className="w-8 h-8 rounded-full object-cover"
+                                                onError={(e) => {
+                                                    e.target.style.display = 'none';
+                                                    e.target.nextElementSibling.style.display = 'flex';
+                                                }}
+                                            />
+                                        ) : null}
+                                        <div 
+                                            className={`w-8 h-8 rounded-full bg-gray-300 flex items-center justify-center text-gray-600 text-xs font-medium ${resident.profile_image_url ? 'hidden' : ''}`}
+                                        >
+                                            {resident.name?.charAt(0)?.toUpperCase() || '?'}
+                                        </div>
+                                        <span>{resident.name}</span>
+                                    </div>
                                 </TableCell>
                                 <TableCell className='text-left px-2 py-2 sm:px-4 md:px-6 text-xs sm:text-sm'>
                                     {resident.email}

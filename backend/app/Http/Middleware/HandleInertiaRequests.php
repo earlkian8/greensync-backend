@@ -70,6 +70,7 @@ class HandleInertiaRequests extends Middleware
                 'info' => $request->session()->get('info'),
             ],
             'unreadCounts' => $unreadCounts,
+            'googleMapsApiKey' => config('services.google.maps_api_key'),
         ];
     }
 }
