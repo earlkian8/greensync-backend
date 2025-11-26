@@ -5,30 +5,79 @@ const GoogleMap = ({ latitude, longitude, apiKey, className = '' }) => {
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
 
+  // Helper function to wait for Google Maps API to be fully loaded
+  const waitForGoogleMaps = (callback, maxAttempts = 50) => {
+    let attempts = 0;
+    const checkInterval = setInterval(() => {
+      attempts++;
+      if (window.google && 
+          window.google.maps && 
+          typeof window.google.maps.Map === 'function' &&
+          window.google.maps.Map.prototype &&
+          typeof window.google.maps.Marker === 'function') {
+        clearInterval(checkInterval);
+        // Small delay to ensure everything is fully initialized
+        setTimeout(callback, 50);
+      } else if (attempts >= maxAttempts) {
+        clearInterval(checkInterval);
+        console.error('Google Maps API failed to load after maximum attempts');
+        const currentMapRef = mapRef.current;
+        if (currentMapRef) {
+          currentMapRef.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: center; height: 100%; padding: 20px; text-align: center;">
+              <div>
+                <p style="color: #DC2626; font-weight: 500; margin-bottom: 8px;">Google Maps API Error</p>
+                <p style="color: #6B7280; font-size: 14px;">Google Maps API failed to initialize. Please refresh the page.</p>
+              </div>
+            </div>
+          `;
+        }
+      }
+    }, 100);
+  };
+
   useEffect(() => {
     if (!latitude || !longitude || !apiKey) return;
 
-    // Check if Google Maps API is already loaded
-    if (window.google && window.google.maps) {
-      initializeMap();
+    // Check if Google Maps API is already loaded and ready
+    if (window.google && 
+        window.google.maps && 
+        typeof window.google.maps.Map === 'function') {
+      // Wait a bit to ensure it's fully ready
+      waitForGoogleMaps(initializeMap);
       return;
     }
 
-    // Load Google Maps API script with recommended loading=async parameter
+    // Check if script is already being loaded
+    const existingScript = document.querySelector(`script[src*="maps.googleapis.com"]`);
+    if (existingScript) {
+      // Script is loading, wait for it
+      waitForGoogleMaps(initializeMap);
+      return;
+    }
+
+    // Load Google Maps API script
+    // Using callback parameter for better control instead of loading=async
+    const callbackName = `initGoogleMap_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    window[callbackName] = () => {
+      waitForGoogleMaps(initializeMap);
+      delete window[callbackName];
+    };
+
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,marker&loading=async`;
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,marker&callback=${callbackName}`;
     script.async = true;
     script.defer = true;
-    script.onload = initializeMap;
     script.onerror = () => {
       console.error('Failed to load Google Maps API. Please check your API key configuration.');
+      delete window[callbackName];
       if (mapRef.current) {
         mapRef.current.innerHTML = `
           <div style="display: flex; align-items: center; justify-content: center; height: 100%; padding: 20px; text-align: center;">
             <div>
               <p style="color: #DC2626; font-weight: 500; margin-bottom: 8px;">Google Maps API Error</p>
-              <p style="color: #6B7280; font-size: 14px;">Failed to load Google Maps. Please check your API key configuration in the .env file.</p>
-              <p style="color: #6B7280; font-size: 12px; margin-top: 8px;">Make sure GOOGLE_MAPS_API_KEY is set and the Maps JavaScript API is enabled.</p>
+              <p style="color: #6B7280; font-size: 14px;">Failed to load Google Maps. Please check your API key configuration.</p>
+              <p style="color: #6B7280; font-size: 12px; margin-top: 8px;">Make sure GOOGLE_MAPS_API_KEY is set and the Maps JavaScript API is enabled in Google Cloud Console.</p>
             </div>
           </div>
         `;
@@ -37,10 +86,9 @@ const GoogleMap = ({ latitude, longitude, apiKey, className = '' }) => {
     document.head.appendChild(script);
 
     return () => {
-      // Cleanup: remove script if component unmounts
-      const existingScript = document.querySelector(`script[src*="maps.googleapis.com"]`);
-      if (existingScript && existingScript.parentNode) {
-        existingScript.parentNode.removeChild(existingScript);
+      // Cleanup callback if component unmounts before script loads
+      if (window[callbackName]) {
+        delete window[callbackName];
       }
     };
   }, [latitude, longitude, apiKey]);
@@ -48,12 +96,28 @@ const GoogleMap = ({ latitude, longitude, apiKey, className = '' }) => {
   const initializeMap = async () => {
     if (!mapRef.current || mapInstanceRef.current) return;
 
+    // Double-check that Google Maps API is ready
+    if (!window.google || 
+        !window.google.maps || 
+        typeof window.google.maps.Map !== 'function') {
+      console.error('Google Maps API is not ready');
+      if (mapRef.current) {
+        mapRef.current.innerHTML = `
+          <div style="display: flex; align-items: center; justify-content: center; height: 100%; padding: 20px; text-align: center;">
+            <div>
+              <p style="color: #DC2626; font-weight: 500; margin-bottom: 8px;">Google Maps API Error</p>
+              <p style="color: #6B7280; font-size: 14px;">Google Maps API is not ready. Please refresh the page.</p>
+            </div>
+          </div>
+        `;
+      }
+      return;
+    }
+
     try {
       const location = { lat: parseFloat(latitude), lng: parseFloat(longitude) };
 
       // Initialize map
-      // Note: mapId is optional but recommended for AdvancedMarkerElement
-      // If you have a custom Map ID from Google Cloud Console, use it here
       const mapOptions = {
         center: location,
         zoom: 15,
@@ -61,6 +125,11 @@ const GoogleMap = ({ latitude, longitude, apiKey, className = '' }) => {
         streetViewControl: true,
         fullscreenControl: true,
       };
+
+      // Verify Map constructor exists before using it
+      if (typeof window.google.maps.Map !== 'function') {
+        throw new Error('window.google.maps.Map is not a constructor. The API may not be fully loaded.');
+      }
 
       const map = new window.google.maps.Map(mapRef.current, mapOptions);
       mapInstanceRef.current = map;
@@ -138,7 +207,7 @@ const GoogleMap = ({ latitude, longitude, apiKey, className = '' }) => {
             <div>
               <p style="color: #DC2626; font-weight: 500; margin-bottom: 8px;">Google Maps Error</p>
               <p style="color: #6B7280; font-size: 14px;">${errorMessage}</p>
-              <p style="color: #6B7280; font-size: 12px; margin-top: 8px;">Add GOOGLE_MAPS_API_KEY=AIzaSyB9Z95Q-GkCc-MPi4oYD4Leg54EbAQVaxI to your backend/.env file</p>
+              <p style="color: #6B7280; font-size: 12px; margin-top: 8px;">Please ensure GOOGLE_MAPS_API_KEY is set in your .env file and the Maps JavaScript API is enabled in Google Cloud Console.</p>
             </div>
           </div>
         `;
