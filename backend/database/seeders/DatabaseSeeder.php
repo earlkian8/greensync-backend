@@ -22,18 +22,18 @@ class DatabaseSeeder extends Seeder
         //     'email' => 'dev@unisync.com',
         //     'password' => Hash::make('password')
         // ]);
-        Artisan::call('philippines:run');
+        // Artisan::call('philippines:run');
 
         // Seed residents, collectors, and collection schedules
-        // $this->call([
-        //     ResidentSeeder::class,
-        //     CollectorSeeder::class,
-        //     CollectionScheduleSeeder::class,
-        // ]);
+        $this->call([
+            ResidentSeeder::class,
+            CollectorSeeder::class,
+            CollectionScheduleSeeder::class,
+        ]);
 
         // // Comprehensive seeder with all tables, focused on earlkian8
-        // $this->call([
-        //     ComprehensiveSeeder::class,
-        // ]);
+        $this->call([
+            ComprehensiveSeeder::class,
+        ]);
     }
 }
