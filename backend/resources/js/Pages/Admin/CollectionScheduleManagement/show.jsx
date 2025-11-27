@@ -78,8 +78,7 @@ const ShowCollectionSchedule = ({ setShowViewModal, schedule }) => {
               <div className="w-32 h-32 rounded-full bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center mb-4">
                 <Calendar className="h-16 w-16 text-green-600" />
               </div>
-              <h2 className="text-xl font-bold text-zinc-900 text-center">{schedule.barangay}</h2>
-              <p className="text-sm text-zinc-600 text-center mt-1">{schedule.collection_day}</p>
+              <h2 className="text-xl font-bold text-zinc-900 text-center">{schedule.collection_day}</h2>
               <p className="text-lg font-semibold text-green-600 text-center mt-1">
                 {formatTime(schedule.collection_time)}
               </p>
@@ -115,12 +114,6 @@ const ShowCollectionSchedule = ({ setShowViewModal, schedule }) => {
             
             <div className="space-y-1">
               <h4 className="text-sm font-semibold text-zinc-700 mb-2">Basic Details</h4>
-              <InfoRow 
-                icon={MapPin} 
-                label="Barangay" 
-                value={schedule.barangay}
-                valueClass="font-semibold"
-              />
               <InfoRow 
                 icon={Calendar} 
                 label="Collection Day" 

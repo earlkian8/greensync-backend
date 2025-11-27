@@ -25,7 +25,6 @@ import { useState, useEffect } from 'react';
 
 const EditCollectionSchedule = ({ schedule, setShowEditModal }) => {
   const { data, setData, post, errors, processing } = useForm({
-    barangay: schedule?.barangay || '',
     collection_day: schedule?.collection_day || '',
     collection_time: schedule?.collection_time || '',
     frequency: schedule?.frequency || 'weekly',
@@ -43,7 +42,6 @@ const EditCollectionSchedule = ({ schedule, setShowEditModal }) => {
       }
 
       setData({
-        barangay: schedule.barangay || '',
         collection_day: schedule.collection_day || '',
         collection_time: formattedTime || '',
         frequency: schedule.frequency || 'weekly',
@@ -89,19 +87,6 @@ const EditCollectionSchedule = ({ schedule, setShowEditModal }) => {
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
-
-          {/* Barangay */}
-          <div>
-            <Label className="text-zinc-800">Barangay </Label>
-            <Input
-              type="text"
-              value={data.barangay}
-              onChange={e => setData('barangay', e.target.value)}
-              placeholder="Enter barangay name"
-              className={inputClass(errors.barangay)}
-            />
-            <InputError message={errors.barangay} />
-          </div>
 
           {/* Collection Day */}
           <div>

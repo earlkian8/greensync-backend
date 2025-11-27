@@ -186,7 +186,7 @@ const AddRouteAssignment = ({ setShowAddModal }) => {
                 {allSchedules && allSchedules.length > 0 ? (
                   allSchedules.map((schedule) => (
                     <SelectItem key={schedule.id} value={schedule.id.toString()}>
-                      {schedule.barangay} - {schedule.collection_day} at {schedule.collection_time} ({schedule.frequency})
+                      {schedule.collection_day} at {schedule.collection_time} ({schedule.frequency})
                     </SelectItem>
                   ))
                 ) : (

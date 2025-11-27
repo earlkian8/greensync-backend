@@ -11,7 +11,6 @@ class CollectionSchedule extends Model
     use HasFactory;
 
     protected $fillable = [
-        'barangay',
         'collection_day',
         'collection_time',
         'frequency',

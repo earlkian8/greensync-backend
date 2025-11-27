@@ -24,64 +24,58 @@ class CollectionScheduleSeeder extends Seeder
             ]);
         }
 
-        // Create collection schedules for different barangays
+        // Create collection schedules
         CollectionSchedule::create([
-            'barangay' => 'Barangay 1',
             'collection_day' => 'Monday',
             'collection_time' => '08:00:00',
             'frequency' => 'weekly',
             'is_active' => true,
-            'notes' => 'Regular weekly collection for Barangay 1',
+            'notes' => 'Regular weekly collection',
             'created_by' => $adminUser->id,
         ]);
 
         CollectionSchedule::create([
-            'barangay' => 'Barangay 2',
             'collection_day' => 'Tuesday',
             'collection_time' => '09:00:00',
             'frequency' => 'weekly',
             'is_active' => true,
-            'notes' => 'Regular weekly collection for Barangay 2',
+            'notes' => 'Regular weekly collection',
             'created_by' => $adminUser->id,
         ]);
 
         CollectionSchedule::create([
-            'barangay' => 'Barangay 3',
             'collection_day' => 'Wednesday',
             'collection_time' => '08:30:00',
             'frequency' => 'weekly',
             'is_active' => true,
-            'notes' => 'Regular weekly collection for Barangay 3',
+            'notes' => 'Regular weekly collection',
             'created_by' => $adminUser->id,
         ]);
 
         CollectionSchedule::create([
-            'barangay' => 'Barangay 1',
             'collection_day' => 'Thursday',
             'collection_time' => '10:00:00',
             'frequency' => 'bi-weekly',
             'is_active' => true,
-            'notes' => 'Bi-weekly collection for Barangay 1',
+            'notes' => 'Bi-weekly collection',
             'created_by' => $adminUser->id,
         ]);
 
         CollectionSchedule::create([
-            'barangay' => 'Barangay 2',
             'collection_day' => 'Friday',
             'collection_time' => '09:30:00',
             'frequency' => 'weekly',
             'is_active' => true,
-            'notes' => 'Regular weekly collection for Barangay 2',
+            'notes' => 'Regular weekly collection',
             'created_by' => $adminUser->id,
         ]);
 
         CollectionSchedule::create([
-            'barangay' => 'Barangay 3',
             'collection_day' => 'Saturday',
             'collection_time' => '07:00:00',
             'frequency' => 'monthly',
             'is_active' => true,
-            'notes' => 'Monthly collection for Barangay 3',
+            'notes' => 'Monthly collection',
             'created_by' => $adminUser->id,
         ]);
     }

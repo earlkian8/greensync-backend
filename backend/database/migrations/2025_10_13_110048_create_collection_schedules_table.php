@@ -13,7 +13,6 @@ return new class extends Migration
     {
         Schema::create('collection_schedules', function (Blueprint $table) {
             $table->id();
-            $table->string('barangay', 100);
             
             $table->enum('collection_day', [
                 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'

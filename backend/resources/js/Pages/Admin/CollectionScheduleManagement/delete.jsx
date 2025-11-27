@@ -24,7 +24,7 @@ const DeleteCollectionSchedule = ({ setShowDeleteModal, schedule }) => {
           if (flash && flash.error) {
             toast.error(flash.error);
           } else {
-            toast.success(`Collection schedule for "${schedule.barangay}" on ${schedule.collection_day} deleted successfully`);
+            toast.success(`Collection schedule for ${schedule.collection_day} at ${formatTime(schedule.collection_time)} deleted successfully`);
           }
         },
         onError: (errors) => {
@@ -55,8 +55,7 @@ const DeleteCollectionSchedule = ({ setShowDeleteModal, schedule }) => {
           <DialogTitle>Delete Collection Schedule</DialogTitle>
           <DialogDescription>
             Are you sure you want to delete the collection schedule for{" "}
-            <span className="font-semibold">{schedule.barangay}</span>
-            {" "}on <span className="font-semibold">{schedule.collection_day}</span> at{" "}
+            <span className="font-semibold">{schedule.collection_day}</span> at{" "}
             <span className="font-semibold">{formatTime(schedule.collection_time)}</span>? 
             This action cannot be undone and all associated route assignments will be affected.
           </DialogDescription>

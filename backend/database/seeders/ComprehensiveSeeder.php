@@ -267,17 +267,15 @@ class ComprehensiveSeeder extends Seeder
         $frequencies = ['weekly', 'bi-weekly', 'monthly'];
         
         for ($i = 0; $i < 7; $i++) {
-            $barangay = $zamboangaBarangays[$i % count($zamboangaBarangays)];
             $schedules[] = CollectionSchedule::firstOrCreate(
                 [
-                    'barangay' => $barangay,
                     'collection_day' => $days[$i],
+                    'collection_time' => Carbon::createFromTime(8 + ($i % 3), 0),
                 ],
                 [
-                    'collection_time' => Carbon::createFromTime(8 + ($i % 3), 0),
                     'frequency' => $frequencies[$i % 3],
                     'is_active' => true,
-                    'notes' => "Regular collection schedule for {$barangay}",
+                    'notes' => "Regular collection schedule",
                     'created_by' => $adminUser->id,
                 ]
             );

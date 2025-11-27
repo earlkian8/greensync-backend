@@ -34,15 +34,13 @@ class CollectionScheduleController extends Controller
         $search = $request->get('search', '');
         $page = $request->get('page', 1);
         $statusFilter = $request->get('status', ''); // all, active, inactive
-        $barangayFilter = $request->get('barangay', '');
         $dayFilter = $request->get('day', '');
 
         $query = CollectionSchedule::with('creator:id,name,email');
 
         if ($search) {
             $query->where(function ($q) use ($search) {
-                $q->where('barangay', 'like', "%{$search}%")
-                  ->orWhere('collection_day', 'like', "%{$search}%")
+                $q->where('collection_day', 'like', "%{$search}%")
                   ->orWhere('notes', 'like', "%{$search}%");
             });
         }
@@ -52,11 +50,6 @@ class CollectionScheduleController extends Controller
             $query->where('is_active', true);
         } elseif ($statusFilter === 'inactive') {
             $query->where('is_active', false);
-        }
-
-        // Filter by barangay
-        if ($barangayFilter) {
-            $query->where('barangay', $barangayFilter);
         }
 
         // Filter by day
@@ -70,18 +63,10 @@ class CollectionScheduleController extends Controller
                           ->paginate(10)
                           ->withQueryString();
 
-        // Get unique barangays for filter dropdown
-        $barangays = CollectionSchedule::select('barangay')
-                            ->distinct()
-                            ->orderBy('barangay')
-                            ->pluck('barangay');
-
         return Inertia::render('Admin/CollectionScheduleManagement/index', [
             'schedules' => $schedules,
-            'barangays' => $barangays,
             'search' => $search,
             'statusFilter' => $statusFilter,
-            'barangayFilter' => $barangayFilter,
             'dayFilter' => $dayFilter,
         ]);
     }
@@ -100,7 +85,6 @@ class CollectionScheduleController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'barangay' => 'required|string|max:100',
             'collection_day' => [
                 'required',
                 Rule::in(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'])
@@ -114,23 +98,20 @@ class CollectionScheduleController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        // Check for duplicate schedule (same barangay, day, and time)
-        $existingSchedule = CollectionSchedule::where('barangay', $validated['barangay'])
-            ->where('collection_day', $validated['collection_day'])
+        // Check for duplicate schedule (same day and time)
+        $existingSchedule = CollectionSchedule::where('collection_day', $validated['collection_day'])
             ->where('collection_time', $validated['collection_time'])
             ->where('is_active', true)
             ->first();
 
         if ($existingSchedule) {
             return back()->withErrors([
-                'collection_time' => 'A schedule already exists for ' . $validated['barangay'] . 
-                                   ' on ' . $validated['collection_day'] . 
+                'collection_time' => 'A schedule already exists for ' . $validated['collection_day'] . 
                                    ' at ' . $validated['collection_time']
             ]);
         }
 
         $scheduleData = [
-            'barangay' => $validated['barangay'],
             'collection_day' => $validated['collection_day'],
             'collection_time' => $validated['collection_time'],
             'frequency' => $validated['frequency'],
@@ -144,7 +125,7 @@ class CollectionScheduleController extends Controller
         $this->adminActivityLogs(
             'Collection Schedule',
             'Add',
-            'Created Collection Schedule for ' . $schedule->barangay . ' on ' . $schedule->collection_day . ' at ' . $schedule->collection_time
+            'Created Collection Schedule for ' . $schedule->collection_day . ' at ' . $schedule->collection_time
         );
 
         return redirect()->route('admin.collection-schedule-management.index')
@@ -163,7 +144,7 @@ class CollectionScheduleController extends Controller
         $this->adminActivityLogs(
             'Collection Schedule',
             'View',
-            'Viewed Collection Schedule for ' . $collectionSchedule->barangay . ' on ' . $collectionSchedule->collection_day
+            'Viewed Collection Schedule for ' . $collectionSchedule->collection_day
         );
 
         return Inertia::render('Admin/CollectionScheduleManagement/show', [
@@ -179,7 +160,7 @@ class CollectionScheduleController extends Controller
         $this->adminActivityLogs(
             'Collection Schedule',
             'Edit',
-            'Edit Collection Schedule for ' . $collectionSchedule->barangay . ' on ' . $collectionSchedule->collection_day
+            'Edit Collection Schedule for ' . $collectionSchedule->collection_day
         );
 
         return Inertia::render('Admin/CollectionScheduleManagement/edit', [
@@ -193,7 +174,6 @@ class CollectionScheduleController extends Controller
     public function update(Request $request, CollectionSchedule $collectionSchedule)
     {
         $validated = $request->validate([
-            'barangay' => 'required|string|max:100',
             'collection_day' => [
                 'required',
                 Rule::in(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'])
@@ -208,8 +188,7 @@ class CollectionScheduleController extends Controller
         ]);
 
         // Check for duplicate schedule (excluding current schedule)
-        $existingSchedule = CollectionSchedule::where('barangay', $validated['barangay'])
-            ->where('collection_day', $validated['collection_day'])
+        $existingSchedule = CollectionSchedule::where('collection_day', $validated['collection_day'])
             ->where('collection_time', $validated['collection_time'])
             ->where('id', '!=', $collectionSchedule->id)
             ->where('is_active', true)
@@ -217,14 +196,12 @@ class CollectionScheduleController extends Controller
 
         if ($existingSchedule) {
             return back()->withErrors([
-                'collection_time' => 'A schedule already exists for ' . $validated['barangay'] . 
-                                   ' on ' . $validated['collection_day'] . 
+                'collection_time' => 'A schedule already exists for ' . $validated['collection_day'] . 
                                    ' at ' . $validated['collection_time']
             ]);
         }
 
         $updateData = [
-            'barangay' => $validated['barangay'],
             'collection_day' => $validated['collection_day'],
             'collection_time' => $validated['collection_time'],
             'frequency' => $validated['frequency'],
@@ -237,7 +214,7 @@ class CollectionScheduleController extends Controller
         $this->adminActivityLogs(
             'Collection Schedule',
             'Update',
-            'Updated Collection Schedule for ' . $collectionSchedule->barangay . ' on ' . $collectionSchedule->collection_day . ' at ' . $collectionSchedule->collection_time
+            'Updated Collection Schedule for ' . $collectionSchedule->collection_day . ' at ' . $collectionSchedule->collection_time
         );
 
         return redirect()->route('admin.collection-schedule-management.index')
@@ -254,7 +231,7 @@ class CollectionScheduleController extends Controller
         $this->adminActivityLogs(
             'Collection Schedule',
             'Activate',
-            'Activated Collection Schedule for ' . $collectionSchedule->barangay . ' on ' . $collectionSchedule->collection_day
+            'Activated Collection Schedule for ' . $collectionSchedule->collection_day
         );
 
         return back()->with('success', 'Collection schedule activated successfully');
@@ -270,7 +247,7 @@ class CollectionScheduleController extends Controller
         $this->adminActivityLogs(
             'Collection Schedule',
             'Deactivate',
-            'Deactivated Collection Schedule for ' . $collectionSchedule->barangay . ' on ' . $collectionSchedule->collection_day
+            'Deactivated Collection Schedule for ' . $collectionSchedule->collection_day
         );
 
         return back()->with('success', 'Collection Schedule deactivated successfully');
@@ -284,7 +261,7 @@ class CollectionScheduleController extends Controller
         $this->adminActivityLogs(
             'Collection Schedule',
             'Delete',
-            'Deleted Collection Schedule for ' . $collectionSchedule->barangay . ' on ' . $collectionSchedule->collection_day . ' at ' . $collectionSchedule->collection_time
+            'Deleted Collection Schedule for ' . $collectionSchedule->collection_day . ' at ' . $collectionSchedule->collection_time
         );
 
         $collectionSchedule->delete();
@@ -302,10 +279,6 @@ class CollectionScheduleController extends Controller
             'total_schedules' => CollectionSchedule::count(),
             'active_schedules' => CollectionSchedule::where('is_active', true)->count(),
             'inactive_schedules' => CollectionSchedule::where('is_active', false)->count(),
-            'schedules_by_barangay' => CollectionSchedule::selectRaw('barangay, COUNT(*) as count')
-                ->groupBy('barangay')
-                ->orderBy('count', 'desc')
-                ->get(),
             'schedules_by_day' => CollectionSchedule::selectRaw('collection_day, COUNT(*) as count')
                 ->where('is_active', true)
                 ->groupBy('collection_day')
@@ -314,7 +287,7 @@ class CollectionScheduleController extends Controller
             'recent_schedules' => CollectionSchedule::with('creator:id,name,email')
                 ->orderBy('created_at', 'desc')
                 ->take(10)
-                ->get(['id', 'barangay', 'collection_day', 'collection_time', 'is_active', 'created_by', 'created_at']),
+                ->get(['id', 'collection_day', 'collection_time', 'is_active', 'created_by', 'created_at']),
         ];
 
         $this->adminActivityLogs(

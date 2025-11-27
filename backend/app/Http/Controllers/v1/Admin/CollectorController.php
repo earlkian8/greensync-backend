@@ -9,11 +9,14 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use App\Trait\ActivityLogsTrait;
 use App\Trait\AdminNotificationTrait;
+use App\Mail\CollectorAccountCreated;
 
 class CollectorController extends Controller
 {
@@ -115,6 +118,9 @@ class CollectorController extends Controller
 
         DB::beginTransaction();
         try {
+            // Store plain password before hashing for email
+            $plainPassword = $validated['password'];
+
             // Auto-generate employee_id
             $lastEmployeeId = Collector::max('employee_id') ?? 0;
             $employeeId = $lastEmployeeId + 1;
@@ -165,6 +171,15 @@ class CollectorController extends Controller
             $collector = Collector::create($collectorData);
 
             DB::commit();
+
+            // Send email with account credentials
+            try {
+                Mail::to($collector->email)->send(new CollectorAccountCreated($collector, $plainPassword));
+            } catch (\Exception $mailException) {
+                // Log the error but don't fail the transaction
+                Log::error('Failed to send collector account creation email: ' . $mailException->getMessage());
+                // Continue with success message as account was created
+            }
 
             $this->adminActivityLogs(
                 'Collector',

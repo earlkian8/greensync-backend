@@ -39,17 +39,16 @@ class RouteAssignmentController extends Controller
         $dateFilter = $request->get('date', '');
 
         $query = RouteAssignment::with([
-            'route:id,route_name,barangay',
+            'route:id,route_name',
             'collector:id,name,phone_number,employee_id',
-            'schedule:id,barangay,collection_day,collection_time,frequency',
+            'schedule:id,collection_day,collection_time,frequency',
             'assignedBy:id,name'
         ]);
 
         if ($search) {
             $query->where(function ($q) use ($search) {
                 $q->whereHas('route', function($q) use ($search) {
-                    $q->where('route_name', 'like', "%{$search}%")
-                      ->orWhere('barangay', 'like', "%{$search}%");
+                    $q->where('route_name', 'like', "%{$search}%");
                 })
                 ->orWhereHas('collector', function($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%");
@@ -75,7 +74,7 @@ class RouteAssignmentController extends Controller
 
         // Get active routes for dropdown
         $routes = Route::where('is_active', true)
-                      ->select('id', 'route_name', 'barangay')
+                      ->select('id', 'route_name')
                       ->orderBy('route_name')
                       ->get();
 
@@ -88,9 +87,9 @@ class RouteAssignmentController extends Controller
 
         // Get active schedules for dropdown
         $schedules = CollectionSchedule::where('is_active', true)
-                                      ->select('id', 'barangay', 'collection_day', 'collection_time', 'frequency')
-                                      ->orderBy('barangay')
+                                      ->select('id', 'collection_day', 'collection_time', 'frequency')
                                       ->orderBy('collection_day')
+                                      ->orderBy('collection_time')
                                       ->get();
 
         return Inertia::render('Admin/RouteAssignmentManagement/index', [
@@ -111,7 +110,7 @@ class RouteAssignmentController extends Controller
     {
         // Get active routes
         $routes = Route::where('is_active', true)
-                      ->select('id', 'route_name', 'barangay')
+                      ->select('id', 'route_name')
                       ->orderBy('route_name')
                       ->get();
 
@@ -124,9 +123,9 @@ class RouteAssignmentController extends Controller
 
         // Get active schedules
         $schedules = CollectionSchedule::where('is_active', true)
-                                      ->select('id', 'barangay', 'collection_day', 'collection_time', 'frequency')
-                                      ->orderBy('barangay')
+                                      ->select('id', 'collection_day', 'collection_time', 'frequency')
                                       ->orderBy('collection_day')
+                                      ->orderBy('collection_time')
                                       ->get();
 
         return Inertia::render('Admin/RouteAssignmentManagement/add', [
@@ -253,7 +252,7 @@ class RouteAssignmentController extends Controller
 
         // Get active routes
         $routes = Route::where('is_active', true)
-                      ->select('id', 'route_name', 'barangay')
+                      ->select('id', 'route_name')
                       ->orderBy('route_name')
                       ->get();
 
@@ -266,9 +265,9 @@ class RouteAssignmentController extends Controller
 
         // Get active schedules
         $schedules = CollectionSchedule::where('is_active', true)
-                                      ->select('id', 'barangay', 'collection_day', 'collection_time', 'frequency')
-                                      ->orderBy('barangay')
+                                      ->select('id', 'collection_day', 'collection_time', 'frequency')
                                       ->orderBy('collection_day')
+                                      ->orderBy('collection_time')
                                       ->get();
 
         $this->adminActivityLogs(

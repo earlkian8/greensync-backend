@@ -17,21 +17,21 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        // User::factory()->create([
-        //     'name' => 'Jenson Canones',
-        //     'email' => 'dev@unisync.com',
-        //     'password' => Hash::make('password')
-        // ]);
-        Artisan::call('philippines:run');
+        User::factory()->create([
+            'name' => 'Jenson Canones',
+            'email' => 'dev@unisync.com',
+            'password' => Hash::make('password')
+        ]);
+        // Artisan::call('philippines:run');
 
-        // $this->call([
-        //     ResidentSeeder::class,
-        //     CollectorSeeder::class,
-        //     CollectionScheduleSeeder::class,
-        // ]);
+        $this->call([
+            ResidentSeeder::class,
+            CollectorSeeder::class,
+            CollectionScheduleSeeder::class,
+        ]);
 
-        // $this->call([
-        //     ComprehensiveSeeder::class,
-        // ]);
+        $this->call([
+            ComprehensiveSeeder::class,
+        ]);
     }
 }

@@ -170,7 +170,7 @@ export default function RouteAssignmentManagement() {
 
     const formatScheduleDisplay = (schedule) => {
         if (!schedule) return '---';
-        return `${schedule.barangay} - ${schedule.collection_day}`;
+        return `${schedule.collection_day} at ${schedule.collection_time}`;
     };
 
     const hasActiveFilters = statusFilter || dateFilter;

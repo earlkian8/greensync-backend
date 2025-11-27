@@ -107,20 +107,22 @@ class Resident extends Authenticatable
     /**
      * Check if the address is complete.
      * Checks both new structure (foreign keys) and old structure (string fields) for backward compatibility.
+     * Only requires barangay, region, and province (house_no and street are not required).
      */
     public function isAddressComplete(): bool
     {
         // Check new structure with foreign keys
-        if ($this->region_id && $this->province_id && $this->city_id && $this->barangay_id) {
-            return !empty($this->house_no) && !empty($this->street) && !empty($this->postal_code);
+        if ($this->region_id && $this->province_id && $this->barangay_id) {
+            return true;
         }
         
         // Fallback to old structure for backward compatibility
-        return !empty($this->barangay) && 
-               !empty($this->city) && 
-               !empty($this->province) && 
-               !empty($this->country) && 
-               !empty($this->postal_code);
+        // Check barangay, province, and region_id (if available)
+        $hasBarangay = !empty($this->barangay);
+        $hasProvince = !empty($this->province);
+        $hasRegion = !empty($this->region_id);
+        
+        return $hasBarangay && $hasProvince && $hasRegion;
     }
 
     /** -------------------------

@@ -30,13 +30,12 @@ import ShowCollectionSchedule from './show';
 
 export default function CollectionScheduleManagement() {
     const columns = [
-        { header: 'Barangay', width: '18%' },
-        { header: 'Day', width: '12%' },
-        { header: 'Time', width: '12%' },
-        { header: 'Frequency', width: '12%' },
-        { header: 'Status', width: '10%' },
-        { header: 'Created By', width: '18%' },
-        { header: 'Action', width: '10%' },
+        { header: 'Day', width: '15%' },
+        { header: 'Time', width: '15%' },
+        { header: 'Frequency', width: '15%' },
+        { header: 'Status', width: '12%' },
+        { header: 'Created By', width: '20%' },
+        { header: 'Action', width: '15%' },
     ];
 
     const [showAddModal, setShowAddModal] = useState(false);
@@ -53,11 +52,9 @@ export default function CollectionScheduleManagement() {
 
     const pagination = usePage().props.schedules;
     const scheduleData = usePage().props.schedules.data;
-    const barangays = usePage().props.barangays;
 
     const [search, setSearch] = useState(usePage().props.search || '');
     const [statusFilter, setStatusFilter] = useState(usePage().props.statusFilter || '');
-    const [barangayFilter, setBarangayFilter] = useState(usePage().props.barangayFilter || '');
     const [dayFilter, setDayFilter] = useState(usePage().props.dayFilter || '');
 
     const handleSearch = (e) => {
@@ -67,7 +64,6 @@ export default function CollectionScheduleManagement() {
             { 
                 search: e.target.value,
                 status: statusFilter,
-                barangay: barangayFilter,
                 day: dayFilter
             }, 
             { preserveState: true, replace: true }
@@ -77,8 +73,6 @@ export default function CollectionScheduleManagement() {
     const handleFilterChange = (type, value) => {
         if (type === 'status') {
             setStatusFilter(value);
-        } else if (type === 'barangay') {
-            setBarangayFilter(value);
         } else if (type === 'day') {
             setDayFilter(value);
         }
@@ -88,7 +82,6 @@ export default function CollectionScheduleManagement() {
             {
                 search,
                 status: type === 'status' ? value : statusFilter,
-                barangay: type === 'barangay' ? value : barangayFilter,
                 day: type === 'day' ? value : dayFilter,
             },
             { preserveState: true, replace: true }
@@ -97,7 +90,6 @@ export default function CollectionScheduleManagement() {
 
     const handleClearFilters = () => {
         setStatusFilter('');
-        setBarangayFilter('');
         setDayFilter('');
         
         router.get(
@@ -105,7 +97,6 @@ export default function CollectionScheduleManagement() {
             {
                 search,
                 status: '',
-                barangay: '',
                 day: '',
             },
             { preserveState: true, replace: true }
@@ -119,7 +110,6 @@ export default function CollectionScheduleManagement() {
                 search, 
                 page,
                 status: statusFilter,
-                barangay: barangayFilter,
                 day: dayFilter
             }, 
             { preserveState: true, replace: true }
@@ -153,7 +143,7 @@ export default function CollectionScheduleManagement() {
         return labels[frequency] || frequency;
     };
 
-    const hasActiveFilters = statusFilter || barangayFilter || dayFilter;
+    const hasActiveFilters = statusFilter || dayFilter;
 
     const breadcrumbs = [
         {
@@ -225,7 +215,7 @@ export default function CollectionScheduleManagement() {
                                             Filters
                                             {hasActiveFilters && (
                                                 <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
-                                                    {[statusFilter, barangayFilter, dayFilter].filter(Boolean).length}
+                                                    {[statusFilter, dayFilter].filter(Boolean).length}
                                                 </span>
                                             )}
                                         </Button>
@@ -286,29 +276,6 @@ export default function CollectionScheduleManagement() {
                                                     </SelectContent>
                                                 </Select>
                                             </div>
-
-                                            {/* Barangay Filter */}
-                                            <div>
-                                                <label className="text-xs font-medium text-zinc-700 mb-1 block">
-                                                    Barangay
-                                                </label>
-                                                <Select 
-                                                    value={barangayFilter} 
-                                                    onValueChange={(value) => handleFilterChange('barangay', value)}
-                                                >
-                                                    <SelectTrigger className="w-full">
-                                                        <SelectValue placeholder="All Barangays" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="all">All Barangays</SelectItem>
-                                                        {barangays.map(barangay => (
-                                                            <SelectItem key={barangay} value={barangay}>
-                                                                {barangay}
-                                                            </SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
                                         </div>
                                     </PopoverContent>
                                 </Popover>
@@ -338,9 +305,6 @@ export default function CollectionScheduleManagement() {
                     >
                         {scheduleData.map(schedule => (
                             <TableRow key={schedule.id}>
-                                <TableCell className='text-left px-2 py-2 sm:px-4 md:px-6 text-xs sm:text-sm'>
-                                    {schedule.barangay}
-                                </TableCell>
                                 <TableCell className='text-left px-2 py-2 sm:px-4 md:px-6 text-xs sm:text-sm'>
                                     {schedule.collection_day}
                                 </TableCell>

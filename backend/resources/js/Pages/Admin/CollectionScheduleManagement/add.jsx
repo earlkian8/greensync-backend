@@ -24,7 +24,6 @@ import { Textarea } from '@/Components/ui/textarea';
 
 const AddCollectionSchedule = ({ setShowAddModal }) => {
   const { data, setData, post, errors, processing } = useForm({
-    barangay: '',
     collection_day: '',
     collection_time: '',
     frequency: 'weekly',
@@ -67,19 +66,6 @@ const AddCollectionSchedule = ({ setShowAddModal }) => {
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
-
-          {/* Barangay */}
-          <div>
-            <Label className="text-zinc-800">Barangay </Label>
-            <Input
-              type="text"
-              value={data.barangay}
-              onChange={e => setData('barangay', e.target.value)}
-              placeholder="Enter barangay name"
-              className={inputClass(errors.barangay)}
-            />
-            <InputError message={errors.barangay} />
-          </div>
 
           {/* Collection Day */}
           <div>
