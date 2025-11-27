@@ -103,6 +103,11 @@ class ComprehensiveSeeder extends Seeder
         // Create additional residents (for variety)
         $residents = [$earlResident];
         $usedPhoneNumbers = ['+639123456789']; // Track used phone numbers
+        $filipinoNames = [
+            'Maria Santos', 'Juan dela Cruz', 'Rosa Garcia', 'Carlos Mendoza', 'Ana Rodriguez',
+            'Jose Fernandez', 'Carmen Torres', 'Miguel Ramos', 'Luz Villanueva', 'Pedro Aquino',
+            'Elena Bautista', 'Roberto Cruz', 'Sofia Reyes', 'Antonio Lopez', 'Isabel Martinez'
+        ];
         for ($i = 2; $i <= 15; $i++) {
             // Generate unique phone number
             do {
@@ -115,7 +120,7 @@ class ComprehensiveSeeder extends Seeder
                 [
                     'phone_number' => $phoneNumber,
                     'password' => Hash::make('password'),
-                    'name' => "Resident {$i}",
+                    'name' => $filipinoNames[($i - 2) % count($filipinoNames)],
                     'house_no' => (string)(100 + $i),
                     'street' => "Street {$i}",
                     'barangay' => $zamboangaBarangays[($i - 2) % count($zamboangaBarangays)],
@@ -163,6 +168,9 @@ class ComprehensiveSeeder extends Seeder
         }
 
         // Create collection requests for Earl Kian (focus on him)
+        // WMSU coordinates: 6.9214, 122.0769
+        $wmsuLat = 6.9214;
+        $wmsuLng = 122.0769;
         $earlRequests = [];
         $requestStatuses = ['pending', 'assigned', 'in_progress', 'completed', 'cancelled'];
         $priorities = ['low', 'medium', 'high', 'urgent'];
@@ -170,6 +178,10 @@ class ComprehensiveSeeder extends Seeder
 
         for ($i = 1; $i <= 8; $i++) {
             $status = $requestStatuses[($i - 1) % 5];
+            // Generate coordinates within ~2km radius of WMSU
+            $latitude = $wmsuLat + (rand(-180, 180) / 10000);
+            $longitude = $wmsuLng + (rand(-180, 180) / 10000);
+            
             $earlRequests[] = CollectionRequest::create([
                 'user_id' => $earlResident->id,
                 'bin_id' => $earlBins[rand(0, count($earlBins) - 1)]->id,
@@ -177,8 +189,8 @@ class ComprehensiveSeeder extends Seeder
                 'description' => "Collection request #{$i} from Earl Kian",
                 'preferred_date' => now()->addDays(rand(1, 14)),
                 'preferred_time' => Carbon::createFromTime(rand(8, 16), rand(0, 59)),
-                'latitude' => 6.9214 + (rand(-100, 100) / 10000),
-                'longitude' => 122.0769 + (rand(-100, 100) / 10000),
+                'latitude' => $latitude,
+                'longitude' => $longitude,
                 'waste_type' => $wasteTypes[($i - 1) % 5],
                 'priority' => $priorities[($i - 1) % 4],
                 'status' => $status,
@@ -188,6 +200,9 @@ class ComprehensiveSeeder extends Seeder
         }
 
         // Create collection requests for other residents
+        // WMSU coordinates: 6.9214, 122.0769
+        $wmsuLat = 6.9214;
+        $wmsuLng = 122.0769;
         foreach ($residents as $resident) {
             if ($resident->id === $earlResident->id) continue;
             
@@ -196,6 +211,10 @@ class ComprehensiveSeeder extends Seeder
 
             $numRequests = rand(1, 4);
             for ($i = 1; $i <= $numRequests; $i++) {
+                // Generate coordinates within ~2km radius of WMSU
+                $latitude = $wmsuLat + (rand(-180, 180) / 10000);
+                $longitude = $wmsuLng + (rand(-180, 180) / 10000);
+                
                 CollectionRequest::create([
                     'user_id' => $resident->id,
                     'bin_id' => $residentBins->random()->id,
@@ -203,8 +222,8 @@ class ComprehensiveSeeder extends Seeder
                     'description' => "Collection request from {$resident->name}",
                     'preferred_date' => now()->addDays(rand(1, 21)),
                     'preferred_time' => Carbon::createFromTime(rand(8, 16), rand(0, 59)),
-                    'latitude' => 14.5995 + (rand(-100, 100) / 10000),
-                    'longitude' => 120.9842 + (rand(-100, 100) / 10000),
+                    'latitude' => $latitude,
+                    'longitude' => $longitude,
                     'waste_type' => $wasteTypes[rand(0, 4)],
                     'priority' => $priorities[rand(0, 3)],
                     'status' => $requestStatuses[rand(0, 4)],
@@ -216,6 +235,9 @@ class ComprehensiveSeeder extends Seeder
 
         // Create additional collectors
         $collectors = [$earlCollector];
+        $collectorNames = [
+            'Ramon Gutierrez', 'Lina Morales', 'Fernando Castillo', 'Grace Alcantara'
+        ];
         for ($i = 2; $i <= 5; $i++) {
             // Generate unique phone number for collectors
             do {
@@ -228,7 +250,7 @@ class ComprehensiveSeeder extends Seeder
                 [
                     'phone_number' => $phoneNumber,
                     'password' => Hash::make('password'),
-                    'name' => "Collector {$i}",
+                    'name' => $collectorNames[($i - 2) % count($collectorNames)],
                     'employee_id' => 1000 + $i,
                     'license_number' => 'DL-2024-' . str_pad($i, 6, '0', STR_PAD_LEFT),
                     'vehicle_plate_number' => 'XYZ-' . str_pad($i, 4, '0', STR_PAD_LEFT),
@@ -276,18 +298,26 @@ class ComprehensiveSeeder extends Seeder
             $routes[] = $route;
 
             // Create route stops for this route
+            // WMSU coordinates: 6.9214, 122.0769
+            // Using coordinates within ~2km radius of WMSU for route stops
+            $wmsuLat = 6.9214;
+            $wmsuLng = 122.0769;
             $availableBins = collect($allBins)->where('resident_id', '!=', $earlResident->id)->values();
             $numStops = min(rand(5, 12), $availableBins->count());
             $routeBins = $availableBins->random($numStops);
             $stopOrder = 1;
             foreach ($routeBins as $bin) {
+                // Generate coordinates within ~2km radius of WMSU (approximately ±0.018 degrees)
+                $latitude = $wmsuLat + (rand(-180, 180) / 10000);
+                $longitude = $wmsuLng + (rand(-180, 180) / 10000);
+                
                 RouteStop::create([
                     'route_id' => $route->id,
                     'bin_id' => $bin->id,
                     'stop_order' => $stopOrder++,
                     'stop_address' => $bin->resident->full_address ?? "Address for Bin {$bin->id}",
-                    'latitude' => 6.9214 + (rand(-100, 100) / 10000),
-                    'longitude' => 122.0769 + (rand(-100, 100) / 10000),
+                    'latitude' => $latitude,
+                    'longitude' => $longitude,
                     'estimated_time' => Carbon::createFromTime(8 + ($stopOrder % 8), ($stopOrder * 5) % 60),
                     'notes' => "Stop {$stopOrder} for {$bin->name}",
                 ]);
@@ -316,6 +346,9 @@ class ComprehensiveSeeder extends Seeder
         }
 
         // Create QR Collections (collection history - focus on Earl Kian)
+        // WMSU coordinates: 6.9214, 122.0769
+        $wmsuLat = 6.9214;
+        $wmsuLng = 122.0769;
         $collectionStatuses = ['successful', 'skipped', 'failed'];
         $wasteTypes = ['biodegradable', 'non-biodegradable', 'recyclable', 'special', 'all'];
 
@@ -337,8 +370,8 @@ class ComprehensiveSeeder extends Seeder
                     'collection_timestamp' => $assignment->start_time 
                         ? $assignment->start_time->copy()->addMinutes(rand(10, 120))
                         : now()->subDays(rand(1, 30)),
-                    'latitude' => $stop->latitude ?? 6.9214 + (rand(-100, 100) / 10000),
-                    'longitude' => $stop->longitude ?? 122.0769 + (rand(-100, 100) / 10000),
+                    'latitude' => $stop->latitude ?? $wmsuLat + (rand(-180, 180) / 10000),
+                    'longitude' => $stop->longitude ?? $wmsuLng + (rand(-180, 180) / 10000),
                     'waste_weight' => $status === 'successful' ? rand(500, 5000) / 100 : null,
                     'waste_type' => $wasteTypes[rand(0, 4)],
                     'collection_status' => $status,
@@ -369,8 +402,8 @@ class ComprehensiveSeeder extends Seeder
                     'collection_timestamp' => $assignment->start_time 
                         ? $assignment->start_time->copy()->addMinutes(rand(10, 120))
                         : now()->subDays(rand(1, 30)),
-                    'latitude' => $stop->latitude ?? 6.9214 + (rand(-100, 100) / 10000),
-                    'longitude' => $stop->longitude ?? 122.0769 + (rand(-100, 100) / 10000),
+                    'latitude' => $stop->latitude ?? $wmsuLat + (rand(-180, 180) / 10000),
+                    'longitude' => $stop->longitude ?? $wmsuLng + (rand(-180, 180) / 10000),
                     'waste_weight' => $status === 'successful' ? rand(500, 5000) / 100 : null,
                     'waste_type' => $wasteTypes[rand(0, 4)],
                     'collection_status' => $status,
